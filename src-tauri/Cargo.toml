@@ -1,0 +1,19 @@
+[package]
+name = "vision-trainer"
+version = "0.1.0"
+description = "Vision Trainer desktop app"
+authors = ["Vision Trainer"]
+edition = "2021"
+
+[lib]
+name = "vision_trainer_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+
+[features]
+custom-protocol = ["tauri/custom-protocol"]
