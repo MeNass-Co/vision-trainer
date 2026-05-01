@@ -7,6 +7,7 @@ export type ContrastCondition = {
   spatialFrequencyCpd: number;
   orientationDeg: Orientation;
   trialsPerBlock: number;
+  durationMs?: number;
 };
 
 export const CONTRAST_DETECTION_CONDITIONS: ContrastCondition[] = [
