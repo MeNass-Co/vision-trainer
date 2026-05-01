@@ -1,5 +1,7 @@
 export type Orientation = 0 | 45 | 90 | 135;
 
+export type GoalType = 'myopia' | 'presbyopia' | 'sports-vision';
+
 export type EyeMode = 'both' | 'left' | 'right';
 
 export type SessionType = 'guided' | 'dichoptic';
@@ -112,7 +114,7 @@ export type UserProfile = {
   id: string;
   createdAt: string;
   displayName: string;
-  diagnosisType: 'amblyopia' | 'presbyopia' | 'low-contrast-sensitivity' | 'research' | 'unspecified';
+  diagnosisType: GoalType | 'unspecified';
   targetCadencePerWeek: number;
 };
 
