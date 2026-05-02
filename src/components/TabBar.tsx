@@ -25,7 +25,7 @@ export function TabBar({ currentTab, onTabChange }: TabBarProps) {
           onClick={() => onTabChange(id)}
           aria-current={currentTab === id ? 'page' : undefined}
         >
-          <Icon size={18} className="tab__icon" />
+          <Icon size={22} className="tab__icon" />
           <span className="tab__label">{label}</span>
         </button>
       ))}
