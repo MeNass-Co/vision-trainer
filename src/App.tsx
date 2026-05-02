@@ -8,6 +8,7 @@ import { ProgressDashboard } from './components/ProgressDashboard';
 import { ScienceTab } from './components/ScienceTab';
 import { SettingsScreen } from './components/SettingsScreen';
 import { useAppStore } from './store/useAppStore';
+import { getTimePhase } from './theme';
 import type { GoalType } from './types';
 import './styles.css';
 
@@ -29,6 +30,20 @@ export default function App() {
     void initialize();
   }, [initialize]);
 
+  const timePhase = useAppStore((s) => s.timePhase);
+  const setTimePhase = useAppStore((s) => s.setTimePhase);
+
+  useEffect(() => {
+    const check = () => {
+      const phase = getTimePhase();
+      if (phase !== timePhase) {
+        setTimePhase(phase);
+      }
+    };
+    const interval = setInterval(check, 60_000);
+    return () => clearInterval(interval);
+  }, [timePhase, setTimePhase]);
+
   if (!ready) {
     return (
       <main className="loading-screen">
@@ -42,8 +57,8 @@ export default function App() {
     return (
       <main className="app-shell">
         <GoalSelection
-          onSelect={(goal: GoalType, monocular: boolean, eye: 'left' | 'right') => {
-            void setGoalType(goal);
+          onSelect={(goal: GoalType, monocular: boolean, eye: 'left' | 'right', name: string) => {
+            void setGoalType(goal, name);
             void setMonocularMode(monocular, eye);
           }}
         />
@@ -51,25 +66,27 @@ export default function App() {
     );
   }
 
-  const renderTab = () => {
-    switch (currentTab) {
-      case 'home':
-        return (
+  return (
+    <main className="app-shell">
+      <section className={`tab-content ${currentTab === 'train' ? 'tab-content--wide' : ''}`}>
+        <div className={currentTab === 'home' ? 'tab-pane tab-pane--active' : 'tab-pane'}>
           <HomeScreen
             profile={profile}
             dashboard={dashboard}
             gamification={gamification}
             onStartSession={() => setCurrentTab('train')}
           />
-        );
-      case 'train':
-        return <SessionFlow />;
-      case 'progress':
-        return <ProgressDashboard dashboard={dashboard} />;
-      case 'science':
-        return <ScienceTab />;
-      case 'settings':
-        return (
+        </div>
+        <div className={currentTab === 'train' ? 'tab-pane tab-pane--active' : 'tab-pane'}>
+          <SessionFlow />
+        </div>
+        <div className={currentTab === 'progress' ? 'tab-pane tab-pane--active' : 'tab-pane'}>
+          <ProgressDashboard dashboard={dashboard} />
+        </div>
+        <div className={currentTab === 'science' ? 'tab-pane tab-pane--active' : 'tab-pane'}>
+          <ScienceTab />
+        </div>
+        <div className={currentTab === 'settings' ? 'tab-pane tab-pane--active' : 'tab-pane'}>
           <SettingsScreen
             profile={profile}
             calibration={calibration}
@@ -78,16 +95,9 @@ export default function App() {
             onChangeGoal={(goal) => void setGoalType(goal)}
             onResetProgress={() => {}}
           />
-        );
-    }
-  };
-
-  return (
-    <main className="app-shell">
-      <TabBar currentTab={currentTab} onTabChange={setCurrentTab} />
-      <section className="tab-content">
-        {renderTab()}
+        </div>
       </section>
+      <TabBar currentTab={currentTab} onTabChange={setCurrentTab} />
     </main>
   );
 }
