@@ -3,50 +3,80 @@ import { useState } from 'react';
 import type { GoalType } from '../types';
 
 type GoalSelectionProps = {
-  onSelect: (goal: GoalType, monocular: boolean, eye: 'left' | 'right') => void;
+  onSelect: (goal: GoalType, monocular: boolean, eye: 'left' | 'right', name: string) => void;
 };
 
-const GOALS: Array<{ type: GoalType; icon: typeof Eye; label: string; description: string }> = [
+const GOALS: Array<{ type: GoalType; icon: typeof Eye; label: string; tagline: string; details: string[] }> = [
   {
     type: 'myopia',
     icon: Eye,
     label: 'Myopia',
-    description: 'Sharpen distance vision through contrast training',
+    tagline: 'See sharper at a distance',
+    details: [
+      'Trains fine-detail detection',
+      'Flanker patterns filter visual noise',
+      '30 sessions · ~25 min each',
+    ],
   },
   {
     type: 'presbyopia',
     icon: Glasses,
     label: 'Presbyopia',
-    description: 'Enhance near-focus clarity for reading',
+    tagline: 'Read clearly without squinting',
+    details: [
+      'Targets mid-range detail for reading',
+      'Gentle pace, slower stimuli',
+      '30 sessions · ~25 min each',
+    ],
   },
   {
     type: 'sports-vision',
     icon: Zap,
     label: 'Sports Vision',
-    description: 'Faster visual processing & reaction time',
+    tagline: 'React faster, see more',
+    details: [
+      'Full range — coarse to fine detail',
+      'Fast flashes train reaction speed',
+      '30 sessions · ~20 min each',
+    ],
   },
 ];
 
 export function GoalSelection({ onSelect }: GoalSelectionProps) {
+  const [name, setName] = useState('');
   const [monocular, setMonocular] = useState(false);
   const [monocularEye, setMonocularEye] = useState<'left' | 'right'>('right');
 
   return (
     <section className="goal-selection" aria-labelledby="goal-heading">
       <h2 id="goal-heading" className="goal-selection__heading">Welcome to Vision Trainer</h2>
-      <p className="goal-selection__subtitle">What would you like to improve?</p>
+      <p className="goal-selection__subtitle">What's your first name?</p>
+
+      <input
+        type="text"
+        className="name-input glass-card"
+        placeholder="Your name"
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        autoFocus
+      />
+
+      <p className="goal-selection__subtitle" style={{ marginTop: '0.5rem' }}>What would you like to improve?</p>
 
       <div className="goal-cards">
-        {GOALS.map(({ type, icon: Icon, label, description }) => (
+        {GOALS.map(({ type, icon: Icon, label, tagline, details }) => (
           <button
             key={type}
             type="button"
             className="goal-card glass-card"
-            onClick={() => onSelect(type, monocular, monocularEye)}
+            onClick={() => onSelect(type, monocular, monocularEye, name.trim() || 'Friend')}
           >
             <Icon size={28} />
             <h3>{label}</h3>
-            <p>{description}</p>
+            <p className="goal-card__tagline">{tagline}</p>
+            <ul className="goal-card__details">
+              {details.map((d) => <li key={d}>{d}</li>)}
+            </ul>
           </button>
         ))}
       </div>
