@@ -1163,3 +1163,51 @@ a:focus-visible {
   font-size: 15px;
 }
 .eye-glow--afternoon { animation: glowCycleLight 20s ease-in-out infinite; }
+
+/* ── Progress Screen ── */
+.progress-screen { display: grid; gap: 20px; }
+
+.progress-hero {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  padding: 28px;
+  text-align: center;
+}
+
+.progress-hero__value {
+  color: var(--accent-secondary);
+  font-size: 48px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+
+.progress-hero__label {
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.progress-mini-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.progress-mini {
+  display: grid;
+  gap: 4px;
+  padding: 16px 12px;
+  text-align: center;
+}
+
+.progress-mini__value {
+  color: var(--accent-primary);
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.progress-mini__label {
+  color: var(--text-secondary);
+  font-size: 12px;
+}
