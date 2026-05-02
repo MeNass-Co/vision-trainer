@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { applyTheme } from '../theme';
+import { applyPhase, applyTheme, getTimePhase } from '../theme';
 import type {
   AssessmentResult,
   CalibrationProfile,
@@ -14,6 +14,7 @@ import type {
   SessionType,
   TabId,
   ThresholdEstimate,
+  TimePhase,
   TrialRecord,
   UserProfile
 } from '../types';
@@ -38,6 +39,7 @@ import { createSessionLog } from '../session/sessionPlanner';
 type AppState = {
   ready: boolean;
   currentTab: TabId;
+  timePhase: TimePhase;
   calibration: CalibrationProfile;
   profile: UserProfile;
   gamification: GamificationState;
@@ -54,8 +56,9 @@ type AppState = {
   recordAssessment: (assessment: AssessmentResult) => Promise<void>;
   updateDichopticSettings: (settings: DichopticSettings) => Promise<void>;
   setAudioMuted: (muted: boolean) => Promise<void>;
-  setGoalType: (goal: GoalType) => Promise<void>;
+  setGoalType: (goal: GoalType, name?: string) => Promise<void>;
   setCurrentTab: (tab: TabId) => void;
+  setTimePhase: (phase: TimePhase) => void;
   setTheme: (theme: 'dark' | 'light') => Promise<void>;
   setMonocularMode: (enabled: boolean, eye?: 'left' | 'right') => Promise<void>;
   refreshDashboard: () => Promise<void>;
@@ -94,6 +97,7 @@ const defaultDichopticSettings: DichopticSettings = {
 export const useAppStore = create<AppState>((set, get) => ({
   ready: false,
   currentTab: 'home' as TabId,
+  timePhase: getTimePhase(),
   calibration: DEFAULT_CALIBRATION,
   profile: defaultProfile,
   gamification: defaultGamification,
@@ -118,8 +122,9 @@ export const useAppStore = create<AppState>((set, get) => ({
     await saveDichopticSettings(dichopticSettings);
     const dashboard = await loadDashboardData();
     const syncedGamification = await syncBadges(gamification, dashboard);
-    set({ calibration, profile, dashboard, gamification: syncedGamification, dichopticSettings, ready: true });
-    applyTheme(profile.theme ?? 'dark');
+    const phase = getTimePhase();
+    applyPhase(phase);
+    set({ calibration, profile, dashboard, gamification: syncedGamification, dichopticSettings, ready: true, timePhase: phase });
   },
 
   updateCalibration: async (profile) => {
@@ -198,14 +203,19 @@ export const useAppStore = create<AppState>((set, get) => ({
     set({ gamification: updated });
   },
 
-  setGoalType: async (goal) => {
-    const profile = { ...get().profile, diagnosisType: goal };
+  setGoalType: async (goal, name) => {
+    const profile = { ...get().profile, diagnosisType: goal, ...(name ? { displayName: name } : {}) };
     await saveProfile(profile);
     set({ profile });
   },
 
   setCurrentTab: (tab) => {
     set({ currentTab: tab });
+  },
+
+  setTimePhase: (phase: TimePhase) => {
+    applyPhase(phase);
+    set({ timePhase: phase });
   },
 
   setTheme: async (theme) => {
