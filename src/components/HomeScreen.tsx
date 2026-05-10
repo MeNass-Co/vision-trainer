@@ -79,11 +79,13 @@ function getGreeting(phase: TimePhase): string {
 
 function sessionStreak(sessions: DashboardSnapshot['sessions']): number {
   const completedDates = new Set(
-    sessions.filter((s) => s.status === 'completed' && s.completedAt).map((s) => s.completedAt?.slice(0, 10))
+    sessions
+      .filter((s) => s.status === 'completed' && s.completedAt)
+      .map((s) => localDateKey(new Date(s.completedAt as string)))
   );
   let streak = 0;
   const cursor = new Date();
-  while (completedDates.has(cursor.toISOString().slice(0, 10))) {
+  while (completedDates.has(localDateKey(cursor))) {
     streak += 1;
     cursor.setDate(cursor.getDate() - 1);
   }
@@ -99,15 +101,24 @@ function buildWeekDays(sessions: DashboardSnapshot['sessions']): WeekDay[] {
   const monday = new Date(today);
   monday.setDate(today.getDate() - ((dayOfWeek + 6) % 7));
   const completedDates = new Set(
-    sessions.filter((s) => s.status === 'completed' && s.completedAt).map((s) => s.completedAt?.slice(0, 10))
+    sessions
+      .filter((s) => s.status === 'completed' && s.completedAt)
+      .map((s) => localDateKey(new Date(s.completedAt as string)))
   );
   const labels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
   return labels.map((label, i) => {
     const d = new Date(monday);
     d.setDate(monday.getDate() + i);
-    const dateStr = d.toISOString().slice(0, 10);
-    const todayStr = today.toISOString().slice(0, 10);
+    const dateStr = localDateKey(d);
+    const todayStr = localDateKey(today);
     const status: DayStatus = dateStr === todayStr ? 'today' : completedDates.has(dateStr) ? 'done' : 'future';
     return { label, status };
   });
+}
+
+function localDateKey(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }

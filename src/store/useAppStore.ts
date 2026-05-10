@@ -50,6 +50,7 @@ type AppState = {
   updateCalibration: (profile: CalibrationProfile) => Promise<void>;
   startSession: (plannedBlocks?: ParadigmId[], eyeMode?: EyeMode, sessionType?: SessionType) => Promise<SessionLog>;
   updateSession: (session: SessionLog) => Promise<void>;
+  abandonSession: () => Promise<void>;
   completeSession: () => Promise<void>;
   recordTrial: (trial: TrialRecord) => Promise<GamificationAward>;
   recordThreshold: (threshold: ThresholdEstimate) => Promise<void>;
@@ -109,7 +110,14 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   initialize: async () => {
     const db = await getDb();
-    const profile = (await db.get('profiles', defaultProfile.id)) ?? defaultProfile;
+    const storedProfile = await db.get('profiles', defaultProfile.id);
+    const profile = {
+      ...defaultProfile,
+      ...storedProfile,
+      theme: storedProfile?.theme ?? defaultProfile.theme,
+      monocularMode: storedProfile?.monocularMode ?? defaultProfile.monocularMode,
+      monocularEye: storedProfile?.monocularEye ?? defaultProfile.monocularEye
+    };
     await saveProfile(profile);
     const calibration = (await getLatestCalibration()) ?? createBrowserCalibration();
     await saveCalibration(calibration);
@@ -140,6 +148,20 @@ export const useAppStore = create<AppState>((set, get) => ({
   updateSession: async (session) => {
     await saveSession(session);
     set({ activeSession: session });
+    await get().refreshDashboard();
+  },
+
+  abandonSession: async () => {
+    const activeSession = get().activeSession;
+    if (!activeSession) {
+      return;
+    }
+    const abandoned: SessionLog = {
+      ...activeSession,
+      status: 'abandoned'
+    };
+    set({ activeSession: null });
+    await saveSession(abandoned);
     await get().refreshDashboard();
   },
 
@@ -318,13 +340,20 @@ function sessionStreak(sessions: DashboardSnapshot['sessions']): number {
   const completedDates = new Set(
     sessions
       .filter((session) => session.status === 'completed' && session.completedAt)
-      .map((session) => session.completedAt?.slice(0, 10))
+      .map((session) => localDateKey(new Date(session.completedAt as string)))
   );
   let streak = 0;
   const cursor = new Date();
-  while (completedDates.has(cursor.toISOString().slice(0, 10))) {
+  while (completedDates.has(localDateKey(cursor))) {
     streak += 1;
     cursor.setDate(cursor.getDate() - 1);
   }
   return streak;
+}
+
+function localDateKey(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }

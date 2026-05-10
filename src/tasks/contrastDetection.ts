@@ -8,6 +8,7 @@ export type ContrastCondition = {
   orientationDeg: Orientation;
   trialsPerBlock: number;
   durationMs?: number;
+  gaborSizeDeg?: number;
 };
 
 export const CONTRAST_DETECTION_CONDITIONS: ContrastCondition[] = [
@@ -61,6 +62,7 @@ export function createContrastTrial(
       contrast,
       phaseRad: Math.random() * Math.PI * 2,
       durationMs: condition.durationMs ?? 160,
+      gaborSizeDeg: condition.gaborSizeDeg,
       backgroundLuminanceCdM2: 40
     }
   };
@@ -81,7 +83,8 @@ export function buildTrialRecord(
     conditionKey: conditionKey(
       plan.condition.spatialFrequencyCpd,
       plan.condition.orientationDeg,
-      plan.condition.paradigm
+      plan.condition.paradigm,
+      plan.condition.durationMs
     ),
     trialIndex: plan.trialIndex,
     stimulus: plan.stimulus,

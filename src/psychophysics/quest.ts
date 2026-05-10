@@ -82,7 +82,12 @@ export class QuestStaircase {
 
   private psychometricProbability(intensityLog10: number, thresholdLog10: number): number {
     const slope = Math.pow(10, this.params.beta * (intensityLog10 - thresholdLog10));
-    const Weibull = 1 - Math.exp(-slope);
+    const thresholdProbability = Math.max(
+      0.001,
+      Math.min(0.999, (this.params.pThreshold - this.params.gamma) / (1 - this.params.gamma - this.params.delta))
+    );
+    const thresholdScale = -Math.log(1 - thresholdProbability);
+    const Weibull = 1 - Math.exp(-thresholdScale * slope);
     return this.params.gamma + (1 - this.params.gamma - this.params.delta) * Weibull;
   }
 

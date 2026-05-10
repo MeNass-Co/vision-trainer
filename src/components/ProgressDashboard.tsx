@@ -20,11 +20,11 @@ export function ProgressDashboard({ dashboard }: ProgressDashboardProps) {
   const totalSessions = dashboard.sessions.filter((s) => s.status === 'completed').length;
 
   return (
-    <section className="progress-screen" aria-labelledby="dashboard-heading">
+    <section className="progress-screen" aria-label="Your Progress">
       <SceneHeader phase={timePhase} title="Your Progress" />
 
       <div className="progress-hero glass-card">
-        <span className="progress-hero__value">+{improvement}%</span>
+        <span className="progress-hero__value">{improvement > 0 ? '+' : ''}{improvement}%</span>
         <span className="progress-hero__label">Vision Improvement</span>
       </div>
 
@@ -133,13 +133,20 @@ function sessionStreak(sessions: DashboardSnapshot['sessions']): number {
   const completedDates = new Set(
     sessions
       .filter((session) => session.status === 'completed' && session.completedAt)
-      .map((session) => session.completedAt?.slice(0, 10))
+      .map((session) => localDateKey(new Date(session.completedAt as string)))
   );
   let streak = 0;
   const cursor = new Date();
-  while (completedDates.has(cursor.toISOString().slice(0, 10))) {
+  while (completedDates.has(localDateKey(cursor))) {
     streak += 1;
     cursor.setDate(cursor.getDate() - 1);
   }
   return streak;
+}
+
+function localDateKey(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }

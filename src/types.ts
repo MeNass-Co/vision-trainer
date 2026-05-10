@@ -52,6 +52,7 @@ export type GaborStimulus = {
   contrast: number;
   phaseRad: number;
   durationMs: number;
+  gaborSizeDeg?: number;
   backgroundLuminanceCdM2: number;
   dichopticMode?: DichopticMode;
   dichopticPartner?: {

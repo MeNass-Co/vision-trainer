@@ -542,7 +542,7 @@ a:focus-visible {
 
 .stimulus-error { padding: 24px; color: var(--accent-danger); background: var(--bg-surface-solid); }
 .phase-overlay { color: var(--text-primary); font-size: 18px; }
-.phase-overlay.interval-1, .phase-overlay.interval-2 { display: block; }
+.phase-overlay.interval-1, .phase-overlay.interval-2 { display: grid; }
 .phase-overlay.response, .phase-overlay.idle, .phase-overlay.ready, .phase-overlay.saving, .phase-overlay.complete { display: none; }
 .fixation { font-size: 34px; line-height: 1; }
 

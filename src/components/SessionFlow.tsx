@@ -22,7 +22,9 @@ export function SessionFlow() {
   const recordThreshold = useAppStore((state) => state.recordThreshold);
   const recordAssessment = useAppStore((state) => state.recordAssessment);
   const [blocks, setBlocks] = useState<PlannedBlock[]>([]);
-  const [selectedEyeMode, setSelectedEyeMode] = useState<EyeMode>('both');
+  const [selectedEyeMode, setSelectedEyeMode] = useState<EyeMode>(
+    profile.monocularMode ? profile.monocularEye : 'both'
+  );
   const [assessmentActive, setAssessmentActive] = useState(false);
   const [completionMessage, setCompletionMessage] = useState<string | null>(null);
 
@@ -36,8 +38,8 @@ export function SessionFlow() {
   const start = async () => {
     const goalType = profile.diagnosisType === 'unspecified' ? undefined : profile.diagnosisType;
     const plannedBlocks = planSession(completedSessions, dashboard.thresholds, goalType);
-    await startSession([...new Set(plannedBlocks.map((block) => block.paradigm))], selectedEyeMode, 'guided');
     setBlocks(plannedBlocks);
+    await startSession([...new Set(plannedBlocks.map((block) => block.paradigm))], selectedEyeMode, 'guided');
     setCompletionMessage(null);
   };
 

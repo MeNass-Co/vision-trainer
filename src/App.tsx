@@ -23,6 +23,7 @@ export default function App() {
   const setCurrentTab = useAppStore((s) => s.setCurrentTab);
   const setGoalType = useAppStore((s) => s.setGoalType);
   const setMonocularMode = useAppStore((s) => s.setMonocularMode);
+  const abandonSession = useAppStore((s) => s.abandonSession);
 
   useEffect(() => {
     void initialize();
@@ -64,36 +65,53 @@ export default function App() {
     );
   }
 
+  const onTabChange = (tab: typeof currentTab) => {
+    if (currentTab === 'train' && tab !== 'train') {
+      void abandonSession();
+    }
+    setCurrentTab(tab);
+  };
+
   return (
     <main className="app-shell">
       <section className={`tab-content ${currentTab === 'train' ? 'tab-content--wide' : ''}`}>
-        <div className={currentTab === 'home' ? 'tab-pane tab-pane--active' : 'tab-pane'}>
-          <HomeScreen
-            profile={profile}
-            dashboard={dashboard}
-            gamification={gamification}
-            timePhase={timePhase}
-            onStartSession={() => setCurrentTab('train')}
-          />
-        </div>
-        <div className={currentTab === 'train' ? 'tab-pane tab-pane--active' : 'tab-pane'}>
-          <SessionFlow />
-        </div>
-        <div className={currentTab === 'progress' ? 'tab-pane tab-pane--active' : 'tab-pane'}>
-          <ProgressDashboard dashboard={dashboard} />
-        </div>
-        <div className={currentTab === 'science' ? 'tab-pane tab-pane--active' : 'tab-pane'}>
-          <ScienceTab />
-        </div>
-        <div className={currentTab === 'settings' ? 'tab-pane tab-pane--active' : 'tab-pane'}>
-          <SettingsScreen
-            profile={profile}
-            calibration={calibration}
-            onChangeGoal={(goal) => void setGoalType(goal)}
-          />
-        </div>
+        {currentTab === 'home' && (
+          <div className="tab-pane tab-pane--active">
+            <HomeScreen
+              profile={profile}
+              dashboard={dashboard}
+              gamification={gamification}
+              timePhase={timePhase}
+              onStartSession={() => setCurrentTab('train')}
+            />
+          </div>
+        )}
+        {currentTab === 'train' && (
+          <div className="tab-pane tab-pane--active">
+            <SessionFlow />
+          </div>
+        )}
+        {currentTab === 'progress' && (
+          <div className="tab-pane tab-pane--active">
+            <ProgressDashboard dashboard={dashboard} />
+          </div>
+        )}
+        {currentTab === 'science' && (
+          <div className="tab-pane tab-pane--active">
+            <ScienceTab />
+          </div>
+        )}
+        {currentTab === 'settings' && (
+          <div className="tab-pane tab-pane--active">
+            <SettingsScreen
+              profile={profile}
+              calibration={calibration}
+              onChangeGoal={(goal) => void setGoalType(goal)}
+            />
+          </div>
+        )}
       </section>
-      <TabBar currentTab={currentTab} onTabChange={setCurrentTab} />
+      <TabBar currentTab={currentTab} onTabChange={onTabChange} />
     </main>
   );
 }

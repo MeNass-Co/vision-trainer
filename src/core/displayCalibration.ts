@@ -80,6 +80,12 @@ export function luminanceToLinearGray(luminanceCdM2: number, profile: Calibratio
   return Math.pow(normalized, 1 / profile.gamma);
 }
 
-export function conditionKey(spatialFrequencyCpd: number, orientationDeg: number, paradigm: string): string {
-  return `${paradigm}:${spatialFrequencyCpd.toFixed(1)}cpd:${orientationDeg}deg`;
+export function conditionKey(
+  spatialFrequencyCpd: number,
+  orientationDeg: number,
+  paradigm: string,
+  durationMs?: number
+): string {
+  const baseKey = `${paradigm}:${spatialFrequencyCpd.toFixed(1)}cpd:${orientationDeg}deg`;
+  return durationMs ? `${baseKey}:${durationMs}ms` : baseKey;
 }

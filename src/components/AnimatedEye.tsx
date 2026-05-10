@@ -1,3 +1,4 @@
+import { useId } from 'react';
 import type { TimePhase } from '../types';
 
 type AnimatedEyeProps = {
@@ -5,13 +6,15 @@ type AnimatedEyeProps = {
 };
 
 export function AnimatedEye({ phase }: AnimatedEyeProps) {
+  const instanceId = useId().replace(/:/g, '');
   const sclera = phase === 'night' ? '#4a4268' : '#f0ecf4';
   const lidStroke = phase === 'night' ? 'rgba(180,175,210,0.22)' : 'rgba(60,50,80,0.2)';
   const lidStrokeLower = phase === 'night' ? 'rgba(180,175,210,0.1)' : 'rgba(60,50,80,0.1)';
   const creaseStroke = phase === 'night' ? 'rgba(180,175,210,0.06)' : 'rgba(60,50,80,0.05)';
   const limbalStroke = phase === 'night' ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0.18)';
   const reflectionOpacity = phase === 'night' ? 0.5 : 0.7;
-  const clipId = `eye-clip-${phase}`;
+  const clipId = `eye-clip-${phase}-${instanceId}`;
+  const irisDepthId = `iris-depth-${phase}-${instanceId}`;
 
   const openPath = 'M4,35 C20,12 45,3 80,3 C115,3 140,12 156,35 C140,58 115,67 80,67 C45,67 20,58 4,35 Z';
   const closedPath = 'M4,35 C20,34 45,33.5 80,33.5 C115,33.5 140,34 156,35 C140,36 115,36.5 80,36.5 C45,36.5 20,36 4,35 Z';
@@ -45,7 +48,7 @@ export function AnimatedEye({ phase }: AnimatedEyeProps) {
               />
             </path>
           </clipPath>
-          <radialGradient id={`iris-depth-${phase}`} cx="42%" cy="38%">
+          <radialGradient id={irisDepthId} cx="42%" cy="38%">
             <stop offset="0%" stopColor="rgba(255,255,255,0.15)" />
             <stop offset="45%" stopColor="transparent" />
             <stop offset="80%" stopColor="rgba(0,0,0,0.1)" />
@@ -63,7 +66,7 @@ export function AnimatedEye({ phase }: AnimatedEyeProps) {
               values="#4a80c0; #4a9848; #b08830; #7858a8; #389080"
             />
           </circle>
-          <circle cx={80} cy={35} r={33} fill={`url(#iris-depth-${phase})`} />
+          <circle cx={80} cy={35} r={33} fill={`url(#${irisDepthId})`} />
           <circle cx={80} cy={35} r={33} fill="none" stroke={limbalStroke} strokeWidth={1.2} />
           <circle cx={80} cy={35} r={12} fill="#030308" />
           <ellipse cx={72} cy={28} rx={5} ry={4} fill={`rgba(255,255,255,${reflectionOpacity})`} transform="rotate(-12 72 28)" />

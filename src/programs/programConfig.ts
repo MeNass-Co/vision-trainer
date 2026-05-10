@@ -150,6 +150,12 @@ export function getProgramConfig(goalType: GoalType): ProgramConfig {
 }
 
 export function getPhaseForSession(config: ProgramConfig, sessionNumber: number): ProgramPhase {
+  if (config.phases.length === 0) {
+    throw new Error(`Program ${config.goalType} has no phases`);
+  }
+  if (sessionNumber < config.phases[0].sessionRange[0]) {
+    return config.phases[0];
+  }
   for (const phase of config.phases) {
     if (sessionNumber >= phase.sessionRange[0] && sessionNumber <= phase.sessionRange[1]) {
       return phase;

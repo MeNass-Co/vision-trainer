@@ -91,6 +91,7 @@ export function GoalSelection({ onSelect }: GoalSelectionProps) {
           className={`toggle ${monocular ? 'toggle--on' : 'toggle--off'}`}
           onClick={() => setMonocular(!monocular)}
           aria-pressed={monocular}
+          aria-label={monocular ? 'Disable monocular training' : 'Enable monocular training'}
         />
       </div>
 

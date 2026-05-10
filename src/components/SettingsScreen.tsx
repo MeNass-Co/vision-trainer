@@ -36,13 +36,6 @@ export function SettingsScreen({
 
       <div className="settings-group glass-card">
         <div className="setting-row">
-          <span className="setting-row__label">Sound Effects</span>
-          <div className="toggle toggle--on" aria-label="Sound effects enabled" />
-        </div>
-      </div>
-
-      <div className="settings-group glass-card">
-        <div className="setting-row">
           <span className="setting-row__label">Training Program</span>
           <button
             type="button"

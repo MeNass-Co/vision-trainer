@@ -170,7 +170,12 @@ export function ContrastTask({ session, blocks, calibration, audioMuted, dichopt
       id: `threshold-${crypto.randomUUID()}`,
       sessionId: session.id,
       blockId: block.id,
-      conditionKey: conditionKey(block.condition.spatialFrequencyCpd, block.condition.orientationDeg, block.paradigm),
+      conditionKey: conditionKey(
+        block.condition.spatialFrequencyCpd,
+        block.condition.orientationDeg,
+        block.paradigm,
+        block.condition.durationMs
+      ),
       paradigm: block.paradigm,
       spatialFrequencyCpd: block.condition.spatialFrequencyCpd,
       orientationDeg: block.condition.orientationDeg,

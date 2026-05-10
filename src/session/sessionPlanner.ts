@@ -14,7 +14,7 @@ export type PlannedBlock = {
 
 export function createSessionLog(
   calibrationId: string,
-  plannedBlocks: ParadigmId[] = ['contrast-detection'],
+  plannedBlocks: ParadigmId[] = [],
   eyeMode: EyeMode = 'both',
   sessionType: SessionType = 'guided'
 ): SessionLog {
@@ -87,13 +87,17 @@ function deficitScore(
   condition: ContrastCondition,
   latestByCondition: Map<string, ThresholdEstimate>
 ): number {
-  const threshold = latestByCondition.get(blockConditionKey(condition));
+  const threshold = latestByCondition.get(blockConditionKey(condition)) ?? latestByCondition.get(legacyBlockConditionKey(condition));
   const expected = populationNormContrast(condition.spatialFrequencyCpd, condition.paradigm);
   const observed = threshold?.thresholdContrast ?? expected * 2;
   return observed / expected;
 }
 
 function blockConditionKey(condition: ContrastCondition): string {
+  return conditionKey(condition.spatialFrequencyCpd, condition.orientationDeg, condition.paradigm, condition.durationMs);
+}
+
+function legacyBlockConditionKey(condition: ContrastCondition): string {
   return conditionKey(condition.spatialFrequencyCpd, condition.orientationDeg, condition.paradigm);
 }
 
