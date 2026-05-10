@@ -165,7 +165,16 @@ export async function loadDashboardData() {
     db.getAllFromIndex('thresholds', 'by-created-at'),
     db.getAllFromIndex('assessments', 'by-completed-at')
   ]);
-  return { sessions, trials, thresholds, assessments };
+  return { sessions: sessions.map(migrateSessionLog), trials, thresholds, assessments };
+}
+
+function migrateSessionLog(session: SessionLog): SessionLog {
+  const blocks = session.plannedBlocks as unknown;
+  if (!Array.isArray(blocks) || blocks.length === 0 || typeof blocks[0] !== 'string') {
+    return session;
+  }
+  // Legacy: plannedBlocks was ParadigmId[]; drop it (no condition data to reconstruct).
+  return { ...session, plannedBlocks: [] };
 }
 
 export async function exportJson(): Promise<string> {

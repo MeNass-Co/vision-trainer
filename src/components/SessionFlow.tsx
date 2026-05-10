@@ -24,6 +24,7 @@ export function SessionFlow() {
   );
   const [assessmentActive, setAssessmentActive] = useState(false);
   const [completionMessage, setCompletionMessage] = useState<string | null>(null);
+  const [isStarting, setIsStarting] = useState(false);
 
   const timePhase = useAppStore((state) => state.timePhase);
 
@@ -33,6 +34,8 @@ export function SessionFlow() {
   );
 
   const start = async () => {
+    if (isStarting) return;
+    setIsStarting(true);
     const goalType = profile.diagnosisType === 'unspecified' ? undefined : profile.diagnosisType;
     const plannedBlocks = planSession(completedSessions, dashboard.thresholds, goalType);
     try {
@@ -40,6 +43,8 @@ export function SessionFlow() {
       setCompletionMessage(null);
     } catch {
       setCompletionMessage('Unable to start the session. Please try again.');
+    } finally {
+      setIsStarting(false);
     }
   };
 
@@ -87,6 +92,7 @@ export function SessionFlow() {
                 key={eyeMode}
                 type="button"
                 className={selectedEyeMode === eyeMode ? 'selected' : ''}
+                disabled={isStarting}
                 onClick={() => setSelectedEyeMode(eyeMode)}
                 aria-pressed={selectedEyeMode === eyeMode}
               >
@@ -103,12 +109,17 @@ export function SessionFlow() {
 
           {completionMessage && <p className="completion-message">{completionMessage}</p>}
 
-          <button type="button" className="start-btn wide" onClick={() => void start()}>
+          <button type="button" className="start-btn wide" disabled={isStarting} onClick={() => void start()}>
             <PlayCircle size={20} />
             Begin Session
           </button>
 
-          <button type="button" className="session-ready__assess" onClick={() => setAssessmentActive(true)}>
+          <button
+            type="button"
+            className="session-ready__assess"
+            disabled={isStarting}
+            onClick={() => setAssessmentActive(true)}
+          >
             <Activity size={16} />
             Run Full Assessment
           </button>

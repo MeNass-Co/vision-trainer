@@ -75,6 +75,7 @@ export function GoalSelection({ onSelect }: GoalSelectionProps) {
         placeholder="Your name"
         value={name}
         onChange={(e) => setName(e.target.value)}
+        disabled={isPending}
         autoFocus
       />
 
@@ -110,6 +111,7 @@ export function GoalSelection({ onSelect }: GoalSelectionProps) {
           onClick={() => setMonocular(!monocular)}
           aria-pressed={monocular}
           aria-label={monocular ? 'Disable monocular training' : 'Enable monocular training'}
+          disabled={isPending}
         />
       </div>
 
@@ -124,6 +126,7 @@ export function GoalSelection({ onSelect }: GoalSelectionProps) {
               className={`eye-picker__btn ${monocularEye === 'left' ? 'eye-picker__btn--active' : ''}`}
               onClick={() => setMonocularEye('left')}
               aria-pressed={monocularEye === 'left'}
+              disabled={isPending}
             >
               Left Eye
             </button>
@@ -132,6 +135,7 @@ export function GoalSelection({ onSelect }: GoalSelectionProps) {
               className={`eye-picker__btn ${monocularEye === 'right' ? 'eye-picker__btn--active' : ''}`}
               onClick={() => setMonocularEye('right')}
               aria-pressed={monocularEye === 'right'}
+              disabled={isPending}
             >
               Right Eye
             </button>
