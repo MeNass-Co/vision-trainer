@@ -2,8 +2,8 @@ import { conditionKey } from '../core/displayCalibration';
 import { uuid } from '../core/uuid';
 import type { ContrastCondition } from '../tasks/contrastDetection';
 import { getParadigmModule } from '../tasks/paradigmRegistry';
-import type { PlannedBlock } from '../session/sessionPlanner';
-import type { GoalType, Orientation, ParadigmId, ThresholdEstimate } from '../types';
+import { populationNormContrast } from '../session/sessionPlanner';
+import type { GoalType, Orientation, ParadigmId, PlannedBlock, ThresholdEstimate } from '../types';
 import { computeDurationMs, getPhaseForSession, getProgramConfig } from './programConfig';
 
 export function planProgramSession(
@@ -134,19 +134,6 @@ function distributeTrials(
     .filter(([, trials]) => trials > 0);
 }
 
-const PARADIGM_BASELINES = new Map<ParadigmId, Map<number, number>>([
-  ['contrast-detection', new Map([[1.5, 0.018], [3, 0.012], [6, 0.016], [12, 0.04]])],
-  ['lateral-masking', new Map([[1.5, 0.024], [3, 0.018], [6, 0.022], [12, 0.05]])],
-  ['spatial-masking', new Map([[1.5, 0.024], [3, 0.018], [6, 0.022], [12, 0.05]])],
-  ['backward-masking', new Map([[1.5, 0.030], [3, 0.024], [6, 0.030], [12, 0.06]])],
-  ['pedestal-discrimination', new Map([[1.5, 0.022], [3, 0.016], [6, 0.020], [12, 0.045]])]
-]);
-
-const expectedContrast = (condition: ContrastCondition): number => {
-  const paradigmMap = PARADIGM_BASELINES.get(condition.paradigm);
-  return paradigmMap?.get(condition.spatialFrequencyCpd) ?? 0.03;
-};
-
 function selectDeficitCondition(
   thresholds: ThresholdEstimate[],
   conditions: ContrastCondition[]
@@ -159,7 +146,7 @@ function selectDeficitCondition(
     }
   }
 
-  const seenKey = (condition: ContrastCondition): string | undefined => {
+  const latestThresholdFor = (condition: ContrastCondition): ThresholdEstimate | undefined => {
     const fullKey = conditionKey(
       condition.spatialFrequencyCpd,
       condition.orientationDeg,
@@ -174,13 +161,13 @@ function selectDeficitCondition(
       condition.durationMs
     );
     const legacyKey = conditionKey(condition.spatialFrequencyCpd, condition.orientationDeg, condition.paradigm);
-    if (latestByKey.has(fullKey)) return fullKey;
-    if (latestByKey.has(durationLegacyKey)) return durationLegacyKey;
-    if (latestByKey.has(legacyKey)) return legacyKey;
-    return undefined;
+    return [fullKey, durationLegacyKey, legacyKey]
+      .map((key) => latestByKey.get(key))
+      .filter((value): value is ThresholdEstimate => Boolean(value))
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
   };
 
-  const unseen = conditions.filter((condition) => seenKey(condition) === undefined);
+  const unseen = conditions.filter((condition) => latestThresholdFor(condition) === undefined);
   if (unseen.length > 0) {
     return unseen[Math.floor(Math.random() * unseen.length)];
   }
@@ -188,10 +175,9 @@ function selectDeficitCondition(
   let worst: ContrastCondition | null = null;
   let worstScore = -Infinity;
   for (const condition of conditions) {
-    const key = seenKey(condition);
-    const threshold = key ? latestByKey.get(key) : undefined;
+    const threshold = latestThresholdFor(condition);
     if (!threshold) continue;
-    const expected = expectedContrast(condition);
+    const expected = populationNormContrast(condition.spatialFrequencyCpd, condition.paradigm);
     const score = threshold.thresholdContrast / expected;
     if (score > worstScore) {
       worstScore = score;

@@ -163,7 +163,7 @@ export function ContrastTask({ session, blocks, calibration, audioMuted, onTrial
       return;
     }
     const estimate = staircaseRef.current.estimate();
-    const resolvedDurationMs = block.condition.durationMs ?? 160;
+    const resolvedDurationMs = plan?.stimulus.durationMs ?? block.condition.durationMs ?? 160;
     const threshold: ThresholdEstimate = {
       id: `threshold-${uuid()}`,
       sessionId: session.id,

@@ -90,5 +90,6 @@ export function conditionKey(
 ): string {
   const baseKey = `${paradigm}:${spatialFrequencyCpd.toFixed(1)}cpd:${orientationDeg}deg`;
   const withDuration = Number.isFinite(durationMs) ? `${baseKey}:${durationMs}ms` : baseKey;
-  return Number.isFinite(gaborSizeDeg) ? `${withDuration}:${gaborSizeDeg}deg` : withDuration;
+  const sizeDeg = Number.isFinite(gaborSizeDeg) && (gaborSizeDeg as number) > 0 ? gaborSizeDeg : undefined;
+  return sizeDeg === undefined ? withDuration : `${withDuration}:${sizeDeg}deg`;
 }

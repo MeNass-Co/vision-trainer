@@ -45,6 +45,26 @@ export default function App() {
     return () => clearInterval(interval);
   }, [timePhase, setTimePhase]);
 
+  const tabChangeInFlight = useRef(false);
+  const onTabChange = async (tab: typeof currentTab) => {
+    if (tabChangeInFlight.current || tab === currentTab) {
+      return;
+    }
+    tabChangeInFlight.current = true;
+    try {
+      if (currentTab === 'train' && tab !== 'train') {
+        try {
+          await abandonSession();
+        } catch (err) {
+          console.error('Failed to abandon session', err);
+        }
+      }
+      setCurrentTab(tab);
+    } finally {
+      tabChangeInFlight.current = false;
+    }
+  };
+
   if (!ready) {
     return (
       <main className="loading-screen">
@@ -66,29 +86,6 @@ export default function App() {
       </main>
     );
   }
-
-  const tabChangeInFlight = useRef(false);
-  const onTabChange = async (tab: typeof currentTab) => {
-    if (tabChangeInFlight.current || tab === currentTab) {
-      return;
-    }
-    tabChangeInFlight.current = true;
-    try {
-      if (currentTab === 'train' && tab !== 'train') {
-        try {
-          await abandonSession();
-        } catch (err) {
-          // Intentional: navigate even if abandon failed so the user can't be trapped
-          // on the Train tab by a transient persistence error. Stale activeSession
-          // will be cleaned up on the next abandonSession or completeSession call.
-          console.error('Failed to abandon session', err);
-        }
-      }
-      setCurrentTab(tab);
-    } finally {
-      tabChangeInFlight.current = false;
-    }
-  };
 
   return (
     <main className="app-shell">

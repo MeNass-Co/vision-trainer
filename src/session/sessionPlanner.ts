@@ -107,8 +107,8 @@ function deficitScore(
     return -1;
   }
   const expected = populationNormContrast(condition.spatialFrequencyCpd, condition.paradigm);
-  const observed = Math.max(...candidates.map((candidate) => candidate.thresholdContrast));
-  return observed / expected;
+  const latest = candidates.sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
+  return latest.thresholdContrast / expected;
 }
 
 function blockConditionKey(condition: ContrastCondition): string {
@@ -134,7 +134,7 @@ function legacyBlockConditionKey(condition: ContrastCondition): string {
   return conditionKey(condition.spatialFrequencyCpd, condition.orientationDeg, condition.paradigm);
 }
 
-function populationNormContrast(spatialFrequencyCpd: number, paradigm: ParadigmId): number {
+export function populationNormContrast(spatialFrequencyCpd: number, paradigm: ParadigmId): number {
   const baselineNorms = new Map<number, number>([
     [1.5, 0.018],
     [3, 0.012],
