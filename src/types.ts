@@ -6,7 +6,7 @@ export type TabId = 'home' | 'train' | 'progress' | 'science' | 'settings';
 
 export type EyeMode = 'both' | 'left' | 'right';
 
-export type SessionType = 'guided' | 'dichoptic';
+export type SessionType = 'guided';
 
 export type DichopticMode = 'off' | 'red-only' | 'cyan-only';
 

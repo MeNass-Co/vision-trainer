@@ -192,9 +192,9 @@ function migrateSessionLog(session: SessionLog): SessionLog {
       typeof candidate.role === 'string' &&
       condition !== null &&
       typeof condition === 'object' &&
-      typeof condition.spatialFrequencyCpd === 'number' &&
-      typeof condition.orientationDeg === 'number' &&
-      typeof condition.trialsPerBlock === 'number'
+      Number.isFinite(condition.spatialFrequencyCpd) &&
+      Number.isFinite(condition.orientationDeg) &&
+      Number.isFinite(condition.trialsPerBlock)
     );
   });
   if (!isShapeValid) {

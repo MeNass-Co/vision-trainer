@@ -93,6 +93,13 @@ const defaultDichopticSettings: DichopticSettings = {
 
 let profileWriteQueue: Promise<void> = Promise.resolve();
 let sessionStartInFlight: Promise<SessionLog> | null = null;
+let sessionMutationQueue: Promise<unknown> = Promise.resolve();
+
+function queueSessionMutation<T>(task: () => Promise<T>): Promise<T> {
+  const next = sessionMutationQueue.then(task, task);
+  sessionMutationQueue = next.catch(() => undefined);
+  return next;
+}
 
 function queueProfileWrite(
   current: () => UserProfile,
@@ -207,37 +214,39 @@ export const useAppStore = create<AppState>((set, get) => ({
     await get().refreshDashboard();
   },
 
-  completeSession: async () => {
-    const activeSession = get().activeSession;
-    if (!activeSession) {
-      return;
-    }
-    const completed: SessionLog = {
-      ...activeSession,
-      status: 'completed',
-      completedAt: new Date().toISOString()
-    };
-    await saveSession(completed);
-    set({ activeSession: null });
-    await get().refreshDashboard();
-    const syncedGamification = await syncBadges(get().gamification, get().dashboard);
-    set({ gamification: syncedGamification });
-  },
+  completeSession: async () =>
+    queueSessionMutation(async () => {
+      const activeSession = get().activeSession;
+      if (!activeSession) {
+        return;
+      }
+      const completed: SessionLog = {
+        ...activeSession,
+        status: 'completed',
+        completedAt: new Date().toISOString()
+      };
+      await saveSession(completed);
+      set({ activeSession: null });
+      await get().refreshDashboard();
+      const syncedGamification = await syncBadges(get().gamification, get().dashboard);
+      set({ gamification: syncedGamification });
+    }),
 
-  recordTrial: async (trial) => {
-    await saveTrial(trial);
-    const award = awardXp(get().gamification, trial);
-    await saveGamification(award.nextState);
-    set({ gamification: award.nextState });
-    const activeSession = get().activeSession;
-    if (activeSession) {
-      const updated = { ...activeSession, completedTrials: activeSession.completedTrials + 1 };
-      await saveSession(updated);
-      set({ activeSession: updated });
-    }
-    set((state) => ({ dashboard: { ...state.dashboard, trials: [...state.dashboard.trials, trial] } }));
-    return award.result;
-  },
+  recordTrial: async (trial) =>
+    queueSessionMutation(async () => {
+      await saveTrial(trial);
+      const award = awardXp(get().gamification, trial);
+      await saveGamification(award.nextState);
+      set({ gamification: award.nextState });
+      const activeSession = get().activeSession;
+      if (activeSession) {
+        const updated = { ...activeSession, completedTrials: activeSession.completedTrials + 1 };
+        await saveSession(updated);
+        set({ activeSession: updated });
+      }
+      set((state) => ({ dashboard: { ...state.dashboard, trials: [...state.dashboard.trials, trial] } }));
+      return award.result;
+    }),
 
   recordThreshold: async (threshold) => {
     await saveThreshold(threshold);
@@ -343,7 +352,7 @@ async function syncBadges(state: GamificationState, dashboard: DashboardSnapshot
     ['first-improvement', 'First Improvement', improvement],
     ['three-day-streak', '3-Day Streak', streak >= 3],
     ['week-streak', 'Week Streak', streak >= 7],
-    ['all-paradigms', 'All Paradigms Tried', completedParadigms.size >= 6]
+    ['all-paradigms', 'All Paradigms Tried', completedParadigms.size >= 5]
   ] as const;
 
   const earnedIds = new Set(state.earnedBadges.map((badge) => badge.id));

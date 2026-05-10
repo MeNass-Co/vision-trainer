@@ -12,7 +12,7 @@ import { playCorrectTone, playLevelUpTone } from '../utils/audio';
 import { GaborCanvas, type GaborCanvasHandle } from './GaborCanvas';
 import { TaskInstructions } from './TaskInstructions';
 
-type Phase = 'idle' | 'fixation' | 'interval-1' | 'isi' | 'interval-2' | 'response' | 'saving' | 'complete';
+type Phase = 'idle' | 'fixation' | 'interval-1' | 'isi' | 'interval-2' | 'response' | 'saving' | 'block-save-error' | 'complete';
 
 type ContrastTaskProps = {
   session: SessionLog;
@@ -166,8 +166,8 @@ export function ContrastTask({ session, blocks, calibration, audioMuted, onTrial
       try {
         await finishBlock();
       } catch {
-        setSaveError('Could not save the block result. Please try again.');
-        setPhase('response');
+        setSaveError('Could not save the block result. Please retry.');
+        setPhase('block-save-error');
       } finally {
         submittingRef.current = false;
       }
@@ -225,6 +225,21 @@ export function ContrastTask({ session, blocks, calibration, audioMuted, onTrial
     }
 
     setBlockIndex((current) => current + 1);
+  };
+
+  const retryFinishBlock = async () => {
+    if (submittingRef.current) return;
+    submittingRef.current = true;
+    setSaveError(null);
+    setPhase('saving');
+    try {
+      await finishBlock();
+    } catch {
+      setSaveError('Could not save the block result. Please retry.');
+      setPhase('block-save-error');
+    } finally {
+      submittingRef.current = false;
+    }
   };
 
   if (!block || !paradigmModule) {
@@ -292,7 +307,12 @@ export function ContrastTask({ session, blocks, calibration, audioMuted, onTrial
           <p className="completion-message" role="alert">{saveError}</p>
         ) : null}
 
-        {phase === 'response' ? (
+        {phase === 'block-save-error' ? (
+          <button type="button" className="primary-button wide" onClick={() => void retryFinishBlock()}>
+            <Play size={16} />
+            Retry Save
+          </button>
+        ) : phase === 'response' ? (
           <div className="response-grid">
             <button type="button" className="choice-button" onClick={() => void submitResponse(1)}>
               <span className="choice-key">1</span>

@@ -302,7 +302,6 @@ export async function presentStimulus(
         finalize(onset);
         return;
       }
-      renderer.render(stimulus, profile);
       const durationMs =
         Number.isFinite(stimulus.durationMs) && stimulus.durationMs > 0
           ? stimulus.durationMs
@@ -311,6 +310,7 @@ export async function presentStimulus(
         finalize(onset);
         return;
       }
+      renderer.render(stimulus, profile);
       const end = onset + durationMs;
       const tick = (now: number) => {
         if (signal?.aborted || now >= end) {
