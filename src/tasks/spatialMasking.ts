@@ -2,6 +2,7 @@ import type { TrialInterval, TrialRecord } from '../types';
 import { contrastFromLog10, QuestStaircase } from '../psychophysics/quest';
 import {
   buildTrialRecord as buildContrastTrialRecord,
+  resolvePositiveNumber,
   type ContrastCondition,
   type ContrastTrialPlan
 } from './contrastDetection';
@@ -35,8 +36,8 @@ export function createSpatialMaskingTrial(
       orientationDeg: condition.orientationDeg,
       contrast: contrastFromLog10(intensityLog10),
       phaseRad: Math.random() * Math.PI * 2,
-      durationMs: condition.durationMs ?? 70,
-      gaborSizeDeg: condition.gaborSizeDeg ?? 4,
+      durationMs: resolvePositiveNumber(condition.durationMs, 70),
+      gaborSizeDeg: resolvePositiveNumber(condition.gaborSizeDeg, 4),
       backgroundLuminanceCdM2: 40,
       mask: {
         enabled: true,

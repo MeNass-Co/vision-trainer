@@ -43,10 +43,8 @@ export function createContrastTrial(
   const intensityLog10 = catchTrial ? -0.2 : staircase.nextIntensity();
   const contrast = contrastFromLog10(intensityLog10);
   const targetInterval: TrialInterval = Math.random() < 0.5 ? 1 : 2;
-  const durationMs =
-    typeof condition.durationMs === 'number' && Number.isFinite(condition.durationMs) && condition.durationMs > 0
-      ? condition.durationMs
-      : 160;
+  const durationMs = resolvePositiveNumber(condition.durationMs, 160);
+  const gaborSizeDeg = resolvePositiveNumber(condition.gaborSizeDeg, 4);
   return {
     blockId,
     condition,
@@ -60,10 +58,14 @@ export function createContrastTrial(
       contrast,
       phaseRad: Math.random() * Math.PI * 2,
       durationMs,
-      gaborSizeDeg: condition.gaborSizeDeg ?? 4,
+      gaborSizeDeg,
       backgroundLuminanceCdM2: 40
     }
   };
+}
+
+export function resolvePositiveNumber(value: unknown, fallback: number): number {
+  return typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : fallback;
 }
 
 export function buildTrialRecord(

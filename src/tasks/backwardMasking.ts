@@ -2,6 +2,7 @@ import type { GaborStimulus, TrialInterval, TrialRecord } from '../types';
 import { QuestStaircase } from '../psychophysics/quest';
 import {
   buildTrialRecord as buildContrastTrialRecord,
+  resolvePositiveNumber,
   type ContrastCondition,
   type ContrastTrialPlan
 } from './contrastDetection';
@@ -32,7 +33,7 @@ export function createBackwardMaskingTrial(
     contrast: 0.18,
     phaseRad: Math.random() * Math.PI * 2,
     durationMs: 50,
-    gaborSizeDeg: condition.gaborSizeDeg,
+    gaborSizeDeg: resolvePositiveNumber(condition.gaborSizeDeg, 4),
     backgroundLuminanceCdM2: 40
   };
 

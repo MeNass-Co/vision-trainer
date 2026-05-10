@@ -164,6 +164,7 @@ export function ContrastTask({ session, blocks, calibration, audioMuted, onTrial
     }
     const estimate = staircaseRef.current.estimate();
     const resolvedDurationMs = plan?.stimulus.durationMs ?? block.condition.durationMs ?? 160;
+    const resolvedGaborSizeDeg = plan?.stimulus.gaborSizeDeg ?? block.condition.gaborSizeDeg ?? 4;
     const threshold: ThresholdEstimate = {
       id: `threshold-${uuid()}`,
       sessionId: session.id,
@@ -173,7 +174,7 @@ export function ContrastTask({ session, blocks, calibration, audioMuted, onTrial
         block.condition.orientationDeg,
         block.paradigm,
         resolvedDurationMs,
-        block.condition.gaborSizeDeg
+        resolvedGaborSizeDeg
       ),
       paradigm: block.paradigm,
       spatialFrequencyCpd: block.condition.spatialFrequencyCpd,

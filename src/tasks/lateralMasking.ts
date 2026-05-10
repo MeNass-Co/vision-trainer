@@ -2,6 +2,7 @@ import type { TrialInterval, TrialRecord } from '../types';
 import { contrastFromLog10, QuestStaircase } from '../psychophysics/quest';
 import {
   buildTrialRecord as buildContrastTrialRecord,
+  resolvePositiveNumber,
   type ContrastCondition,
   type ContrastTrialPlan
 } from './contrastDetection';
@@ -22,10 +23,8 @@ export function createLateralMaskingTrial(
   const catchTrial = Math.random() < 0.05;
   const intensityLog10 = catchTrial ? -0.2 : staircase.nextIntensity();
   const targetInterval: TrialInterval = Math.random() < 0.5 ? 1 : 2;
-  const durationMs =
-    typeof condition.durationMs === 'number' && Number.isFinite(condition.durationMs) && condition.durationMs > 0
-      ? condition.durationMs
-      : 60;
+  const durationMs = resolvePositiveNumber(condition.durationMs, 60);
+  const gaborSizeDeg = resolvePositiveNumber(condition.gaborSizeDeg, 4);
 
   return {
     blockId,
@@ -40,7 +39,7 @@ export function createLateralMaskingTrial(
       contrast: contrastFromLog10(intensityLog10),
       phaseRad: Math.random() * Math.PI * 2,
       durationMs,
-      gaborSizeDeg: condition.gaborSizeDeg ?? 4,
+      gaborSizeDeg,
       backgroundLuminanceCdM2: 40,
       flanker: {
         enabled: true,

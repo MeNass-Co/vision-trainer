@@ -84,10 +84,17 @@ export class QuestStaircase {
     }
     this.grid = [];
     this.posterior = [];
-    for (let x = gridMin; x <= gridMax; x += grain) {
+    const pushGridPoint = (x: number) => {
       this.grid.push(x);
       const z = (x - tGuess) / tGuessSd;
       this.posterior.push(Math.exp(-0.5 * z * z));
+    };
+    for (let x = gridMin; x <= gridMax; x += grain) {
+      pushGridPoint(x);
+    }
+    const last = this.grid.at(-1);
+    if (last === undefined || Math.abs(last - gridMax) > 1e-12) {
+      pushGridPoint(gridMax);
     }
     this.normalize(this.posterior);
   }

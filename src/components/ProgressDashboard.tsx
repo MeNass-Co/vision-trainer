@@ -67,7 +67,11 @@ function AssessmentReport({ dashboard }: ProgressDashboardProps) {
           return (
             <div key={point.spatialFrequencyCpd}>
               <span>{detailLevelLabel(point.spatialFrequencyCpd)} detail</span>
-              <strong>{improvement}% improvement</strong>
+              <strong>
+                {improvement >= 0
+                  ? `${improvement}% improvement`
+                  : `${Math.abs(improvement)}% regression`}
+              </strong>
             </div>
           );
         })

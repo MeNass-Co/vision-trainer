@@ -173,8 +173,24 @@ function migrateSessionLog(session: SessionLog): SessionLog {
   if (!Array.isArray(blocks)) {
     return { ...session, plannedBlocks: [] };
   }
-  if (blocks.length > 0 && typeof blocks[0] === 'string') {
-    // Legacy: plannedBlocks was ParadigmId[]; drop it (no condition data to reconstruct).
+  if (blocks.length === 0) {
+    return session;
+  }
+  // Legacy ParadigmId[] (any element a string) or malformed entries → drop.
+  const isLegacy = blocks.every((block) => typeof block === 'string');
+  if (isLegacy) {
+    return { ...session, plannedBlocks: [] };
+  }
+  const isShapeValid = blocks.every(
+    (block) =>
+      block !== null &&
+      typeof block === 'object' &&
+      'id' in block &&
+      'paradigm' in block &&
+      'condition' in block &&
+      'role' in block
+  );
+  if (!isShapeValid) {
     return { ...session, plannedBlocks: [] };
   }
   return session;
