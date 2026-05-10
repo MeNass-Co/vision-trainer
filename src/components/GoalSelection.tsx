@@ -3,7 +3,7 @@ import { useState } from 'react';
 import type { GoalType } from '../types';
 
 type GoalSelectionProps = {
-  onSelect: (goal: GoalType, monocular: boolean, eye: 'left' | 'right', name: string) => void;
+  onSelect: (goal: GoalType, monocular: boolean, eye: 'left' | 'right', name: string) => void | Promise<void>;
 };
 
 const GOALS: Array<{ type: GoalType; icon: typeof Eye; label: string; tagline: string; details: string[] }> = [
@@ -46,6 +46,19 @@ export function GoalSelection({ onSelect }: GoalSelectionProps) {
   const [name, setName] = useState('');
   const [monocular, setMonocular] = useState(false);
   const [monocularEye, setMonocularEye] = useState<'left' | 'right'>('right');
+  const [isPending, setIsPending] = useState(false);
+
+  const handleSelect = async (type: GoalType) => {
+    if (isPending) return;
+    setIsPending(true);
+    try {
+      await onSelect(type, monocular, monocularEye, name.trim() || 'Friend');
+    } catch (err) {
+      console.error('Failed to set goal', err);
+    } finally {
+      setIsPending(false);
+    }
+  };
 
   return (
     <section className="goal-selection" aria-labelledby="goal-heading">
@@ -70,7 +83,8 @@ export function GoalSelection({ onSelect }: GoalSelectionProps) {
             key={type}
             type="button"
             className="goal-card glass-card"
-            onClick={() => onSelect(type, monocular, monocularEye, name.trim() || 'Friend')}
+            onClick={() => { void handleSelect(type); }}
+            disabled={isPending}
           >
             <Icon size={28} />
             <h3>{label}</h3>
