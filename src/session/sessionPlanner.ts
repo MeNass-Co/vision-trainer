@@ -97,15 +97,18 @@ function deficitScore(
   condition: ContrastCondition,
   latestByCondition: Map<string, ThresholdEstimate>
 ): number {
-  const threshold =
-    latestByCondition.get(blockConditionKey(condition))
-    ?? latestByCondition.get(durationOnlyKey(condition))
-    ?? latestByCondition.get(legacyBlockConditionKey(condition));
-  if (!threshold) {
+  const candidates = [
+    latestByCondition.get(blockConditionKey(condition)),
+    latestByCondition.get(durationOnlyKey(condition)),
+    latestByCondition.get(legacyBlockConditionKey(condition))
+  ].filter((candidate): candidate is ThresholdEstimate => Boolean(candidate));
+
+  if (candidates.length === 0) {
     return -1;
   }
   const expected = populationNormContrast(condition.spatialFrequencyCpd, condition.paradigm);
-  return threshold.thresholdContrast / expected;
+  const observed = Math.max(...candidates.map((candidate) => candidate.thresholdContrast));
+  return observed / expected;
 }
 
 function blockConditionKey(condition: ContrastCondition): string {

@@ -146,8 +146,6 @@ function selectDeficitCondition(
   thresholds: ThresholdEstimate[],
   conditions: ContrastCondition[]
 ): ContrastCondition {
-  if (thresholds.length === 0) return conditions[0];
-
   const latestByKey = new Map<string, ThresholdEstimate>();
   for (const threshold of thresholds) {
     const current = latestByKey.get(threshold.conditionKey);
@@ -156,10 +154,8 @@ function selectDeficitCondition(
     }
   }
 
-  let worst: ContrastCondition | null = null;
-  let worstScore = -Infinity;
-  for (const condition of conditions) {
-    const key = conditionKey(
+  const seenKey = (condition: ContrastCondition): string | undefined => {
+    const fullKey = conditionKey(
       condition.spatialFrequencyCpd,
       condition.orientationDeg,
       condition.paradigm,
@@ -173,10 +169,25 @@ function selectDeficitCondition(
       condition.durationMs
     );
     const legacyKey = conditionKey(condition.spatialFrequencyCpd, condition.orientationDeg, condition.paradigm);
-    const threshold = latestByKey.get(key) ?? latestByKey.get(durationLegacyKey) ?? latestByKey.get(legacyKey);
+    if (latestByKey.has(fullKey)) return fullKey;
+    if (latestByKey.has(durationLegacyKey)) return durationLegacyKey;
+    if (latestByKey.has(legacyKey)) return legacyKey;
+    return undefined;
+  };
+
+  const unseen = conditions.filter((condition) => seenKey(condition) === undefined);
+  if (unseen.length > 0) {
+    return unseen[Math.floor(Math.random() * unseen.length)];
+  }
+
+  let worst: ContrastCondition | null = null;
+  let worstScore = -Infinity;
+  for (const condition of conditions) {
+    const key = seenKey(condition);
+    const threshold = key ? latestByKey.get(key) : undefined;
+    if (!threshold) continue;
     const expected = expectedContrast(condition);
-    const observed = threshold?.thresholdContrast ?? expected * 2;
-    const score = observed / expected;
+    const score = threshold.thresholdContrast / expected;
     if (score > worstScore) {
       worstScore = score;
       worst = condition;

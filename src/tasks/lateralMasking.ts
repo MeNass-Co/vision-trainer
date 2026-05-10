@@ -35,7 +35,7 @@ export function createLateralMaskingTrial(
       orientationDeg: condition.orientationDeg,
       contrast: contrastFromLog10(intensityLog10),
       phaseRad: Math.random() * Math.PI * 2,
-      durationMs: condition.durationMs ?? 160,
+      durationMs: condition.durationMs ?? 60,
       gaborSizeDeg: condition.gaborSizeDeg,
       backgroundLuminanceCdM2: 40,
       flanker: {

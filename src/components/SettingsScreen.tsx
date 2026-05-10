@@ -17,6 +17,7 @@ export function SettingsScreen({
 }: SettingsScreenProps) {
   const timePhase = useAppStore((s) => s.timePhase);
   const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const goalLabel = profile.diagnosisType === 'myopia' ? 'Myopia' :
     profile.diagnosisType === 'presbyopia' ? 'Presbyopia' :
     profile.diagnosisType === 'sports-vision' ? 'Sports Vision' : 'Not set';
@@ -47,12 +48,14 @@ export function SettingsScreen({
             onClick={async () => {
               if (isSaving) return;
               setIsSaving(true);
+              setSaveError(null);
               const goals: GoalType[] = ['myopia', 'presbyopia', 'sports-vision'];
               const idx = goals.indexOf(profile.diagnosisType as GoalType);
               try {
                 await onChangeGoal(goals[(idx + 1) % goals.length]);
               } catch (err) {
                 console.error('Failed to change training program', err);
+                setSaveError(err instanceof Error ? err.message : 'Failed to save training program');
               } finally {
                 setIsSaving(false);
               }
@@ -62,6 +65,9 @@ export function SettingsScreen({
             <ChevronRight size={16} />
           </button>
         </div>
+        {saveError ? (
+          <p className="setting-row__error" role="alert">{saveError}</p>
+        ) : null}
       </div>
 
     </section>

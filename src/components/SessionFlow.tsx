@@ -1,7 +1,7 @@
 import { Activity, PlayCircle } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import type { AssessmentResult, EyeMode, GamificationAward, ThresholdEstimate, TrialRecord } from '../types';
-import { planSession, type PlannedBlock } from '../session/sessionPlanner';
+import { planSession } from '../session/sessionPlanner';
 import { useAppStore } from '../store/useAppStore';
 import { AnimatedEye } from './AnimatedEye';
 import { eyeModeLabel, oppositeEyeLabel } from '../utils/labels';
@@ -19,7 +19,6 @@ export function SessionFlow() {
   const recordTrial = useAppStore((state) => state.recordTrial);
   const recordThreshold = useAppStore((state) => state.recordThreshold);
   const recordAssessment = useAppStore((state) => state.recordAssessment);
-  const [blocks, setBlocks] = useState<PlannedBlock[]>([]);
   const [selectedEyeMode, setSelectedEyeMode] = useState<EyeMode>(
     profile.monocularMode ? profile.monocularEye : 'both'
   );
@@ -36,12 +35,10 @@ export function SessionFlow() {
   const start = async () => {
     const goalType = profile.diagnosisType === 'unspecified' ? undefined : profile.diagnosisType;
     const plannedBlocks = planSession(completedSessions, dashboard.thresholds, goalType);
-    setBlocks(plannedBlocks);
     try {
       await startSession(plannedBlocks, selectedEyeMode, 'guided');
       setCompletionMessage(null);
     } catch {
-      setBlocks([]);
       setCompletionMessage('Unable to start the session. Please try again.');
     }
   };
@@ -56,7 +53,6 @@ export function SessionFlow() {
 
   const onComplete = async () => {
     await completeSession();
-    setBlocks([]);
     setCompletionMessage(`Great work! Next session recommended: ${nextRecommendedDate()}`);
   };
 
@@ -124,7 +120,7 @@ export function SessionFlow() {
   return (
     <ContrastTask
       session={activeSession}
-      blocks={blocks}
+      blocks={activeSession.plannedBlocks}
       calibration={calibration}
       audioMuted={gamification.audioMuted}
       onTrial={onTrial}
