@@ -541,6 +541,11 @@ a:focus-visible {
   height: 100%;
 }
 
+.stimulus-frame {
+  position: absolute;
+  inset: 0;
+}
+
 .stimulus-canvas { display: block; }
 
 .stimulus-error,
@@ -550,6 +555,17 @@ a:focus-visible {
   display: grid;
   place-items: center;
   pointer-events: none;
+}
+
+.phase-overlay,
+.phase-overlay *,
+.fixation,
+.interval-label,
+.inline-feedback {
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+  text-rendering: auto;
+  -webkit-font-smoothing: auto;
+  -moz-osx-font-smoothing: auto;
 }
 
 .stimulus-error { padding: 24px; color: var(--accent-danger); background: var(--bg-surface-solid); }

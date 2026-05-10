@@ -188,13 +188,13 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
     const run = (async (): Promise<SessionLog> => {
       const session = createSessionLog(get().calibration.id, plannedBlocks, eyeMode, sessionType);
+      set({ activeSession: session });
       try {
         await saveSession(session);
       } catch (error) {
         set({ activeSession: null });
         throw error;
       }
-      set({ activeSession: session });
       await get().refreshDashboard();
       return session;
     })();
@@ -248,16 +248,17 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   recordTrial: async (trial) =>
     queueSessionMutation(async () => {
+      const activeSession = get().activeSession;
+      if (!activeSession) {
+        throw new Error('Cannot record a trial without an active session');
+      }
       await saveTrial(trial);
       const award = awardXp(get().gamification, trial);
       await saveGamification(award.nextState);
       set({ gamification: award.nextState });
-      const activeSession = get().activeSession;
-      if (activeSession) {
-        const updated = { ...activeSession, completedTrials: activeSession.completedTrials + 1 };
-        await saveSession(updated);
-        set({ activeSession: updated });
-      }
+      const updated = { ...activeSession, completedTrials: activeSession.completedTrials + 1 };
+      await saveSession(updated);
+      set({ activeSession: updated });
       set((state) => ({ dashboard: { ...state.dashboard, trials: [...state.dashboard.trials, trial] } }));
       return award.result;
     }),

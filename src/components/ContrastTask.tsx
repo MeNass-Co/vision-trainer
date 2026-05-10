@@ -140,10 +140,10 @@ export function ContrastTask({ session, blocks, calibration, audioMuted, onTrial
     setSaveError(null);
     const reactionTimeMs = performance.now() - responseStartedAt.current;
     const trial = getParadigmModule(block.paradigm).buildTrialRecord(session.id, plan, response, reactionTimeMs);
-    staircaseRef.current.record(plan.intensityLog10, trial.correct, plan.catchTrial);
     let award: GamificationAward | void;
     try {
       award = await onTrial(trial);
+      staircaseRef.current.record(plan.intensityLog10, trial.correct, plan.catchTrial);
     } catch {
       submittingRef.current = false;
       setSaveError('Could not save your response. Please try again.');

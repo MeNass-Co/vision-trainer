@@ -70,6 +70,7 @@ export function SessionFlow() {
       await recordAssessment(result);
       setAssessmentActive(false);
     } catch {
+      setAssessmentActive(false);
       setCompletionMessage('Unable to save the assessment. Please try again.');
     }
   };
