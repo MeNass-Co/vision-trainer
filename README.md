@@ -58,7 +58,7 @@ src/
 
 ## Calibration
 
-Display luminance and viewing distance are calibrated per-device on first launch and persisted to IndexedDB. All stimulus contrasts are computed in physical units (Michelson contrast against measured screen luminance).
+A browser-derived calibration profile (screen geometry, device pixel ratio) is created on first launch and persisted to IndexedDB. `viewingDistanceCm`, `gamma`, and `backgroundLuminanceCdM2` currently fall back to seeded defaults in `src/core/displayCalibration.ts` — physical calibration is approximate until a real measurement workflow is added.
 
 ## License
 

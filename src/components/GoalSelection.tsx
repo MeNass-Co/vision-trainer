@@ -47,14 +47,17 @@ export function GoalSelection({ onSelect }: GoalSelectionProps) {
   const [monocular, setMonocular] = useState(false);
   const [monocularEye, setMonocularEye] = useState<'left' | 'right'>('right');
   const [isPending, setIsPending] = useState(false);
+  const [selectionError, setSelectionError] = useState<string | null>(null);
 
   const handleSelect = async (type: GoalType) => {
     if (isPending) return;
     setIsPending(true);
+    setSelectionError(null);
     try {
       await onSelect(type, monocular, monocularEye, name.trim() || 'Friend');
     } catch (err) {
       console.error('Failed to set goal', err);
+      setSelectionError('Unable to save your program. Please try again.');
     } finally {
       setIsPending(false);
     }
@@ -109,6 +112,8 @@ export function GoalSelection({ onSelect }: GoalSelectionProps) {
           aria-label={monocular ? 'Disable monocular training' : 'Enable monocular training'}
         />
       </div>
+
+      {selectionError && <p role="alert" className="form-error">{selectionError}</p>}
 
       {monocular && (
         <div className="eye-picker glass-card">
