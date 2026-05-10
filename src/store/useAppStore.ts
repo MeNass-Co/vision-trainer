@@ -92,6 +92,7 @@ const defaultDichopticSettings: DichopticSettings = {
 };
 
 let profileWriteQueue: Promise<void> = Promise.resolve();
+let sessionStartInFlight: Promise<SessionLog> | null = null;
 
 function queueProfileWrite(
   current: () => UserProfile,
@@ -159,11 +160,31 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   startSession: async (plannedBlocks, eyeMode = 'both', sessionType = 'guided') => {
-    const session = createSessionLog(get().calibration.id, plannedBlocks, eyeMode, sessionType);
-    await saveSession(session);
-    set({ activeSession: session });
-    await get().refreshDashboard();
-    return session;
+    if (sessionStartInFlight) {
+      return sessionStartInFlight;
+    }
+    const existing = get().activeSession;
+    if (existing) {
+      return existing;
+    }
+    const run = (async (): Promise<SessionLog> => {
+      const session = createSessionLog(get().calibration.id, plannedBlocks, eyeMode, sessionType);
+      try {
+        await saveSession(session);
+      } catch (error) {
+        set({ activeSession: null });
+        throw error;
+      }
+      set({ activeSession: session });
+      await get().refreshDashboard();
+      return session;
+    })();
+    sessionStartInFlight = run;
+    try {
+      return await run;
+    } finally {
+      sessionStartInFlight = null;
+    }
   },
 
   updateSession: async (session) => {

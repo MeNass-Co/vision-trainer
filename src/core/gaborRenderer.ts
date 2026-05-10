@@ -278,7 +278,7 @@ export async function presentStimulus(
 ): Promise<{ onset: number; offset: number }> {
   return new Promise((resolve) => {
     let frameId = 0;
-    let onsetTs = 0;
+    let onsetTs: number | null = null;
     let settled = false;
     const finalize = (offset: number) => {
       if (settled) {
@@ -288,7 +288,7 @@ export async function presentStimulus(
       cancelAnimationFrame(frameId);
       signal?.removeEventListener('abort', onAbort);
       renderer.clear(profile);
-      resolve({ onset: onsetTs || offset, offset });
+      resolve({ onset: onsetTs ?? offset, offset });
     };
     const onAbort = () => finalize(performance.now());
     if (signal?.aborted) {
@@ -303,7 +303,15 @@ export async function presentStimulus(
         return;
       }
       renderer.render(stimulus, profile);
-      const end = onset + stimulus.durationMs;
+      const durationMs =
+        Number.isFinite(stimulus.durationMs) && stimulus.durationMs > 0
+          ? stimulus.durationMs
+          : 0;
+      if (durationMs === 0) {
+        finalize(onset);
+        return;
+      }
+      const end = onset + durationMs;
       const tick = (now: number) => {
         if (signal?.aborted || now >= end) {
           finalize(now);

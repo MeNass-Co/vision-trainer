@@ -32,6 +32,8 @@ export function ContrastTask({ session, blocks, calibration, audioMuted, onTrial
   const staircaseRef = useRef(new QuestStaircase());
   const responseStartedAt = useRef(0);
   const runningRef = useRef(false);
+  const submittingRef = useRef(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [blockIndex, setBlockIndex] = useState(0);
   const [trialIndex, setTrialIndex] = useState(0);
   const [phase, setPhase] = useState<Phase>('idle');
@@ -129,11 +131,24 @@ export function ContrastTask({ session, blocks, calibration, audioMuted, onTrial
     if (phase !== 'response' || !plan || !block) {
       return;
     }
+    if (submittingRef.current) {
+      return;
+    }
+    submittingRef.current = true;
     setPhase('saving');
+    setSaveError(null);
     const reactionTimeMs = performance.now() - responseStartedAt.current;
     const trial = getParadigmModule(block.paradigm).buildTrialRecord(session.id, plan, response, reactionTimeMs);
     staircaseRef.current.record(plan.intensityLog10, trial.correct, plan.catchTrial);
-    const award = await onTrial(trial);
+    let award: GamificationAward | void;
+    try {
+      award = await onTrial(trial);
+    } catch {
+      submittingRef.current = false;
+      setSaveError('Could not save your response. Please try again.');
+      setPhase('response');
+      return;
+    }
     if (trial.correct) {
       playCorrectTone(audioMuted);
     }
@@ -148,7 +163,14 @@ export function ContrastTask({ session, blocks, calibration, audioMuted, onTrial
     const nextTrialIndex = trialIndex + 1;
     if (nextTrialIndex >= block.condition.trialsPerBlock) {
       await wait(interTrialIntervalMs);
-      await finishBlock();
+      try {
+        await finishBlock();
+      } catch {
+        setSaveError('Could not save the block result. Please try again.');
+        setPhase('response');
+      } finally {
+        submittingRef.current = false;
+      }
       return;
     }
 
@@ -157,6 +179,7 @@ export function ContrastTask({ session, blocks, calibration, audioMuted, onTrial
     stageRef.current?.clear();
     await wait(interTrialIntervalMs);
     setPhase('idle');
+    submittingRef.current = false;
     void runTrial(nextTrialIndex);
   };
 
@@ -264,6 +287,10 @@ export function ContrastTask({ session, blocks, calibration, audioMuted, onTrial
         <div className="progress-track">
           <span style={{ width: `${Math.max(2, (progress.completed / progress.total) * 100)}%` }} />
         </div>
+
+        {saveError ? (
+          <p className="completion-message" role="alert">{saveError}</p>
+        ) : null}
 
         {phase === 'response' ? (
           <div className="response-grid">
