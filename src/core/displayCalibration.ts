@@ -84,8 +84,10 @@ export function conditionKey(
   spatialFrequencyCpd: number,
   orientationDeg: number,
   paradigm: string,
-  durationMs?: number
+  durationMs?: number,
+  gaborSizeDeg?: number
 ): string {
   const baseKey = `${paradigm}:${spatialFrequencyCpd.toFixed(1)}cpd:${orientationDeg}deg`;
-  return durationMs === undefined ? baseKey : `${baseKey}:${durationMs}ms`;
+  const withDuration = durationMs === undefined ? baseKey : `${baseKey}:${durationMs}ms`;
+  return gaborSizeDeg === undefined ? withDuration : `${withDuration}:${gaborSizeDeg}deg`;
 }

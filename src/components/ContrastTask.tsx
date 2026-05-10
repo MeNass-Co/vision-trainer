@@ -174,7 +174,8 @@ export function ContrastTask({ session, blocks, calibration, audioMuted, dichopt
         block.condition.spatialFrequencyCpd,
         block.condition.orientationDeg,
         block.paradigm,
-        block.condition.durationMs
+        block.condition.durationMs,
+        block.condition.gaborSizeDeg
       ),
       paradigm: block.paradigm,
       spatialFrequencyCpd: block.condition.spatialFrequencyCpd,

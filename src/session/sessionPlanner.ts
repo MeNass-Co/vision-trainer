@@ -94,7 +94,13 @@ function deficitScore(
 }
 
 function blockConditionKey(condition: ContrastCondition): string {
-  return conditionKey(condition.spatialFrequencyCpd, condition.orientationDeg, condition.paradigm, condition.durationMs);
+  return conditionKey(
+    condition.spatialFrequencyCpd,
+    condition.orientationDeg,
+    condition.paradigm,
+    condition.durationMs,
+    condition.gaborSizeDeg
+  );
 }
 
 function legacyBlockConditionKey(condition: ContrastCondition): string {

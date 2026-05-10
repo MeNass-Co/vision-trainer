@@ -142,9 +142,21 @@ function selectDeficitCondition(
   let worst: ContrastCondition | null = null;
   let worstScore = -Infinity;
   for (const condition of conditions) {
-    const key = conditionKey(condition.spatialFrequencyCpd, condition.orientationDeg, condition.paradigm, condition.durationMs);
+    const key = conditionKey(
+      condition.spatialFrequencyCpd,
+      condition.orientationDeg,
+      condition.paradigm,
+      condition.durationMs,
+      condition.gaborSizeDeg
+    );
+    const durationLegacyKey = conditionKey(
+      condition.spatialFrequencyCpd,
+      condition.orientationDeg,
+      condition.paradigm,
+      condition.durationMs
+    );
     const legacyKey = conditionKey(condition.spatialFrequencyCpd, condition.orientationDeg, condition.paradigm);
-    const threshold = latestByKey.get(key) ?? latestByKey.get(legacyKey);
+    const threshold = latestByKey.get(key) ?? latestByKey.get(durationLegacyKey) ?? latestByKey.get(legacyKey);
     const score = threshold ? threshold.thresholdContrast : 1;
     if (score > worstScore) {
       worstScore = score;

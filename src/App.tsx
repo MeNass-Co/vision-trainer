@@ -39,6 +39,7 @@ export default function App() {
         setTimePhase(phase);
       }
     };
+    check();
     const interval = setInterval(check, 60_000);
     return () => clearInterval(interval);
   }, [timePhase, setTimePhase]);
@@ -65,9 +66,13 @@ export default function App() {
     );
   }
 
-  const onTabChange = (tab: typeof currentTab) => {
+  const onTabChange = async (tab: typeof currentTab) => {
     if (currentTab === 'train' && tab !== 'train') {
-      void abandonSession();
+      try {
+        await abandonSession();
+      } catch {
+        return;
+      }
     }
     setCurrentTab(tab);
   };

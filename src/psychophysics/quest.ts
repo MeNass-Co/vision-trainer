@@ -35,22 +35,37 @@ export class QuestStaircase {
   private lapseCount = 0;
 
   constructor(private readonly params: QuestParameters = DEFAULT_PARAMS) {
-    const dynamicRange = 1 - this.params.gamma - this.params.delta;
+    const { tGuess, tGuessSd, pThreshold, beta, delta, gamma, grain, range } = this.params;
+
+    if (![tGuess, tGuessSd, pThreshold, beta, delta, gamma, grain, range].every(Number.isFinite)) {
+      throw new Error('Invalid QUEST params: all parameters must be finite numbers.');
+    }
+    if (!(tGuessSd > 0)) {
+      throw new Error('Invalid QUEST params: require tGuessSd > 0.');
+    }
+    if (!(grain > 0)) {
+      throw new Error('Invalid QUEST params: require grain > 0.');
+    }
+    if (!(range > 0)) {
+      throw new Error('Invalid QUEST params: require range > 0.');
+    }
+
+    const dynamicRange = 1 - gamma - delta;
     if (!(dynamicRange > 0)) {
       throw new Error('Invalid QUEST params: require gamma + delta < 1.');
     }
-    if (this.params.pThreshold <= this.params.gamma || this.params.pThreshold >= 1 - this.params.delta) {
+    if (pThreshold <= gamma || pThreshold >= 1 - delta) {
       throw new Error('Invalid QUEST params: require gamma < pThreshold < 1 - delta.');
     }
-    const thresholdProbability = (this.params.pThreshold - this.params.gamma) / dynamicRange;
+    const thresholdProbability = (pThreshold - gamma) / dynamicRange;
     this.thresholdScale = -Math.log(1 - thresholdProbability);
 
-    const half = this.params.range / 2;
+    const half = range / 2;
     this.grid = [];
     this.posterior = [];
-    for (let x = this.params.tGuess - half; x <= this.params.tGuess + half; x += this.params.grain) {
+    for (let x = tGuess - half; x <= tGuess + half; x += grain) {
       this.grid.push(this.clampIntensity(x));
-      const z = (x - this.params.tGuess) / this.params.tGuessSd;
+      const z = (x - tGuess) / tGuessSd;
       this.posterior.push(Math.exp(-0.5 * z * z));
     }
     this.normalize(this.posterior);
