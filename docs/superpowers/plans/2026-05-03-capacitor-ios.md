@@ -1,0 +1,451 @@
+# Capacitor iOS Packaging — Implementation Plan
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+
+**Goal:** Wrap the existing Vision Trainer React/Vite PWA in Capacitor to produce a testable iOS app running in WKWebView.
+
+**Architecture:** Capacitor coexists with the existing Tauri Mac build. `ios/` houses the Xcode project, `dist/` is the shared web build output. The only source code change is conditional SW registration and safe area CSS for the notch.
+
+**Tech Stack:** Capacitor 6, Xcode, iOS 16+, Vite 6, React 19, TypeScript 5
+
+---
+
+### Task 1: Install Capacitor dependencies
+
+**Files:**
+- Modify: `package.json`
+
+- [ ] **Step 1: Install Capacitor core packages**
+
+```bash
+cd /Users/nassimlecornet/Projects/vision-trainer
+npm install @capacitor/core @capacitor/cli @capacitor/ios
+```
+
+Expected: packages added to `dependencies` (`@capacitor/core`) and `devDependencies` (`@capacitor/cli`). `@capacitor/ios` goes to `dependencies`.
+
+- [ ] **Step 2: Install Capacitor plugins**
+
+```bash
+npm install @capacitor/status-bar @capacitor/splash-screen
+```
+
+- [ ] **Step 3: Verify installation**
+
+```bash
+npx cap --version
+```
+
+Expected: prints Capacitor CLI version (6.x).
+
+---
+
+### Task 2: Create Capacitor config
+
+**Files:**
+- Create: `capacitor.config.ts`
+
+- [ ] **Step 1: Create the config file**
+
+```ts
+import type { CapacitorConfig } from '@capacitor/cli';
+
+const config: CapacitorConfig = {
+  appId: 'com.visiontrainer.app',
+  appName: 'Vision Trainer',
+  webDir: 'dist',
+  ios: {
+    minVersion: '16.0',
+  },
+  plugins: {
+    SplashScreen: {
+      launchAutoHide: true,
+      launchShowDuration: 500,
+      backgroundColor: '#1C1916',
+      showSpinner: false,
+    },
+    StatusBar: {
+      style: 'DARK',
+      backgroundColor: '#1C1916',
+    },
+  },
+};
+
+export default config;
+```
+
+- [ ] **Step 2: Verify config is valid**
+
+```bash
+npx cap doctor
+```
+
+Expected: no errors about config. May warn about missing `ios` platform (expected — added in Task 4).
+
+---
+
+### Task 3: Conditional SW registration for Capacitor
+
+**Files:**
+- Modify: `vite.config.ts`
+
+The existing vite-plugin-pwa auto-injects SW registration at build time. In Capacitor, the app is served from the local filesystem via `capacitor://` — SWs are unnecessary and can cause caching conflicts. We conditionally disable the PWA plugin when building for Capacitor.
+
+- [ ] **Step 1: Add build script for Capacitor**
+
+Modify `package.json` to add a Capacitor-specific build script:
+
+```json
+"cap:build": "CAPACITOR_BUILD=1 tsc -b && CAPACITOR_BUILD=1 vite build",
+"cap:sync": "npm run cap:build && npx cap sync ios",
+"cap:open": "npx cap open ios"
+```
+
+Add these three entries to the `"scripts"` section of `package.json`.
+
+- [ ] **Step 2: Conditionally include PWA plugin in Vite config**
+
+Replace the contents of `vite.config.ts` with:
+
+```ts
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+import { VitePWA } from 'vite-plugin-pwa';
+
+const isCapacitor = !!process.env.CAPACITOR_BUILD;
+
+export default defineConfig({
+  plugins: [
+    react(),
+    ...isCapacitor ? [] : [VitePWA({
+      registerType: 'autoUpdate',
+      includeAssets: ['icon.svg'],
+      manifest: {
+        name: 'Vision Trainer',
+        short_name: 'VisionTrainer',
+        description: 'Local-first perceptual learning platform for contrast sensitivity training.',
+        theme_color: '#0c0c1d',
+        background_color: '#101820',
+        display: 'standalone',
+        orientation: 'landscape',
+        icons: [
+          {
+            src: '/icon.svg',
+            sizes: '192x192',
+            type: 'image/svg+xml',
+            purpose: 'any maskable'
+          }
+        ]
+      },
+      workbox: {
+        globPatterns: ['**/*.{js,css,html,svg,png,ico,webmanifest}'],
+        runtimeCaching: [
+          {
+            urlPattern: ({ request }) => request.mode === 'navigate',
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'pages'
+            }
+          }
+        ]
+      },
+      devOptions: {
+        enabled: true
+      }
+    })],
+  ],
+});
+```
+
+- [ ] **Step 3: Verify web build still works**
+
+```bash
+npm run build
+```
+
+Expected: `dist/` produced with SW files present (normal web build).
+
+- [ ] **Step 4: Verify Capacitor build excludes SW**
+
+```bash
+npm run cap:build && ls dist/sw.js 2>/dev/null && echo "SW PRESENT (BAD)" || echo "SW ABSENT (GOOD)"
+```
+
+Expected: `SW ABSENT (GOOD)`.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add vite.config.ts package.json package-lock.json capacitor.config.ts
+git commit -m "feat: add Capacitor config and conditional PWA build"
+```
+
+---
+
+### Task 4: Initialize iOS platform
+
+**Files:**
+- Create: `ios/` directory (Xcode project, auto-generated by Capacitor)
+
+- [ ] **Step 1: Build web assets and add iOS platform**
+
+```bash
+npm run cap:build
+npx cap add ios
+```
+
+Expected: `ios/` directory created with an Xcode project. Console output shows "Adding iOS platform..."
+
+- [ ] **Step 2: Sync web assets to iOS project**
+
+```bash
+npx cap sync ios
+```
+
+Expected: web assets copied to `ios/App/App/public/`, plugins configured.
+
+- [ ] **Step 3: Verify Xcode project exists**
+
+```bash
+ls ios/App/App.xcodeproj/project.pbxproj && echo "OK"
+```
+
+Expected: `OK`.
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add ios/ capacitor.config.ts
+git commit -m "feat: add Capacitor iOS platform"
+```
+
+---
+
+### Task 5: Configure portrait orientation and iOS settings
+
+**Files:**
+- Modify: `ios/App/App/Info.plist`
+
+- [ ] **Step 1: Set portrait-only orientation in Info.plist**
+
+Open `ios/App/App/Info.plist`. Find the `UISupportedInterfaceOrientations` key and replace its array with portrait only:
+
+```xml
+<key>UISupportedInterfaceOrientations</key>
+<array>
+    <string>UIInterfaceOrientationPortrait</string>
+</array>
+```
+
+Remove any `UISupportedInterfaceOrientations~ipad` key if present, or set it to portrait only as well:
+
+```xml
+<key>UISupportedInterfaceOrientations~ipad</key>
+<array>
+    <string>UIInterfaceOrientationPortrait</string>
+</array>
+```
+
+- [ ] **Step 2: Enable edge-to-edge rendering (viewport-fit=cover)**
+
+In `index.html`, update the viewport meta tag to include `viewport-fit=cover` so safe area insets work:
+
+```html
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+```
+
+- [ ] **Step 3: Add safe area top padding in CSS**
+
+In `src/styles.css`, the tab bar already handles `safe-area-inset-bottom`. Add top padding for the notch/Dynamic Island. After the existing `body` rule (line ~20), add to the body selector:
+
+```css
+body {
+  margin: 0;
+  min-width: 0;
+  min-height: 100vh;
+  padding-top: env(safe-area-inset-top, 0);
+  background: var(--gradient-bg);
+  color: var(--text-primary);
+  font-size: 16px;
+  line-height: 1.55;
+}
+```
+
+Only change: add the `padding-top: env(safe-area-inset-top, 0);` line.
+
+- [ ] **Step 4: Sync changes to iOS project**
+
+```bash
+npm run cap:build && npx cap sync ios
+```
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add index.html src/styles.css ios/App/App/Info.plist
+git commit -m "feat: portrait lock, viewport-fit cover, safe area top inset"
+```
+
+---
+
+### Task 6: App icon and splash screen
+
+**Files:**
+- Modify: `ios/App/App/Assets.xcassets/AppIcon.appiconset/`
+- Modify: `ios/App/App/Assets.xcassets/Splash.imageset/` (if exists)
+
+- [ ] **Step 1: Install @capacitor/assets**
+
+```bash
+npm install -D @capacitor/assets
+```
+
+- [ ] **Step 2: Set up icon source**
+
+Copy the logo from iCloud temp to the project root as the source icon. It must be a 1024x1024 PNG:
+
+```bash
+cp ~/Library/Mobile\ Documents/com~apple~CloudDocs/temp/vision-trainer/logo.png /Users/nassimlecornet/Projects/vision-trainer/resources/icon.png
+mkdir -p /Users/nassimlecornet/Projects/vision-trainer/resources
+```
+
+Run `mkdir` first, then `cp`. If the logo file has a different name, adjust accordingly. Verify:
+
+```bash
+file resources/icon.png
+```
+
+Expected: PNG image, 1024x1024 (or larger).
+
+**Note:** If no `logo.png` exists yet (logo hasn't been generated from the prompts), create a placeholder: solid #1C1916 background, 1024x1024. The icon can be replaced later.
+
+- [ ] **Step 3: Set up splash source**
+
+Create a simple splash background. Create `resources/splash.png` — a 2732x2732 solid #1C1916 PNG. If the logo exists, center it on this background.
+
+If no image tool is available, use ImageMagick:
+
+```bash
+convert -size 2732x2732 xc:'#1C1916' resources/splash.png
+```
+
+Or with `sips` on macOS (create via a small Python/Node script if neither is available).
+
+- [ ] **Step 4: Generate all icon and splash sizes**
+
+```bash
+npx capacitor-assets generate --iconBackgroundColor '#1C1916' --splashBackgroundColor '#1C1916' --ios
+```
+
+Expected: multiple icon sizes generated into `ios/App/App/Assets.xcassets/AppIcon.appiconset/` and splash assets generated.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add resources/ ios/App/App/Assets.xcassets/
+git commit -m "feat: add app icon and splash screen assets"
+```
+
+---
+
+### Task 7: Build and test on iOS Simulator
+
+**Files:**
+- No file changes — validation task
+
+- [ ] **Step 1: Sync latest**
+
+```bash
+npm run cap:sync
+```
+
+- [ ] **Step 2: Open in Xcode**
+
+```bash
+npx cap open ios
+```
+
+Expected: Xcode opens with the Vision Trainer project.
+
+- [ ] **Step 3: Build and run on Simulator**
+
+In Xcode:
+1. Select an iPhone 15 Pro (or similar) simulator, iOS 16+
+2. Press Cmd+R to build and run
+
+Alternatively from CLI:
+
+```bash
+cd ios/App && xcodebuild -scheme App -sdk iphonesimulator -destination 'platform=iOS Simulator,name=iPhone 15 Pro' build 2>&1 | tail -5
+```
+
+Expected: `BUILD SUCCEEDED`.
+
+- [ ] **Step 4: Validate success criteria**
+
+On the running simulator, verify each criterion:
+
+| # | Criterion | How to check |
+|---|-----------|-------------|
+| 1 | App launches | HomeScreen visible with Baudelaire warm amber theme |
+| 2 | GradientOrb animates | Breathing animation on hero orb |
+| 3 | WebGL2 works | Start a session → Gabor patch visible |
+| 4 | Session completes | Run through one trial without crash |
+| 5 | IndexedDB persists | Close and reopen app → progress retained |
+| 6 | Status bar dark | White text on dark background |
+| 7 | Safe areas | No content behind notch or home indicator |
+| 8 | Portrait locked | Rotate simulator (Cmd+→) → no rotation |
+
+- [ ] **Step 5: Final commit**
+
+```bash
+git add -A
+git commit -m "chore: sync iOS build artifacts after successful validation"
+```
+
+---
+
+### Task 8: Add .gitignore entries for Capacitor
+
+**Files:**
+- Modify: `.gitignore`
+
+- [ ] **Step 1: Add Capacitor-specific ignores**
+
+Append to `.gitignore`:
+
+```
+# Capacitor
+ios/App/App/public/
+ios/App/Pods/
+ios/capacitor-cordova-ios-plugins/
+```
+
+The `ios/App/App/public/` directory contains the copied `dist/` output — it's regenerated by `cap sync` and should not be committed. `Pods/` is installed by CocoaPods during sync.
+
+- [ ] **Step 2: Remove tracked files that should be ignored**
+
+```bash
+git rm -r --cached ios/App/App/public/ 2>/dev/null; true
+git rm -r --cached ios/App/Pods/ 2>/dev/null; true
+```
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add .gitignore
+git commit -m "chore: add Capacitor entries to .gitignore"
+```
+
+---
+
+## Execution Order
+
+Tasks 1→2→3→4→5→6→7→8. Strictly sequential — each depends on the previous.
+
+## Notes for the implementer
+
+- **Xcode requirement:** Xcode must be installed. Run `xcode-select --install` if needed.
+- **CocoaPods:** `npx cap sync ios` may need CocoaPods. If missing: `sudo gem install cocoapods`.
+- **Logo file:** Task 6 assumes the logo PNG has been generated. If not yet done, use a placeholder and revisit.
+- **No React code changes:** The only source changes are `vite.config.ts` (conditional PWA), `index.html` (viewport-fit), and `src/styles.css` (safe-area-inset-top). No component changes.
