@@ -35,7 +35,7 @@ export function AnimatedEye({ phase }: AnimatedEyeProps) {
   const creaseValues = `${openCrease};${openCrease};${closedCrease};${openCrease};${openCrease}`;
 
   return (
-    <div className="eye-wrap">
+    <div className="eye-wrap" aria-hidden="true">
       <div className={`eye-glow eye-glow--${phase}`} />
       <svg className="eye-svg" viewBox="0 0 160 70">
         <defs>

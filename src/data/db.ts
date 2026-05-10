@@ -186,6 +186,7 @@ function migrateSessionLog(session: SessionLog): SessionLog {
       block !== null &&
       typeof block === 'object' &&
       'id' in block &&
+      'label' in block &&
       'paradigm' in block &&
       'condition' in block &&
       'role' in block

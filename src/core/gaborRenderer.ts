@@ -277,34 +277,41 @@ export async function presentStimulus(
   signal?: AbortSignal
 ): Promise<{ onset: number; offset: number }> {
   return new Promise((resolve) => {
-    let frameId = requestAnimationFrame((onset) => {
+    let frameId = 0;
+    let onsetTs = 0;
+    let settled = false;
+    const finalize = (offset: number) => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      cancelAnimationFrame(frameId);
+      signal?.removeEventListener('abort', onAbort);
+      renderer.clear(profile);
+      resolve({ onset: onsetTs || offset, offset });
+    };
+    const onAbort = () => finalize(performance.now());
+    if (signal?.aborted) {
+      finalize(performance.now());
+      return;
+    }
+    signal?.addEventListener('abort', onAbort, { once: true });
+    frameId = requestAnimationFrame((onset) => {
+      onsetTs = onset;
       if (signal?.aborted) {
-        resolve({ onset, offset: onset });
+        finalize(onset);
         return;
       }
       renderer.render(stimulus, profile);
       const end = onset + stimulus.durationMs;
       const tick = (now: number) => {
-        if (signal?.aborted) {
-          resolve({ onset, offset: now });
-          return;
-        }
-        if (now >= end) {
-          renderer.clear(profile);
-          resolve({ onset, offset: now });
+        if (signal?.aborted || now >= end) {
+          finalize(now);
         } else {
           frameId = requestAnimationFrame(tick);
         }
       };
       frameId = requestAnimationFrame(tick);
     });
-    signal?.addEventListener(
-      'abort',
-      () => {
-        cancelAnimationFrame(frameId);
-        resolve({ onset: performance.now(), offset: performance.now() });
-      },
-      { once: true }
-    );
   });
 }
