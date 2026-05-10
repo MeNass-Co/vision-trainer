@@ -148,5 +148,5 @@ export function populationNormContrast(spatialFrequencyCpd: number, paradigm: Pa
     'backward-masking': 8,
     'pedestal-discrimination': 0.6
   };
-  return (baselineNorms.get(spatialFrequencyCpd) ?? 0.03) * paradigmMultiplier[paradigm];
+  return (baselineNorms.get(spatialFrequencyCpd) ?? 0.03) * (paradigmMultiplier[paradigm] ?? 1);
 }
