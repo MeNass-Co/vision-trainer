@@ -26,7 +26,7 @@ export function SettingsScreen({
       <div className="settings-group glass-card">
         <div className="setting-row">
           <span className="setting-row__label">Display Calibration</span>
-          <span className="setting-row__value setting-row__value--success">Calibrated ✓</span>
+          <span className="setting-row__value">Auto-detected</span>
         </div>
         <div className="setting-row">
           <span className="setting-row__label">Screen Distance</span>

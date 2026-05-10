@@ -1,4 +1,5 @@
 import type { CalibrationProfile } from '../types';
+import { uuid } from './uuid';
 
 const CM_PER_INCH = 2.54;
 
@@ -22,7 +23,7 @@ export function createBrowserCalibration(overrides: Partial<CalibrationProfile> 
 
   return {
     ...DEFAULT_CALIBRATION,
-    id: `cal-${crypto.randomUUID()}`,
+    id: `cal-${uuid()}`,
     createdAt: new Date().toISOString(),
     screenWidthPx,
     screenHeightPx,
@@ -88,6 +89,6 @@ export function conditionKey(
   gaborSizeDeg?: number
 ): string {
   const baseKey = `${paradigm}:${spatialFrequencyCpd.toFixed(1)}cpd:${orientationDeg}deg`;
-  const withDuration = durationMs === undefined ? baseKey : `${baseKey}:${durationMs}ms`;
-  return gaborSizeDeg === undefined ? withDuration : `${withDuration}:${gaborSizeDeg}deg`;
+  const withDuration = Number.isFinite(durationMs) ? `${baseKey}:${durationMs}ms` : baseKey;
+  return Number.isFinite(gaborSizeDeg) ? `${withDuration}:${gaborSizeDeg}deg` : withDuration;
 }

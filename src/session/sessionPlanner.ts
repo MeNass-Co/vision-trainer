@@ -1,5 +1,6 @@
 import type { EyeMode, GoalType, ParadigmId, SessionLog, SessionType, ThresholdEstimate } from '../types';
 import { conditionKey } from '../core/displayCalibration';
+import { uuid } from '../core/uuid';
 import { planProgramSession } from '../programs/programPlanner';
 import { type ContrastCondition } from '../tasks/contrastDetection';
 import { getParadigmModule } from '../tasks/paradigmRegistry';
@@ -19,7 +20,7 @@ export function createSessionLog(
   sessionType: SessionType = 'guided'
 ): SessionLog {
   return {
-    id: `session-${crypto.randomUUID()}`,
+    id: `session-${uuid()}`,
     startedAt: new Date().toISOString(),
     status: 'in-progress',
     eyeMode,
@@ -60,7 +61,7 @@ function createBlock(
   role: PlannedBlock['role']
 ): PlannedBlock {
   return {
-    id: `block-${crypto.randomUUID()}`,
+    id: `block-${uuid()}`,
     label,
     paradigm: condition.paradigm,
     condition,
@@ -87,7 +88,10 @@ function deficitScore(
   condition: ContrastCondition,
   latestByCondition: Map<string, ThresholdEstimate>
 ): number {
-  const threshold = latestByCondition.get(blockConditionKey(condition)) ?? latestByCondition.get(legacyBlockConditionKey(condition));
+  const threshold =
+    latestByCondition.get(blockConditionKey(condition))
+    ?? latestByCondition.get(durationOnlyKey(condition))
+    ?? latestByCondition.get(legacyBlockConditionKey(condition));
   const expected = populationNormContrast(condition.spatialFrequencyCpd, condition.paradigm);
   const observed = threshold?.thresholdContrast ?? expected * 2;
   return observed / expected;
@@ -100,6 +104,15 @@ function blockConditionKey(condition: ContrastCondition): string {
     condition.paradigm,
     condition.durationMs,
     condition.gaborSizeDeg
+  );
+}
+
+function durationOnlyKey(condition: ContrastCondition): string {
+  return conditionKey(
+    condition.spatialFrequencyCpd,
+    condition.orientationDeg,
+    condition.paradigm,
+    condition.durationMs
   );
 }
 

@@ -1,4 +1,5 @@
 import { conditionKey } from '../core/displayCalibration';
+import { uuid } from '../core/uuid';
 import type { ContrastCondition } from '../tasks/contrastDetection';
 import { getParadigmModule } from '../tasks/paradigmRegistry';
 import type { PlannedBlock } from '../session/sessionPlanner';
@@ -172,7 +173,7 @@ function createPlannedBlock(
   role: PlannedBlock['role']
 ): PlannedBlock {
   return {
-    id: `block-${crypto.randomUUID()}`,
+    id: `block-${uuid()}`,
     label,
     paradigm: condition.paradigm,
     condition,

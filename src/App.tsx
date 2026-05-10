@@ -57,9 +57,9 @@ export default function App() {
     return (
       <main className="app-shell">
         <GoalSelection
-          onSelect={(goal: GoalType, monocular: boolean, eye: 'left' | 'right', name: string) => {
-            void setGoalType(goal, name);
-            void setMonocularMode(monocular, eye);
+          onSelect={async (goal: GoalType, monocular: boolean, eye: 'left' | 'right', name: string) => {
+            await setGoalType(goal, name);
+            await setMonocularMode(monocular, eye);
           }}
         />
       </main>

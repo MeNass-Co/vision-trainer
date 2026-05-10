@@ -2,6 +2,7 @@ import { Play, Target } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { CalibrationProfile, DichopticSettings, GaborStimulus, GamificationAward, SessionLog, ThresholdEstimate, TrialInterval, TrialRecord } from '../types';
 import { conditionKey } from '../core/displayCalibration';
+import { uuid } from '../core/uuid';
 import { contrastFromLog10, QuestStaircase } from '../psychophysics/quest';
 import type { ContrastTrialPlan } from '../tasks/contrastDetection';
 import { getParadigmModule } from '../tasks/paradigmRegistry';
@@ -167,7 +168,7 @@ export function ContrastTask({ session, blocks, calibration, audioMuted, dichopt
     }
     const estimate = staircaseRef.current.estimate();
     const threshold: ThresholdEstimate = {
-      id: `threshold-${crypto.randomUUID()}`,
+      id: `threshold-${uuid()}`,
       sessionId: session.id,
       blockId: block.id,
       conditionKey: conditionKey(

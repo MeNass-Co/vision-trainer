@@ -20,6 +20,7 @@ export function HomeScreen({ profile, dashboard, gamification, timePhase, onStar
 
   const streak = useMemo(() => sessionStreak(dashboard.sessions), [dashboard.sessions]);
   const improvement = useMemo(() => improvementPercent(dashboard.thresholds), [dashboard.thresholds]);
+  const formattedImprovement = `${improvement > 0 ? '+' : ''}${improvement}%`;
   const weekDays = useMemo(() => buildWeekDays(dashboard.sessions), [dashboard.sessions]);
 
   const greeting = getGreeting(timePhase);
@@ -56,7 +57,7 @@ export function HomeScreen({ profile, dashboard, gamification, timePhase, onStar
             <span className="home-stat__label">Streak</span>
           </div>
           <div className="home-stat">
-            <span className="home-stat__value">+{improvement}%</span>
+            <span className="home-stat__value">{formattedImprovement}</span>
             <span className="home-stat__label">CS Gain</span>
           </div>
           <div className="home-stat">

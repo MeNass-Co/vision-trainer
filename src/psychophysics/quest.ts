@@ -27,6 +27,9 @@ const DEFAULT_PARAMS: QuestParameters = {
   range: 4
 };
 
+const CLAMP_MIN = -3;
+const CLAMP_MAX = -0.05;
+
 export class QuestStaircase {
   private readonly grid: number[];
   private readonly posterior: number[];
@@ -60,11 +63,12 @@ export class QuestStaircase {
     const thresholdProbability = (pThreshold - gamma) / dynamicRange;
     this.thresholdScale = -Math.log(1 - thresholdProbability);
 
-    const half = range / 2;
+    const gridMin = Math.max(tGuess - range / 2, CLAMP_MIN);
+    const gridMax = Math.min(tGuess + range / 2, CLAMP_MAX);
     this.grid = [];
     this.posterior = [];
-    for (let x = tGuess - half; x <= tGuess + half; x += grain) {
-      this.grid.push(this.clampIntensity(x));
+    for (let x = gridMin; x <= gridMax; x += grain) {
+      this.grid.push(x);
       const z = (x - tGuess) / tGuessSd;
       this.posterior.push(Math.exp(-0.5 * z * z));
     }
@@ -148,7 +152,7 @@ export class QuestStaircase {
   }
 
   private clampIntensity(value: number): number {
-    return Math.max(-3, Math.min(-0.05, value));
+    return Math.max(CLAMP_MIN, Math.min(CLAMP_MAX, value));
   }
 }
 

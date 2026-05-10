@@ -1,5 +1,6 @@
 import type { GaborStimulus, Orientation, ParadigmId, TrialInterval, TrialRecord } from '../types';
 import { conditionKey } from '../core/displayCalibration';
+import { uuid } from '../core/uuid';
 import { contrastFromLog10, QuestStaircase } from '../psychophysics/quest';
 
 export type ContrastCondition = {
@@ -76,7 +77,7 @@ export function buildTrialRecord(
 ): TrialRecord {
   const correct = responseInterval === plan.targetInterval;
   return {
-    id: `trial-${crypto.randomUUID()}`,
+    id: `trial-${uuid()}`,
     sessionId,
     blockId: plan.blockId,
     paradigm: plan.condition.paradigm,
