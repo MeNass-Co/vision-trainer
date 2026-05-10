@@ -31,7 +31,7 @@ export function createPedestalDiscriminationTrial(
     contrast: PEDESTAL_CONTRAST,
     phaseRad: Math.random() * Math.PI * 2,
     durationMs: condition.durationMs ?? 80,
-    gaborSizeDeg: condition.gaborSizeDeg,
+    gaborSizeDeg: condition.gaborSizeDeg ?? 4,
     backgroundLuminanceCdM2: 40
   };
 

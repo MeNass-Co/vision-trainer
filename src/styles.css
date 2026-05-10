@@ -937,7 +937,6 @@ a:focus-visible {
 /* ── Scene Header ── */
 .scene-header {
   position: relative;
-  width: 100%;
   height: 28vh;
   min-height: 160px;
   max-height: 240px;

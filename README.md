@@ -35,7 +35,7 @@ Capacitor iOS uses automatic code signing. Before building or archiving:
 2. Select the `App` target -> **Signing & Capabilities**.
 3. Set your **Team** (Apple Developer account).
 
-This populates `DEVELOPMENT_TEAM` in `project.pbxproj` for your local build only -- it is not committed.
+This populates `DEVELOPMENT_TEAM` in `ios/App/App.xcodeproj/project.pbxproj`. That file is tracked, so the change stays local only if you avoid committing the modified `project.pbxproj`.
 
 ## Architecture
 

@@ -46,7 +46,8 @@ export function sigmaPixels(
   profile: CalibrationProfile,
   gaborSizeDeg = 4
 ): number {
-  return (gaborSizeDeg / 2) * pixelsPerDegree(profile);
+  const sizeDeg = Number.isFinite(gaborSizeDeg) && gaborSizeDeg > 0 ? gaborSizeDeg : 4;
+  return (sizeDeg / 2) * pixelsPerDegree(profile);
 }
 
 export async function estimateRefreshRate(sampleFrames = 90): Promise<number> {

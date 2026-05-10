@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { Brain } from 'lucide-react';
 import { GoalSelection } from './components/GoalSelection';
 import { HomeScreen } from './components/HomeScreen';
@@ -67,18 +67,27 @@ export default function App() {
     );
   }
 
+  const tabChangeInFlight = useRef(false);
   const onTabChange = async (tab: typeof currentTab) => {
-    if (currentTab === 'train' && tab !== 'train') {
-      try {
-        await abandonSession();
-      } catch (err) {
-        // Intentional: navigate even if abandon failed so the user can't be trapped
-        // on the Train tab by a transient persistence error. Stale activeSession
-        // will be cleaned up on the next abandonSession or completeSession call.
-        console.error('Failed to abandon session', err);
-      }
+    if (tabChangeInFlight.current || tab === currentTab) {
+      return;
     }
-    setCurrentTab(tab);
+    tabChangeInFlight.current = true;
+    try {
+      if (currentTab === 'train' && tab !== 'train') {
+        try {
+          await abandonSession();
+        } catch (err) {
+          // Intentional: navigate even if abandon failed so the user can't be trapped
+          // on the Train tab by a transient persistence error. Stale activeSession
+          // will be cleaned up on the next abandonSession or completeSession call.
+          console.error('Failed to abandon session', err);
+        }
+      }
+      setCurrentTab(tab);
+    } finally {
+      tabChangeInFlight.current = false;
+    }
   };
 
   return (

@@ -7,10 +7,10 @@ import {
 } from './contrastDetection';
 
 export const SPATIAL_MASKING_CONDITIONS: ContrastCondition[] = [
-  { paradigm: 'spatial-masking', spatialFrequencyCpd: 1.5, orientationDeg: 0, trialsPerBlock: 40 },
-  { paradigm: 'spatial-masking', spatialFrequencyCpd: 3, orientationDeg: 45, trialsPerBlock: 40 },
-  { paradigm: 'spatial-masking', spatialFrequencyCpd: 6, orientationDeg: 90, trialsPerBlock: 40 },
-  { paradigm: 'spatial-masking', spatialFrequencyCpd: 12, orientationDeg: 135, trialsPerBlock: 40 }
+  { paradigm: 'spatial-masking', spatialFrequencyCpd: 1.5, orientationDeg: 0, gaborSizeDeg: 4, trialsPerBlock: 40 },
+  { paradigm: 'spatial-masking', spatialFrequencyCpd: 3, orientationDeg: 45, gaborSizeDeg: 4, trialsPerBlock: 40 },
+  { paradigm: 'spatial-masking', spatialFrequencyCpd: 6, orientationDeg: 90, gaborSizeDeg: 4, trialsPerBlock: 40 },
+  { paradigm: 'spatial-masking', spatialFrequencyCpd: 12, orientationDeg: 135, gaborSizeDeg: 4, trialsPerBlock: 40 }
 ];
 
 export function createSpatialMaskingTrial(
@@ -36,7 +36,7 @@ export function createSpatialMaskingTrial(
       contrast: contrastFromLog10(intensityLog10),
       phaseRad: Math.random() * Math.PI * 2,
       durationMs: condition.durationMs ?? 70,
-      gaborSizeDeg: condition.gaborSizeDeg,
+      gaborSizeDeg: condition.gaborSizeDeg ?? 4,
       backgroundLuminanceCdM2: 40,
       mask: {
         enabled: true,
