@@ -23,7 +23,6 @@ export default function App() {
   const setCurrentTab = useAppStore((s) => s.setCurrentTab);
   const setGoalType = useAppStore((s) => s.setGoalType);
   const setMonocularMode = useAppStore((s) => s.setMonocularMode);
-  const updateCalibration = useAppStore((s) => s.updateCalibration);
 
   useEffect(() => {
     void initialize();
@@ -90,9 +89,7 @@ export default function App() {
           <SettingsScreen
             profile={profile}
             calibration={calibration}
-            onUpdateCalibration={updateCalibration}
             onChangeGoal={(goal) => void setGoalType(goal)}
-            onResetProgress={() => {}}
           />
         </div>
       </section>

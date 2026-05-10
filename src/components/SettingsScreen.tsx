@@ -6,16 +6,13 @@ import { SceneHeader } from './SceneHeader';
 type SettingsScreenProps = {
   profile: UserProfile;
   calibration: CalibrationProfile;
-  onUpdateCalibration: (cal: CalibrationProfile) => Promise<void>;
   onChangeGoal: (goal: GoalType) => void;
-  onResetProgress: () => void;
 };
 
 export function SettingsScreen({
   profile,
   calibration,
   onChangeGoal,
-  onResetProgress,
 }: SettingsScreenProps) {
   const timePhase = useAppStore((s) => s.timePhase);
   const goalLabel = profile.diagnosisType === 'myopia' ? 'Myopia' :
@@ -62,19 +59,6 @@ export function SettingsScreen({
         </div>
       </div>
 
-      <div className="settings-group glass-card">
-        <div className="setting-row">
-          <span className="setting-row__label">Reset Progress</span>
-          <button
-            type="button"
-            className="setting-row__action setting-row__action--danger"
-            onClick={onResetProgress}
-          >
-            Reset
-            <ChevronRight size={16} />
-          </button>
-        </div>
-      </div>
     </section>
   );
 }

@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { applyPhase, applyTheme, getTimePhase } from '../theme';
+import { applyPhase, getTimePhase } from '../theme';
 import type {
   AssessmentResult,
   CalibrationProfile,
@@ -54,12 +54,9 @@ type AppState = {
   recordTrial: (trial: TrialRecord) => Promise<GamificationAward>;
   recordThreshold: (threshold: ThresholdEstimate) => Promise<void>;
   recordAssessment: (assessment: AssessmentResult) => Promise<void>;
-  updateDichopticSettings: (settings: DichopticSettings) => Promise<void>;
-  setAudioMuted: (muted: boolean) => Promise<void>;
   setGoalType: (goal: GoalType, name?: string) => Promise<void>;
   setCurrentTab: (tab: TabId) => void;
   setTimePhase: (phase: TimePhase) => void;
-  setTheme: (theme: 'dark' | 'light') => Promise<void>;
   setMonocularMode: (enabled: boolean, eye?: 'left' | 'right') => Promise<void>;
   refreshDashboard: () => Promise<void>;
 };
@@ -192,17 +189,6 @@ export const useAppStore = create<AppState>((set, get) => ({
     }));
   },
 
-  updateDichopticSettings: async (settings) => {
-    await saveDichopticSettings(settings);
-    set({ dichopticSettings: settings });
-  },
-
-  setAudioMuted: async (muted) => {
-    const updated = { ...get().gamification, audioMuted: muted, updatedAt: new Date().toISOString() };
-    await saveGamification(updated);
-    set({ gamification: updated });
-  },
-
   setGoalType: async (goal, name) => {
     const profile = { ...get().profile, diagnosisType: goal, ...(name ? { displayName: name } : {}) };
     await saveProfile(profile);
@@ -216,13 +202,6 @@ export const useAppStore = create<AppState>((set, get) => ({
   setTimePhase: (phase: TimePhase) => {
     applyPhase(phase);
     set({ timePhase: phase });
-  },
-
-  setTheme: async (theme) => {
-    applyTheme(theme);
-    const profile = { ...get().profile, theme };
-    await saveProfile(profile);
-    set({ profile });
   },
 
   setMonocularMode: async (enabled, eye) => {

@@ -4,9 +4,6 @@ const config: CapacitorConfig = {
   appId: 'com.visiontrainer.app',
   appName: 'Vision Trainer',
   webDir: 'dist',
-  ios: {
-    minVersion: '16.0',
-  },
   plugins: {
     SplashScreen: {
       launchAutoHide: true,
