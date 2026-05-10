@@ -181,16 +181,22 @@ function migrateSessionLog(session: SessionLog): SessionLog {
   if (isLegacy) {
     return { ...session, plannedBlocks: [] };
   }
-  const isShapeValid = blocks.every(
-    (block) =>
-      block !== null &&
-      typeof block === 'object' &&
-      'id' in block &&
-      'label' in block &&
-      'paradigm' in block &&
-      'condition' in block &&
-      'role' in block
-  );
+  const isShapeValid = blocks.every((block) => {
+    if (block === null || typeof block !== 'object') return false;
+    const candidate = block as Record<string, unknown>;
+    const condition = candidate.condition as Record<string, unknown> | null | undefined;
+    return (
+      typeof candidate.id === 'string' &&
+      typeof candidate.label === 'string' &&
+      typeof candidate.paradigm === 'string' &&
+      typeof candidate.role === 'string' &&
+      condition !== null &&
+      typeof condition === 'object' &&
+      typeof condition.spatialFrequencyCpd === 'number' &&
+      typeof condition.orientationDeg === 'number' &&
+      typeof condition.trialsPerBlock === 'number'
+    );
+  });
   if (!isShapeValid) {
     return { ...session, plannedBlocks: [] };
   }

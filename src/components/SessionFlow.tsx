@@ -57,8 +57,12 @@ export function SessionFlow() {
   };
 
   const onComplete = async () => {
-    await completeSession();
-    setCompletionMessage(`Great work! Next session recommended: ${nextRecommendedDate()}`);
+    try {
+      await completeSession();
+      setCompletionMessage(`Great work! Next session recommended: ${nextRecommendedDate()}`);
+    } catch {
+      setCompletionMessage('Unable to save the session. Your progress may not be persisted.');
+    }
   };
 
   const onAssessmentComplete = async (result: AssessmentResult) => {
