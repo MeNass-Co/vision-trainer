@@ -1,4 +1,5 @@
 import type { AssessmentPoint, EyeMode, GaborStimulus, Orientation, TrialInterval } from '../types';
+import { uuid } from '../core/uuid';
 
 export type AssessmentTrialPlan = {
   id: string;
@@ -26,7 +27,7 @@ export function createAssessmentTrials(): AssessmentTrialPlan[] {
       for (let repetition = 0; repetition < 5; repetition += 1) {
         const orientationDeg = orientations[(repetition + frequencies.indexOf(spatialFrequencyCpd)) % orientations.length];
         trials.push({
-          id: `assessment-trial-${crypto.randomUUID()}`,
+          id: `assessment-trial-${uuid()}`,
           spatialFrequencyCpd,
           orientationDeg,
           contrast,
@@ -80,7 +81,7 @@ export function buildAssessmentResult(
 ) {
   const points = fitVisionProfile(responses);
   return {
-    id: `assessment-${crypto.randomUUID()}`,
+    id: `assessment-${uuid()}`,
     startedAt,
     completedAt: new Date().toISOString(),
     eyeMode,
@@ -117,5 +118,10 @@ function weibull(contrast: number, threshold: number, slope: number): number {
 }
 
 function shuffle<T>(items: T[]): T[] {
-  return [...items].sort(() => Math.random() - 0.5);
+  const arr = [...items];
+  for (let i = arr.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
 }

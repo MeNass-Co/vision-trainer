@@ -1,8 +1,12 @@
 export type Orientation = 0 | 45 | 90 | 135;
 
+export type GoalType = 'myopia' | 'presbyopia' | 'sports-vision';
+
+export type TabId = 'home' | 'train' | 'progress' | 'science' | 'settings';
+
 export type EyeMode = 'both' | 'left' | 'right';
 
-export type SessionType = 'guided' | 'dichoptic';
+export type SessionType = 'guided';
 
 export type DichopticMode = 'off' | 'red-only' | 'cyan-only';
 
@@ -11,8 +15,7 @@ export type ParadigmId =
   | 'lateral-masking'
   | 'spatial-masking'
   | 'backward-masking'
-  | 'pedestal-discrimination'
-  | 'dichoptic-contrast';
+  | 'pedestal-discrimination';
 
 export type CalibrationProfile = {
   id: string;
@@ -48,6 +51,7 @@ export type GaborStimulus = {
   contrast: number;
   phaseRad: number;
   durationMs: number;
+  gaborSizeDeg?: number;
   backgroundLuminanceCdM2: number;
   dichopticMode?: DichopticMode;
   dichopticPartner?: {
@@ -56,6 +60,23 @@ export type GaborStimulus = {
   };
   flanker?: FlankerConfig;
   mask?: MaskConfig;
+};
+
+export type ContrastCondition = {
+  paradigm: ParadigmId;
+  spatialFrequencyCpd: number;
+  orientationDeg: Orientation;
+  trialsPerBlock: number;
+  durationMs?: number;
+  gaborSizeDeg?: number;
+};
+
+export type PlannedBlock = {
+  id: string;
+  label: string;
+  paradigm: ParadigmId;
+  condition: ContrastCondition;
+  role: 'warm-up' | 'training' | 'assessment';
 };
 
 export type TrialInterval = 1 | 2;
@@ -103,7 +124,7 @@ export type SessionLog = {
   sessionType: SessionType;
   calibrationId: string;
   protocolVersion: string;
-  plannedBlocks: ParadigmId[];
+  plannedBlocks: PlannedBlock[];
   completedTrials: number;
   metadata: Record<string, string | number | boolean>;
 };
@@ -112,8 +133,10 @@ export type UserProfile = {
   id: string;
   createdAt: string;
   displayName: string;
-  diagnosisType: 'amblyopia' | 'presbyopia' | 'low-contrast-sensitivity' | 'research' | 'unspecified';
+  diagnosisType: GoalType | 'unspecified';
   targetCadencePerWeek: number;
+  monocularMode: boolean;
+  monocularEye: 'left' | 'right';
 };
 
 export type DashboardSnapshot = {
@@ -178,3 +201,5 @@ export type AssessmentResult = {
   points: AssessmentPoint[];
   estimatedAcuityChange: string;
 };
+
+export type TimePhase = 'dawn' | 'afternoon' | 'night';

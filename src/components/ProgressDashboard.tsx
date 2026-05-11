@@ -1,91 +1,51 @@
-import { Download, LineChart } from 'lucide-react';
-import type { DashboardSnapshot, EyeMode } from '../types';
-import { exportJson } from '../data/db';
-import { buildBeforeAfterCsf, buildLatestCsf, improvementPercent, type CsfPoint } from '../progress/csf';
-import { detailLevelLabel, eyeModeLabel } from '../utils/labels';
+import type { DashboardSnapshot } from '../types';
+import { buildBeforeAfterCsf, improvementPercent, type CsfPoint } from '../progress/csf';
+import { detailLevelLabel } from '../utils/labels';
+import { useAppStore } from '../store/useAppStore';
+import { SceneHeader } from './SceneHeader';
 
 type ProgressDashboardProps = {
   dashboard: DashboardSnapshot;
 };
 
 export function ProgressDashboard({ dashboard }: ProgressDashboardProps) {
-  const latest = buildLatestCsf(dashboard.thresholds);
+  const timePhase = useAppStore((s) => s.timePhase);
   const series = buildBeforeAfterCsf(dashboard.thresholds);
-  const perEyeSeries = buildPerEyeSeries(dashboard);
   const improvement = improvementPercent(dashboard.thresholds);
   const correctRate =
     dashboard.trials.length === 0
       ? 0
       : Math.round((dashboard.trials.filter((trial) => trial.correct).length / dashboard.trials.length) * 100);
-
-  const download = async () => {
-    const json = await exportJson();
-    const url = URL.createObjectURL(new Blob([json], { type: 'application/json' }));
-    const anchor = document.createElement('a');
-    anchor.href = url;
-    anchor.download = `vision-trainer-export-${new Date().toISOString().slice(0, 10)}.json`;
-    anchor.click();
-    URL.revokeObjectURL(url);
-  };
+  const streak = sessionStreak(dashboard.sessions);
+  const totalSessions = dashboard.sessions.filter((s) => s.status === 'completed').length;
 
   return (
-    <section className="panel dashboard-panel" aria-labelledby="dashboard-heading">
-      <div className="section-heading">
-        <LineChart size={20} />
-        <div>
-          <h2 id="dashboard-heading">Progress Dashboard</h2>
-          <span>Vision profile, detection levels, adherence</span>
+    <section className="progress-screen" aria-label="Your Progress">
+      <SceneHeader phase={timePhase} title="Your Progress" />
+
+      <div className="progress-hero glass-card">
+        <span className="progress-hero__value">{improvement > 0 ? '+' : ''}{improvement}%</span>
+        <span className="progress-hero__label">{improvement >= 0 ? 'Vision Improvement' : 'Vision Change'}</span>
+      </div>
+
+      <div className="progress-mini-stats">
+        <div className="progress-mini glass-card">
+          <span className="progress-mini__value">{totalSessions}</span>
+          <span className="progress-mini__label">Sessions</span>
+        </div>
+        <div className="progress-mini glass-card">
+          <span className="progress-mini__value">{correctRate}%</span>
+          <span className="progress-mini__label">Accuracy</span>
+        </div>
+        <div className="progress-mini glass-card">
+          <span className="progress-mini__value">{streak}</span>
+          <span className="progress-mini__label">Streak</span>
         </div>
       </div>
 
-      <div className="dashboard-stats">
-        <div>
-          <span>Vision improvement</span>
-          <strong>{improvement}%</strong>
-        </div>
-        <div>
-          <span>Accuracy</span>
-          <strong>{correctRate}%</strong>
-        </div>
-        <div>
-          <span>Streak</span>
-          <strong>{sessionStreak(dashboard.sessions)}</strong>
-        </div>
-      </div>
-
-      <CsfChart series={series} />
-
-      {perEyeSeries.length > 1 ? (
-        <div className="eye-chart-grid">
-          {perEyeSeries.map((item) => (
-            <div key={item.eyeMode} className="eye-chart">
-              <strong>{eyeModeLabel(item.eyeMode)}</strong>
-              <CsfChart series={item.series} compact />
-            </div>
-          ))}
-        </div>
-      ) : null}
-
-      <div className="threshold-list">
-        {latest.length === 0 ? (
-          <p>No detection level measurements yet. Complete a block to draw the first vision profile.</p>
-        ) : (
-          latest.map((point) => (
-            <div key={point.spatialFrequencyCpd}>
-              <span>{detailLevelLabel(point.spatialFrequencyCpd)} detail</span>
-              <strong>{point.sensitivity.toFixed(1)} sharpness score</strong>
-              <span>{(point.thresholdContrast * 100).toFixed(2)}% detection level</span>
-            </div>
-          ))
-        )}
-      </div>
+      {series.length > 0 && <CsfChart series={series} />}
 
       <AssessmentReport dashboard={dashboard} />
-
-      <button type="button" className="secondary-button" onClick={() => void download()}>
-        <Download size={16} />
-        Export JSON
-      </button>
     </section>
   );
 }
@@ -107,7 +67,11 @@ function AssessmentReport({ dashboard }: ProgressDashboardProps) {
           return (
             <div key={point.spatialFrequencyCpd}>
               <span>{detailLevelLabel(point.spatialFrequencyCpd)} detail</span>
-              <strong>{improvement}% improvement</strong>
+              <strong>
+                {improvement >= 0
+                  ? `${improvement}% improvement`
+                  : `${Math.abs(improvement)}% regression`}
+              </strong>
             </div>
           );
         })
@@ -169,29 +133,27 @@ function CsfChart({ series, compact = false }: { series: { label: string; points
   );
 }
 
-function buildPerEyeSeries(dashboard: DashboardSnapshot): Array<{ eyeMode: EyeMode; series: { label: string; points: CsfPoint[] }[] }> {
-  const sessionEyeMode = new Map(dashboard.sessions.map((session) => [session.id, session.eyeMode ?? 'both']));
-  const modes: EyeMode[] = ['both', 'left', 'right'];
-  return modes.flatMap((eyeMode) => {
-    const thresholds = dashboard.thresholds.filter((threshold) => (sessionEyeMode.get(threshold.sessionId) ?? 'both') === eyeMode);
-    if (thresholds.length === 0) {
-      return [];
-    }
-    return [{ eyeMode, series: buildBeforeAfterCsf(thresholds) }];
-  });
-}
-
 function sessionStreak(sessions: DashboardSnapshot['sessions']): number {
   const completedDates = new Set(
     sessions
       .filter((session) => session.status === 'completed' && session.completedAt)
-      .map((session) => session.completedAt?.slice(0, 10))
+      .map((session) => localDateKey(new Date(session.completedAt as string)))
   );
   let streak = 0;
   const cursor = new Date();
-  while (completedDates.has(cursor.toISOString().slice(0, 10))) {
+  if (!completedDates.has(localDateKey(cursor))) {
+    cursor.setDate(cursor.getDate() - 1);
+  }
+  while (completedDates.has(localDateKey(cursor))) {
     streak += 1;
     cursor.setDate(cursor.getDate() - 1);
   }
   return streak;
+}
+
+function localDateKey(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }

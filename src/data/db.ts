@@ -4,11 +4,20 @@ import type {
   CalibrationProfile,
   DichopticSettings,
   GamificationState,
+  ParadigmId,
   SessionLog,
   ThresholdEstimate,
   TrialRecord,
   UserProfile
 } from '../types';
+
+const VALID_PARADIGMS: ReadonlySet<ParadigmId> = new Set<ParadigmId>([
+  'contrast-detection',
+  'lateral-masking',
+  'spatial-masking',
+  'backward-masking',
+  'pedestal-discrimination'
+]);
 
 interface VisionTrainerDb extends DBSchema {
   profiles: {
@@ -165,7 +174,45 @@ export async function loadDashboardData() {
     db.getAllFromIndex('thresholds', 'by-created-at'),
     db.getAllFromIndex('assessments', 'by-completed-at')
   ]);
-  return { sessions, trials, thresholds, assessments };
+  return { sessions: sessions.map(migrateSessionLog), trials, thresholds, assessments };
+}
+
+function migrateSessionLog(session: SessionLog): SessionLog {
+  const blocks = session.plannedBlocks as unknown;
+  if (!Array.isArray(blocks)) {
+    return { ...session, plannedBlocks: [] };
+  }
+  if (blocks.length === 0) {
+    return session;
+  }
+  // Legacy ParadigmId[] (any element a string) or malformed entries → drop.
+  const isLegacy = blocks.every((block) => typeof block === 'string');
+  if (isLegacy) {
+    return { ...session, plannedBlocks: [] };
+  }
+  const isShapeValid = blocks.every((block) => {
+    if (block === null || typeof block !== 'object') return false;
+    const candidate = block as Record<string, unknown>;
+    const condition = candidate.condition as Record<string, unknown> | null | undefined;
+    return (
+      typeof candidate.id === 'string' &&
+      typeof candidate.label === 'string' &&
+      typeof candidate.paradigm === 'string' &&
+      VALID_PARADIGMS.has(candidate.paradigm as ParadigmId) &&
+      typeof candidate.role === 'string' &&
+      condition !== null &&
+      typeof condition === 'object' &&
+      typeof condition.paradigm === 'string' &&
+      VALID_PARADIGMS.has(condition.paradigm as ParadigmId) &&
+      Number.isFinite(condition.spatialFrequencyCpd) &&
+      Number.isFinite(condition.orientationDeg) &&
+      Number.isFinite(condition.trialsPerBlock)
+    );
+  });
+  if (!isShapeValid) {
+    return { ...session, plannedBlocks: [] };
+  }
+  return session;
 }
 
 export async function exportJson(): Promise<string> {

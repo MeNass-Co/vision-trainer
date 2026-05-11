@@ -19,7 +19,7 @@ export type QuestEstimate = {
 const DEFAULT_PARAMS: QuestParameters = {
   tGuess: -1,
   tGuessSd: 0.6,
-  pThreshold: 0.82,
+  pThreshold: 0.79,
   beta: 3.5,
   delta: 0.03,
   gamma: 0.5,
@@ -27,20 +27,82 @@ const DEFAULT_PARAMS: QuestParameters = {
   range: 4
 };
 
+const CLAMP_MIN = -3;
+const CLAMP_MAX = Math.log10(0.9);
+const MAX_GRID_POINTS = 10_000;
+
 export class QuestStaircase {
   private readonly grid: number[];
   private readonly posterior: number[];
+  private readonly thresholdScale: number;
   private trialCountValue = 0;
   private lapseCount = 0;
 
-  constructor(private readonly params: QuestParameters = DEFAULT_PARAMS) {
-    const half = this.params.range / 2;
+  private readonly params: QuestParameters;
+
+  constructor(params: QuestParameters = DEFAULT_PARAMS) {
+    this.params = Object.freeze({ ...params });
+    const { tGuess, tGuessSd, pThreshold, beta, delta, gamma, grain, range } = this.params;
+
+    if (![tGuess, tGuessSd, pThreshold, beta, delta, gamma, grain, range].every(Number.isFinite)) {
+      throw new Error('Invalid QUEST params: all parameters must be finite numbers.');
+    }
+    if (!(tGuessSd > 0)) {
+      throw new Error('Invalid QUEST params: require tGuessSd > 0.');
+    }
+    if (!(beta > 0)) {
+      throw new Error('Invalid QUEST params: require beta > 0.');
+    }
+    if (!(gamma >= 0 && gamma < 1)) {
+      throw new Error('Invalid QUEST params: require 0 <= gamma < 1.');
+    }
+    if (!(delta >= 0 && delta < 1)) {
+      throw new Error('Invalid QUEST params: require 0 <= delta < 1.');
+    }
+    if (!(grain > 0)) {
+      throw new Error('Invalid QUEST params: require grain > 0.');
+    }
+    if (!(range > 0)) {
+      throw new Error('Invalid QUEST params: require range > 0.');
+    }
+
+    const dynamicRange = 1 - gamma - delta;
+    if (!(dynamicRange > 0)) {
+      throw new Error('Invalid QUEST params: require gamma + delta < 1.');
+    }
+    if (pThreshold <= gamma || pThreshold >= 1 - delta) {
+      throw new Error('Invalid QUEST params: require gamma < pThreshold < 1 - delta.');
+    }
+    const thresholdProbability = (pThreshold - gamma) / dynamicRange;
+    this.thresholdScale = -Math.log(1 - thresholdProbability);
+
+    const gridMin = Math.max(tGuess - range / 2, CLAMP_MIN);
+    const gridMax = Math.min(tGuess + range / 2, CLAMP_MAX);
+    if (gridMin > gridMax) {
+      throw new Error(
+        'Invalid QUEST params: guessed threshold range does not overlap supported intensity bounds.'
+      );
+    }
+    const gridPointCount = Math.floor((gridMax - gridMin) / grain) + 1;
+    const lastSteppedPoint = gridMin + (gridPointCount - 1) * grain;
+    const willAppendGridMax = Math.abs(lastSteppedPoint - gridMax) > 1e-12;
+    const totalPoints = gridPointCount + (willAppendGridMax ? 1 : 0);
+    if (totalPoints > MAX_GRID_POINTS) {
+      throw new Error('Invalid QUEST params: grid resolution is too fine for the supported range.');
+    }
     this.grid = [];
     this.posterior = [];
-    for (let x = this.params.tGuess - half; x <= this.params.tGuess + half; x += this.params.grain) {
-      this.grid.push(this.clampIntensity(x));
-      const z = (x - this.params.tGuess) / this.params.tGuessSd;
+    const pushGridPoint = (x: number) => {
+      this.grid.push(x);
+      const z = (x - tGuess) / tGuessSd;
       this.posterior.push(Math.exp(-0.5 * z * z));
+    };
+    for (let x = gridMin; x <= gridMax; x += grain) {
+      pushGridPoint(x);
+    }
+    const last = this.grid.at(-1);
+    if (last === undefined || Math.abs(last - gridMax) > 1e-12) {
+      pushGridPoint(gridMax);
     }
     this.normalize(this.posterior);
   }
@@ -82,8 +144,8 @@ export class QuestStaircase {
 
   private psychometricProbability(intensityLog10: number, thresholdLog10: number): number {
     const slope = Math.pow(10, this.params.beta * (intensityLog10 - thresholdLog10));
-    const Weibull = 1 - Math.exp(-slope);
-    return this.params.gamma + (1 - this.params.gamma - this.params.delta) * Weibull;
+    const weibull = 1 - Math.exp(-this.thresholdScale * slope);
+    return this.params.gamma + (1 - this.params.gamma - this.params.delta) * weibull;
   }
 
   private quantile(target: number): number {
@@ -122,7 +184,7 @@ export class QuestStaircase {
   }
 
   private clampIntensity(value: number): number {
-    return Math.max(-3, Math.min(-0.05, value));
+    return Math.max(CLAMP_MIN, Math.min(CLAMP_MAX, value));
   }
 }
 

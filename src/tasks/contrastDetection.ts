@@ -1,13 +1,9 @@
-import type { GaborStimulus, Orientation, ParadigmId, TrialInterval, TrialRecord } from '../types';
+import type { ContrastCondition, GaborStimulus, TrialInterval, TrialRecord } from '../types';
 import { conditionKey } from '../core/displayCalibration';
+import { uuid } from '../core/uuid';
 import { contrastFromLog10, QuestStaircase } from '../psychophysics/quest';
 
-export type ContrastCondition = {
-  paradigm: ParadigmId;
-  spatialFrequencyCpd: number;
-  orientationDeg: Orientation;
-  trialsPerBlock: number;
-};
+export type { ContrastCondition } from '../types';
 
 export const CONTRAST_DETECTION_CONDITIONS: ContrastCondition[] = [
   { paradigm: 'contrast-detection', spatialFrequencyCpd: 1.5, orientationDeg: 0, trialsPerBlock: 40 },
@@ -47,9 +43,11 @@ export function createContrastTrial(
   const intensityLog10 = catchTrial ? -0.2 : staircase.nextIntensity();
   const contrast = contrastFromLog10(intensityLog10);
   const targetInterval: TrialInterval = Math.random() < 0.5 ? 1 : 2;
+  const durationMs = resolvePositiveNumber(condition.durationMs, 160);
+  const gaborSizeDeg = resolvePositiveNumber(condition.gaborSizeDeg, 4);
   return {
     blockId,
-    condition,
+    condition: { ...condition, durationMs, gaborSizeDeg },
     trialIndex,
     targetInterval,
     intensityLog10,
@@ -59,10 +57,15 @@ export function createContrastTrial(
       orientationDeg: condition.orientationDeg,
       contrast,
       phaseRad: Math.random() * Math.PI * 2,
-      durationMs: 60,
+      durationMs,
+      gaborSizeDeg,
       backgroundLuminanceCdM2: 40
     }
   };
+}
+
+export function resolvePositiveNumber(value: unknown, fallback: number): number {
+  return typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : fallback;
 }
 
 export function buildTrialRecord(
@@ -73,14 +76,16 @@ export function buildTrialRecord(
 ): TrialRecord {
   const correct = responseInterval === plan.targetInterval;
   return {
-    id: `trial-${crypto.randomUUID()}`,
+    id: `trial-${uuid()}`,
     sessionId,
     blockId: plan.blockId,
     paradigm: plan.condition.paradigm,
     conditionKey: conditionKey(
       plan.condition.spatialFrequencyCpd,
       plan.condition.orientationDeg,
-      plan.condition.paradigm
+      plan.condition.paradigm,
+      plan.stimulus.durationMs,
+      plan.stimulus.gaborSizeDeg
     ),
     trialIndex: plan.trialIndex,
     stimulus: plan.stimulus,

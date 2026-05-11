@@ -1,7 +1,8 @@
 import { Play, Target } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { CalibrationProfile, DichopticSettings, GaborStimulus, GamificationAward, SessionLog, ThresholdEstimate, TrialInterval, TrialRecord } from '../types';
+import type { CalibrationProfile, GaborStimulus, GamificationAward, SessionLog, ThresholdEstimate, TrialInterval, TrialRecord } from '../types';
 import { conditionKey } from '../core/displayCalibration';
+import { uuid } from '../core/uuid';
 import { contrastFromLog10, QuestStaircase } from '../psychophysics/quest';
 import type { ContrastTrialPlan } from '../tasks/contrastDetection';
 import { getParadigmModule } from '../tasks/paradigmRegistry';
@@ -11,14 +12,13 @@ import { playCorrectTone, playLevelUpTone } from '../utils/audio';
 import { GaborCanvas, type GaborCanvasHandle } from './GaborCanvas';
 import { TaskInstructions } from './TaskInstructions';
 
-type Phase = 'idle' | 'fixation' | 'interval-1' | 'isi' | 'interval-2' | 'response' | 'saving' | 'complete';
+type Phase = 'idle' | 'fixation' | 'interval-1' | 'isi' | 'interval-2' | 'response' | 'saving' | 'block-save-error' | 'complete';
 
 type ContrastTaskProps = {
   session: SessionLog;
   blocks: PlannedBlock[];
   calibration: CalibrationProfile;
   audioMuted: boolean;
-  dichopticSettings?: DichopticSettings;
   onTrial: (trial: TrialRecord) => Promise<GamificationAward | void>;
   onThreshold: (threshold: ThresholdEstimate) => Promise<void>;
   onComplete: () => Promise<void>;
@@ -27,11 +27,14 @@ type ContrastTaskProps = {
 const wait = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms));
 const interTrialIntervalMs = 1200;
 
-export function ContrastTask({ session, blocks, calibration, audioMuted, dichopticSettings, onTrial, onThreshold, onComplete }: ContrastTaskProps) {
+export function ContrastTask({ session, blocks, calibration, audioMuted, onTrial, onThreshold, onComplete }: ContrastTaskProps) {
   const stageRef = useRef<GaborCanvasHandle | null>(null);
   const staircaseRef = useRef(new QuestStaircase());
   const responseStartedAt = useRef(0);
   const runningRef = useRef(false);
+  const submittingRef = useRef(false);
+  const savedThresholdsRef = useRef<Map<string, ThresholdEstimate>>(new Map());
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [blockIndex, setBlockIndex] = useState(0);
   const [trialIndex, setTrialIndex] = useState(0);
   const [phase, setPhase] = useState<Phase>('idle');
@@ -58,18 +61,20 @@ export function ContrastTask({ session, blocks, calibration, audioMuted, dichopt
     runningRef.current = false;
   }, [blockIndex]);
 
+  const submitResponseRef = useRef<(response: TrialInterval) => Promise<void>>(async () => {});
+
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === '1') {
-        void submitResponse(1);
+        void submitResponseRef.current(1);
       }
       if (event.key === '2') {
-        void submitResponse(2);
+        void submitResponseRef.current(2);
       }
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  });
+  }, []);
 
   const runTrial = async (trialNumber = trialIndex) => {
     if (!block || !paradigmModule || !instructionsDismissed || runningRef.current) {
@@ -78,10 +83,7 @@ export function ContrastTask({ session, blocks, calibration, audioMuted, dichopt
     runningRef.current = true;
     setFeedback(null);
 
-    const nextPlan = applyDichopticSettings(
-      paradigmModule.createTrial(staircaseRef.current, block.condition, block.id, trialNumber),
-      dichopticSettings
-    );
+    const nextPlan = paradigmModule.createTrial(staircaseRef.current, block.condition, block.id, trialNumber);
     setPlan(nextPlan);
     setPhase('fixation');
     stageRef.current?.clear();
@@ -130,11 +132,24 @@ export function ContrastTask({ session, blocks, calibration, audioMuted, dichopt
     if (phase !== 'response' || !plan || !block) {
       return;
     }
+    if (submittingRef.current) {
+      return;
+    }
+    submittingRef.current = true;
     setPhase('saving');
+    setSaveError(null);
     const reactionTimeMs = performance.now() - responseStartedAt.current;
     const trial = getParadigmModule(block.paradigm).buildTrialRecord(session.id, plan, response, reactionTimeMs);
-    staircaseRef.current.record(plan.intensityLog10, trial.correct, plan.catchTrial);
-    const award = await onTrial(trial);
+    let award: GamificationAward | void;
+    try {
+      award = await onTrial(trial);
+      staircaseRef.current.record(plan.intensityLog10, trial.correct, plan.catchTrial);
+    } catch {
+      submittingRef.current = false;
+      setSaveError('Could not save your response. Please try again.');
+      setPhase('response');
+      return;
+    }
     if (trial.correct) {
       playCorrectTone(audioMuted);
     }
@@ -149,7 +164,14 @@ export function ContrastTask({ session, blocks, calibration, audioMuted, dichopt
     const nextTrialIndex = trialIndex + 1;
     if (nextTrialIndex >= block.condition.trialsPerBlock) {
       await wait(interTrialIntervalMs);
-      await finishBlock();
+      try {
+        await finishBlock();
+      } catch {
+        setSaveError('Could not save the block result. Please retry.');
+        setPhase('block-save-error');
+      } finally {
+        submittingRef.current = false;
+      }
       return;
     }
 
@@ -158,31 +180,47 @@ export function ContrastTask({ session, blocks, calibration, audioMuted, dichopt
     stageRef.current?.clear();
     await wait(interTrialIntervalMs);
     setPhase('idle');
+    submittingRef.current = false;
     void runTrial(nextTrialIndex);
   };
+
+  useEffect(() => {
+    submitResponseRef.current = submitResponse;
+  });
 
   const finishBlock = async () => {
     if (!block) {
       return;
     }
-    const estimate = staircaseRef.current.estimate();
-    const threshold: ThresholdEstimate = {
-      id: `threshold-${crypto.randomUUID()}`,
-      sessionId: session.id,
-      blockId: block.id,
-      conditionKey: conditionKey(block.condition.spatialFrequencyCpd, block.condition.orientationDeg, block.paradigm),
-      paradigm: block.paradigm,
-      spatialFrequencyCpd: block.condition.spatialFrequencyCpd,
-      orientationDeg: block.condition.orientationDeg,
-      thresholdContrast: contrastFromLog10(estimate.thresholdLog10),
-      thresholdLog10: estimate.thresholdLog10,
-      ciLow: contrastFromLog10(estimate.ciLowLog10),
-      ciHigh: contrastFromLog10(estimate.ciHighLog10),
-      trialCount: staircaseRef.current.trialCount(),
-      lapseRate: staircaseRef.current.lapseRate(),
-      createdAt: new Date().toISOString()
-    };
-    await onThreshold(threshold);
+    if (!savedThresholdsRef.current.has(block.id)) {
+      const estimate = staircaseRef.current.estimate();
+      const resolvedDurationMs = plan?.stimulus.durationMs ?? block.condition.durationMs ?? 160;
+      const resolvedGaborSizeDeg = plan?.stimulus.gaborSizeDeg ?? block.condition.gaborSizeDeg ?? 4;
+      const threshold: ThresholdEstimate = {
+        id: `threshold-${uuid()}`,
+        sessionId: session.id,
+        blockId: block.id,
+        conditionKey: conditionKey(
+          block.condition.spatialFrequencyCpd,
+          block.condition.orientationDeg,
+          block.paradigm,
+          resolvedDurationMs,
+          resolvedGaborSizeDeg
+        ),
+        paradigm: block.paradigm,
+        spatialFrequencyCpd: block.condition.spatialFrequencyCpd,
+        orientationDeg: block.condition.orientationDeg,
+        thresholdContrast: contrastFromLog10(estimate.thresholdLog10),
+        thresholdLog10: estimate.thresholdLog10,
+        ciLow: contrastFromLog10(estimate.ciLowLog10),
+        ciHigh: contrastFromLog10(estimate.ciHighLog10),
+        trialCount: staircaseRef.current.trialCount(),
+        lapseRate: staircaseRef.current.lapseRate(),
+        createdAt: new Date().toISOString()
+      };
+      await onThreshold(threshold);
+      savedThresholdsRef.current.set(block.id, threshold);
+    }
 
     if (blockIndex + 1 >= blocks.length) {
       setPhase('complete');
@@ -191,6 +229,21 @@ export function ContrastTask({ session, blocks, calibration, audioMuted, dichopt
     }
 
     setBlockIndex((current) => current + 1);
+  };
+
+  const retryFinishBlock = async () => {
+    if (submittingRef.current) return;
+    submittingRef.current = true;
+    setSaveError(null);
+    setPhase('saving');
+    try {
+      await finishBlock();
+    } catch {
+      setSaveError('Could not save the block result. Please retry.');
+      setPhase('block-save-error');
+    } finally {
+      submittingRef.current = false;
+    }
   };
 
   if (!block || !paradigmModule) {
@@ -254,7 +307,16 @@ export function ContrastTask({ session, blocks, calibration, audioMuted, dichopt
           <span style={{ width: `${Math.max(2, (progress.completed / progress.total) * 100)}%` }} />
         </div>
 
-        {phase === 'response' ? (
+        {saveError ? (
+          <p className="completion-message" role="alert">{saveError}</p>
+        ) : null}
+
+        {phase === 'block-save-error' ? (
+          <button type="button" className="primary-button wide" onClick={() => void retryFinishBlock()}>
+            <Play size={16} />
+            Retry Save
+          </button>
+        ) : phase === 'response' ? (
           <div className="response-grid">
             <button type="button" className="choice-button" onClick={() => void submitResponse(1)}>
               <span className="choice-key">1</span>
@@ -294,24 +356,4 @@ function describeCurrentValue(plan: ContrastTrialPlan | null): string {
     return `+${(increment * 100).toFixed(1)}%`;
   }
   return `${(plan.stimulus.contrast * 100).toFixed(1)}%`;
-}
-
-function applyDichopticSettings(plan: ContrastTrialPlan, settings?: DichopticSettings): ContrastTrialPlan {
-  if (plan.condition.paradigm !== 'dichoptic-contrast' || !settings) {
-    return plan;
-  }
-  const nonDominantMode = settings.redFilterEye === settings.dominantEye ? 'cyan-only' : 'red-only';
-  const dominantMode = nonDominantMode === 'cyan-only' ? 'red-only' : 'cyan-only';
-  return {
-    ...plan,
-    stimulus: {
-      ...plan.stimulus,
-      contrast: Math.max(0.005, plan.stimulus.contrast * settings.nonDominantContrast),
-      dichopticMode: nonDominantMode,
-      dichopticPartner: {
-        mode: dominantMode,
-        contrast: settings.dominantContrast
-      }
-    }
-  };
 }

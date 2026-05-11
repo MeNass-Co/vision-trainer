@@ -1,8 +1,29 @@
 node_modules
 dist
 dist-ssr
+dev-dist
 *.local
 .DS_Store
 .vite
 coverage
 playwright-report
+src-tauri/target/
+
+# Build artifacts
+*.dmg
+
+# Internal planning / agents
+CODEX_*.md
+PLAN_AGENT*.md
+DESIGN.md
+PRODUCT.md
+palette-exploration.html
+.agents/
+.claude/
+skills/
+docs/superpowers/
+
+# Capacitor build outputs
+ios/App/App/public/
+ios/App/Pods/
+ios/capacitor-cordova-ios-plugins/

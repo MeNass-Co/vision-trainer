@@ -149,6 +149,9 @@ export class GaborRenderer {
   private readonly gl: WebGL2RenderingContext;
   private readonly program: WebGLProgram;
   private readonly uniforms: Record<string, WebGLUniformLocation>;
+  private vao: WebGLVertexArrayObject | null = null;
+  private buffer: WebGLBuffer | null = null;
+  private disposed = false;
 
   constructor(private readonly canvas: HTMLCanvasElement) {
     const gl = canvas.getContext('webgl2', { antialias: false, depth: false, stencil: false });
@@ -203,7 +206,7 @@ export class GaborRenderer {
   render(stimulus: GaborStimulus, profile: CalibrationProfile): void {
     const gl = this.gl;
     const lambdaPx = pixelsPerCycle(stimulus.spatialFrequencyCpd, profile);
-    const sigmaPx = sigmaPixels(stimulus.spatialFrequencyCpd, profile);
+    const sigmaPx = sigmaPixels(profile, stimulus.gaborSizeDeg);
     const orientation = (stimulus.orientationDeg * Math.PI) / 180;
     const background = luminanceToLinearGray(stimulus.backgroundLuminanceCdM2, profile);
     const flanker = stimulus.flanker;
@@ -249,14 +252,33 @@ export class GaborRenderer {
 
   private createFullScreenTriangle(): void {
     const gl = this.gl;
-    const vao = gl.createVertexArray();
-    const buffer = gl.createBuffer();
+    this.vao = gl.createVertexArray();
+    this.buffer = gl.createBuffer();
     const position = gl.getAttribLocation(this.program, 'a_position');
-    gl.bindVertexArray(vao);
-    gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+    gl.bindVertexArray(this.vao);
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
     gl.enableVertexAttribArray(position);
     gl.vertexAttribPointer(position, 2, gl.FLOAT, false, 0, 0);
+  }
+
+  dispose(): void {
+    if (this.disposed) {
+      return;
+    }
+    this.disposed = true;
+    const gl = this.gl;
+    if (this.vao) {
+      gl.deleteVertexArray(this.vao);
+      this.vao = null;
+    }
+    if (this.buffer) {
+      gl.deleteBuffer(this.buffer);
+      this.buffer = null;
+    }
+    gl.deleteProgram(this.program);
+    const loseContext = gl.getExtension('WEBGL_lose_context');
+    loseContext?.loseContext();
   }
 }
 
@@ -273,21 +295,53 @@ function dichopticModeToUniform(mode: GaborStimulus['dichopticMode']): number {
 export async function presentStimulus(
   renderer: GaborRenderer,
   stimulus: GaborStimulus,
-  profile: CalibrationProfile
+  profile: CalibrationProfile,
+  signal?: AbortSignal
 ): Promise<{ onset: number; offset: number }> {
   return new Promise((resolve) => {
-    requestAnimationFrame((onset) => {
+    let frameId = 0;
+    let onsetTs: number | null = null;
+    let settled = false;
+    const finalize = (offset: number) => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      cancelAnimationFrame(frameId);
+      signal?.removeEventListener('abort', onAbort);
+      renderer.clear(profile);
+      resolve({ onset: onsetTs ?? offset, offset });
+    };
+    const onAbort = () => finalize(performance.now());
+    if (signal?.aborted) {
+      finalize(performance.now());
+      return;
+    }
+    signal?.addEventListener('abort', onAbort, { once: true });
+    frameId = requestAnimationFrame((onset) => {
+      onsetTs = onset;
+      if (signal?.aborted) {
+        finalize(onset);
+        return;
+      }
+      const durationMs =
+        Number.isFinite(stimulus.durationMs) && stimulus.durationMs > 0
+          ? stimulus.durationMs
+          : 0;
+      if (durationMs === 0) {
+        finalize(onset);
+        return;
+      }
       renderer.render(stimulus, profile);
-      const end = onset + stimulus.durationMs;
+      const end = onset + durationMs;
       const tick = (now: number) => {
-        if (now >= end) {
-          renderer.clear(profile);
-          resolve({ onset, offset: now });
+        if (signal?.aborted || now >= end) {
+          finalize(now);
         } else {
-          requestAnimationFrame(tick);
+          frameId = requestAnimationFrame(tick);
         }
       };
-      requestAnimationFrame(tick);
+      frameId = requestAnimationFrame(tick);
     });
   });
 }

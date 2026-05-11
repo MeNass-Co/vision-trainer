@@ -1,4 +1,5 @@
 import type { CalibrationProfile } from '../types';
+import { uuid } from './uuid';
 
 const CM_PER_INCH = 2.54;
 
@@ -22,7 +23,7 @@ export function createBrowserCalibration(overrides: Partial<CalibrationProfile> 
 
   return {
     ...DEFAULT_CALIBRATION,
-    id: `cal-${crypto.randomUUID()}`,
+    id: `cal-${uuid()}`,
     createdAt: new Date().toISOString(),
     screenWidthPx,
     screenHeightPx,
@@ -41,8 +42,12 @@ export function pixelsPerCycle(spatialFrequencyCpd: number, profile: Calibration
   return pixelsPerDegree(profile) / spatialFrequencyCpd;
 }
 
-export function sigmaPixels(spatialFrequencyCpd: number, profile: CalibrationProfile): number {
-  return pixelsPerCycle(spatialFrequencyCpd, profile);
+export function sigmaPixels(
+  profile: CalibrationProfile,
+  gaborSizeDeg = 4
+): number {
+  const sizeDeg = Number.isFinite(gaborSizeDeg) && gaborSizeDeg > 0 ? gaborSizeDeg : 4;
+  return (sizeDeg / 2) * pixelsPerDegree(profile);
 }
 
 export async function estimateRefreshRate(sampleFrames = 90): Promise<number> {
@@ -76,6 +81,15 @@ export function luminanceToLinearGray(luminanceCdM2: number, profile: Calibratio
   return Math.pow(normalized, 1 / profile.gamma);
 }
 
-export function conditionKey(spatialFrequencyCpd: number, orientationDeg: number, paradigm: string): string {
-  return `${paradigm}:${spatialFrequencyCpd.toFixed(1)}cpd:${orientationDeg}deg`;
+export function conditionKey(
+  spatialFrequencyCpd: number,
+  orientationDeg: number,
+  paradigm: string,
+  durationMs?: number,
+  gaborSizeDeg?: number
+): string {
+  const baseKey = `${paradigm}:${spatialFrequencyCpd.toFixed(1)}cpd:${orientationDeg}deg`;
+  const withDuration = Number.isFinite(durationMs) ? `${baseKey}:${durationMs}ms` : baseKey;
+  const sizeDeg = Number.isFinite(gaborSizeDeg) && (gaborSizeDeg as number) > 0 ? gaborSizeDeg : undefined;
+  return sizeDeg === undefined ? withDuration : `${withDuration}:${sizeDeg}deg`;
 }

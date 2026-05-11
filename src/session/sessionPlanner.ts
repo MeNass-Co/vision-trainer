@@ -1,30 +1,34 @@
-import type { EyeMode, ParadigmId, SessionLog, SessionType, ThresholdEstimate } from '../types';
+import type {
+  ContrastCondition,
+  EyeMode,
+  GoalType,
+  ParadigmId,
+  PlannedBlock,
+  SessionLog,
+  SessionType,
+  ThresholdEstimate
+} from '../types';
 import { conditionKey } from '../core/displayCalibration';
-import { type ContrastCondition } from '../tasks/contrastDetection';
-import { PARADIGM_LIBRARY, getParadigmModule } from '../tasks/paradigmRegistry';
+import { uuid } from '../core/uuid';
+import { planProgramSession } from '../programs/programPlanner';
+import { getParadigmModule } from '../tasks/paradigmRegistry';
 
-export type PlannedBlock = {
-  id: string;
-  label: string;
-  paradigm: ParadigmId;
-  condition: ContrastCondition;
-  role: 'warm-up' | 'training' | 'assessment';
-};
+export type { PlannedBlock } from '../types';
 
 export function createSessionLog(
   calibrationId: string,
-  plannedBlocks: ParadigmId[] = ['contrast-detection'],
+  plannedBlocks: PlannedBlock[],
   eyeMode: EyeMode = 'both',
   sessionType: SessionType = 'guided'
 ): SessionLog {
   return {
-    id: `session-${crypto.randomUUID()}`,
+    id: `session-${uuid()}`,
     startedAt: new Date().toISOString(),
     status: 'in-progress',
     eyeMode,
     sessionType,
     calibrationId,
-    protocolVersion: 'mvp-0.1',
+    protocolVersion: 'mvp-0.2',
     plannedBlocks,
     completedTrials: 0,
     metadata: {
@@ -34,44 +38,27 @@ export function createSessionLog(
   };
 }
 
-export function planSession(sessionsCompleted: number, thresholds: ThresholdEstimate[]): PlannedBlock[] {
-  const availableParadigms = paradigmsForSession(sessionsCompleted + 1);
-  const conditionPool = availableParadigms.flatMap((paradigm) => {
-    const module = getParadigmModule(paradigm);
-    const trainedSessions = sessionsOnParadigm(thresholds, paradigm);
-    const frequencyCount = Math.min(module.conditions.length, Math.max(1, trainedSessions + 1));
-    return module.conditions.slice(0, frequencyCount);
-  });
-  const warmUp = getParadigmModule('contrast-detection').conditions[0];
+export function planSession(
+  sessionsCompleted: number,
+  thresholds: ThresholdEstimate[],
+  goalType?: GoalType
+): PlannedBlock[] {
+  if (goalType) {
+    return planProgramSession(goalType, sessionsCompleted + 1, thresholds);
+  }
+
+  const contrastConditions = getParadigmModule('contrast-detection').conditions;
+  if (contrastConditions.length === 0) {
+    throw new Error('contrast-detection module has no configured conditions');
+  }
+  const warmUp = contrastConditions[0];
   const blocks: PlannedBlock[] = [
     createBlock('Warm-up', { ...warmUp, trialsPerBlock: 10 }, 'warm-up')
   ];
-
-  let previousKey = blockConditionKey(blocks[0].condition);
-  for (const label of ['Training A', 'Training B', 'Training C']) {
-    const condition = selectDeficitCondition(thresholds, conditionPool, previousKey);
-    blocks.push(createBlock(label, { ...condition, trialsPerBlock: 32 }, 'training'));
-    previousKey = blockConditionKey(condition);
-  }
-
-  const assessmentCondition = selectDeficitCondition(thresholds, conditionPool, previousKey);
-  blocks.push(createBlock('Cool-down assessment', { ...assessmentCondition, trialsPerBlock: 16 }, 'assessment'));
-
+  const deficitCondition = selectDeficitCondition(thresholds, contrastConditions);
+  blocks.push(createBlock('Training A', { ...deficitCondition, trialsPerBlock: 40 }, 'training'));
+  blocks.push(createBlock('Assessment', { ...deficitCondition, trialsPerBlock: 16 }, 'assessment'));
   return blocks;
-}
-
-export function planDichopticSession(sessionsCompleted: number): PlannedBlock[] {
-  const baseCondition = {
-    ...getParadigmModule('dichoptic-contrast').conditions[Math.min(3, Math.max(0, sessionsCompleted - 5) % 4)],
-    trialsPerBlock: 28
-  };
-  const warmUp = { ...getParadigmModule('contrast-detection').conditions[0], trialsPerBlock: 8 };
-  return [
-    createBlock('Warm-up', warmUp, 'warm-up'),
-    createBlock('Two-eye Training A', baseCondition, 'training'),
-    createBlock('Two-eye Training B', { ...baseCondition, orientationDeg: 90 }, 'training'),
-    createBlock('Balance Check', { ...baseCondition, trialsPerBlock: 14 }, 'assessment')
-  ];
 }
 
 function createBlock(
@@ -80,7 +67,7 @@ function createBlock(
   role: PlannedBlock['role']
 ): PlannedBlock {
   return {
-    id: `block-${crypto.randomUUID()}`,
+    id: `block-${uuid()}`,
     label,
     paradigm: condition.paradigm,
     condition,
@@ -88,59 +75,71 @@ function createBlock(
   };
 }
 
-function paradigmsForSession(sessionNumber: number): ParadigmId[] {
-  const milestones: Array<[number, ParadigmId]> = [
-    [1, 'contrast-detection'],
-    [6, 'lateral-masking'],
-    [11, 'spatial-masking'],
-    [16, 'backward-masking'],
-    [21, 'pedestal-discrimination']
-  ];
-  return milestones
-    .filter(([firstSession]) => sessionNumber >= firstSession)
-    .map(([, paradigm]) => paradigm);
-}
-
-function sessionsOnParadigm(thresholds: ThresholdEstimate[], paradigm: ParadigmId): number {
-  const sessionIds = new Set(
-    thresholds
-      .filter((threshold) => threshold.paradigm === paradigm)
-      .map((threshold) => threshold.sessionId)
-  );
-  return sessionIds.size;
-}
-
 function selectDeficitCondition(
   thresholds: ThresholdEstimate[],
-  conditions: ContrastCondition[],
-  previousKey?: string
+  conditions: ContrastCondition[]
 ): ContrastCondition {
   const latestByCondition = new Map<string, ThresholdEstimate>();
   for (const threshold of thresholds) {
-    latestByCondition.set(threshold.conditionKey, threshold);
+    const current = latestByCondition.get(threshold.conditionKey);
+    if (!current || threshold.createdAt > current.createdAt) {
+      latestByCondition.set(threshold.conditionKey, threshold);
+    }
+  }
+
+  const unseen = conditions.filter((condition) => deficitScore(condition, latestByCondition) < 0);
+  if (unseen.length > 0) {
+    return unseen[Math.floor(Math.random() * unseen.length)];
   }
 
   const ranked = [...conditions].sort((a, b) => {
     return deficitScore(b, latestByCondition) - deficitScore(a, latestByCondition);
   });
-  return ranked.find((condition) => blockConditionKey(condition) !== previousKey) ?? ranked[0];
+  return ranked[0];
 }
 
 function deficitScore(
   condition: ContrastCondition,
   latestByCondition: Map<string, ThresholdEstimate>
 ): number {
-  const threshold = latestByCondition.get(blockConditionKey(condition));
+  const candidates = [
+    latestByCondition.get(blockConditionKey(condition)),
+    latestByCondition.get(durationOnlyKey(condition)),
+    latestByCondition.get(legacyBlockConditionKey(condition))
+  ].filter((candidate): candidate is ThresholdEstimate => Boolean(candidate));
+
+  if (candidates.length === 0) {
+    return -1;
+  }
   const expected = populationNormContrast(condition.spatialFrequencyCpd, condition.paradigm);
-  const observed = threshold?.thresholdContrast ?? expected * 2;
-  return observed / expected;
+  const latest = candidates.sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
+  return latest.thresholdContrast / expected;
 }
 
 function blockConditionKey(condition: ContrastCondition): string {
+  return conditionKey(
+    condition.spatialFrequencyCpd,
+    condition.orientationDeg,
+    condition.paradigm,
+    condition.durationMs,
+    condition.gaborSizeDeg
+  );
+}
+
+function durationOnlyKey(condition: ContrastCondition): string {
+  return conditionKey(
+    condition.spatialFrequencyCpd,
+    condition.orientationDeg,
+    condition.paradigm,
+    condition.durationMs
+  );
+}
+
+function legacyBlockConditionKey(condition: ContrastCondition): string {
   return conditionKey(condition.spatialFrequencyCpd, condition.orientationDeg, condition.paradigm);
 }
 
-function populationNormContrast(spatialFrequencyCpd: number, paradigm: ParadigmId): number {
+export function populationNormContrast(spatialFrequencyCpd: number, paradigm: ParadigmId): number {
   const baselineNorms = new Map<number, number>([
     [1.5, 0.018],
     [3, 0.012],
@@ -152,15 +151,7 @@ function populationNormContrast(spatialFrequencyCpd: number, paradigm: ParadigmI
     'lateral-masking': 1.25,
     'spatial-masking': 1.7,
     'backward-masking': 8,
-    'pedestal-discrimination': 0.6,
-    'dichoptic-contrast': 1.5
+    'pedestal-discrimination': 0.6
   };
-  return (baselineNorms.get(spatialFrequencyCpd) ?? 0.03) * paradigmMultiplier[paradigm];
-}
-
-export function activeParadigmsForSession(sessionsCompleted: number): ParadigmId[] {
-  const active = new Set(paradigmsForSession(sessionsCompleted + 1));
-  return PARADIGM_LIBRARY
-    .filter((module) => active.has(module.id))
-    .map((module) => module.id);
+  return (baselineNorms.get(spatialFrequencyCpd) ?? 0.03) * (paradigmMultiplier[paradigm] ?? 1);
 }

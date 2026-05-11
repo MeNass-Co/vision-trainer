@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { applyPhase, getTimePhase } from '../theme';
 import type {
   AssessmentResult,
   CalibrationProfile,
@@ -7,15 +8,19 @@ import type {
   EyeMode,
   GamificationAward,
   GamificationState,
-  ParadigmId,
+  GoalType,
+  PlannedBlock,
   SessionLog,
   SessionType,
+  TabId,
   ThresholdEstimate,
+  TimePhase,
   TrialRecord,
   UserProfile
 } from '../types';
 import { createBrowserCalibration, DEFAULT_CALIBRATION } from '../core/displayCalibration';
 import {
+  getDb,
   getLatestCalibration,
   getDichopticSettings,
   getGamification,
@@ -33,6 +38,8 @@ import { createSessionLog } from '../session/sessionPlanner';
 
 type AppState = {
   ready: boolean;
+  currentTab: TabId;
+  timePhase: TimePhase;
   calibration: CalibrationProfile;
   profile: UserProfile;
   gamification: GamificationState;
@@ -41,14 +48,17 @@ type AppState = {
   dashboard: DashboardSnapshot;
   initialize: () => Promise<void>;
   updateCalibration: (profile: CalibrationProfile) => Promise<void>;
-  startSession: (plannedBlocks?: ParadigmId[], eyeMode?: EyeMode, sessionType?: SessionType) => Promise<SessionLog>;
+  startSession: (plannedBlocks: PlannedBlock[], eyeMode?: EyeMode, sessionType?: SessionType) => Promise<SessionLog>;
   updateSession: (session: SessionLog) => Promise<void>;
+  abandonSession: () => Promise<void>;
   completeSession: () => Promise<void>;
   recordTrial: (trial: TrialRecord) => Promise<GamificationAward>;
   recordThreshold: (threshold: ThresholdEstimate) => Promise<void>;
   recordAssessment: (assessment: AssessmentResult) => Promise<void>;
-  updateDichopticSettings: (settings: DichopticSettings) => Promise<void>;
-  setAudioMuted: (muted: boolean) => Promise<void>;
+  setGoalType: (goal: GoalType, name?: string) => Promise<void>;
+  setCurrentTab: (tab: TabId) => void;
+  setTimePhase: (phase: TimePhase) => void;
+  setMonocularMode: (enabled: boolean, eye?: 'left' | 'right') => Promise<void>;
   refreshDashboard: () => Promise<void>;
 };
 
@@ -57,7 +67,9 @@ const defaultProfile: UserProfile = {
   createdAt: new Date().toISOString(),
   displayName: 'Local trainee',
   diagnosisType: 'unspecified',
-  targetCadencePerWeek: 3
+  targetCadencePerWeek: 3,
+  monocularMode: false,
+  monocularEye: 'right',
 };
 
 const defaultGamification: GamificationState = {
@@ -79,8 +91,34 @@ const defaultDichopticSettings: DichopticSettings = {
   updatedAt: new Date().toISOString()
 };
 
+let profileWriteQueue: Promise<void> = Promise.resolve();
+let sessionStartInFlight: Promise<SessionLog> | null = null;
+let sessionMutationQueue: Promise<unknown> = Promise.resolve();
+
+function queueSessionMutation<T>(task: () => Promise<T>): Promise<T> {
+  const next = sessionMutationQueue.then(task);
+  sessionMutationQueue = next.catch(() => undefined);
+  return next;
+}
+
+function queueProfileWrite(
+  current: () => UserProfile,
+  apply: (profile: UserProfile) => void,
+  updater: (profile: UserProfile) => UserProfile
+): Promise<void> {
+  const next = profileWriteQueue.then(async () => {
+    const profile = updater(current());
+    await saveProfile(profile);
+    apply(profile);
+  });
+  profileWriteQueue = next.catch(() => undefined);
+  return next;
+}
+
 export const useAppStore = create<AppState>((set, get) => ({
   ready: false,
+  currentTab: 'home' as TabId,
+  timePhase: getTimePhase(),
   calibration: DEFAULT_CALIBRATION,
   profile: defaultProfile,
   gamification: defaultGamification,
@@ -94,7 +132,22 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   initialize: async () => {
-    await saveProfile(defaultProfile);
+    const db = await getDb();
+    const storedProfile = await db.get('profiles', defaultProfile.id);
+    const profile: UserProfile = {
+      id: storedProfile?.id ?? defaultProfile.id,
+      createdAt: storedProfile?.createdAt ?? defaultProfile.createdAt,
+      displayName: storedProfile?.displayName ?? defaultProfile.displayName,
+      diagnosisType: storedProfile?.diagnosisType ?? defaultProfile.diagnosisType,
+      targetCadencePerWeek: storedProfile?.targetCadencePerWeek ?? defaultProfile.targetCadencePerWeek,
+      monocularMode: storedProfile?.monocularMode ?? defaultProfile.monocularMode,
+      monocularEye: storedProfile?.monocularEye ?? defaultProfile.monocularEye
+    };
+    await queueProfileWrite(
+      () => get().profile,
+      (next) => set({ profile: next }),
+      () => profile
+    );
     const calibration = (await getLatestCalibration()) ?? createBrowserCalibration();
     await saveCalibration(calibration);
     const gamification = (await getGamification()) ?? defaultGamification;
@@ -103,7 +156,21 @@ export const useAppStore = create<AppState>((set, get) => ({
     await saveDichopticSettings(dichopticSettings);
     const dashboard = await loadDashboardData();
     const syncedGamification = await syncBadges(gamification, dashboard);
-    set({ calibration, dashboard, gamification: syncedGamification, dichopticSettings, ready: true });
+    const activeSession =
+      [...dashboard.sessions]
+        .filter((session) => session.status === 'in-progress')
+        .sort((a, b) => b.startedAt.localeCompare(a.startedAt))[0] ?? null;
+    const phase = getTimePhase();
+    applyPhase(phase);
+    set({
+      calibration,
+      dashboard,
+      gamification: syncedGamification,
+      dichopticSettings,
+      activeSession,
+      ready: true,
+      timePhase: phase
+    });
   },
 
   updateCalibration: async (profile) => {
@@ -112,50 +179,89 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   startSession: async (plannedBlocks, eyeMode = 'both', sessionType = 'guided') => {
-    const session = createSessionLog(get().calibration.id, plannedBlocks, eyeMode, sessionType);
-    await saveSession(session);
-    set({ activeSession: session });
-    await get().refreshDashboard();
-    return session;
-  },
-
-  updateSession: async (session) => {
-    await saveSession(session);
-    set({ activeSession: session });
-    await get().refreshDashboard();
-  },
-
-  completeSession: async () => {
-    const activeSession = get().activeSession;
-    if (!activeSession) {
-      return;
+    if (sessionStartInFlight) {
+      return sessionStartInFlight;
     }
-    const completed: SessionLog = {
-      ...activeSession,
-      status: 'completed',
-      completedAt: new Date().toISOString()
-    };
-    await saveSession(completed);
-    set({ activeSession: null });
-    await get().refreshDashboard();
-    const syncedGamification = await syncBadges(get().gamification, get().dashboard);
-    set({ gamification: syncedGamification });
+    const existing = get().activeSession;
+    if (existing) {
+      return existing;
+    }
+    const run = (async (): Promise<SessionLog> => {
+      const session = createSessionLog(get().calibration.id, plannedBlocks, eyeMode, sessionType);
+      set({ activeSession: session });
+      try {
+        await saveSession(session);
+      } catch (error) {
+        set({ activeSession: null });
+        throw error;
+      }
+      await get().refreshDashboard();
+      return session;
+    })();
+    sessionStartInFlight = run;
+    try {
+      return await run;
+    } finally {
+      sessionStartInFlight = null;
+    }
   },
 
-  recordTrial: async (trial) => {
-    await saveTrial(trial);
-    const award = awardXp(get().gamification, trial);
-    await saveGamification(award.nextState);
-    set({ gamification: award.nextState });
-    const activeSession = get().activeSession;
-    if (activeSession) {
+  updateSession: async (session) =>
+    queueSessionMutation(async () => {
+      await saveSession(session);
+      set({ activeSession: session });
+      await get().refreshDashboard();
+    }),
+
+  abandonSession: async () =>
+    queueSessionMutation(async () => {
+      const activeSession = get().activeSession;
+      if (!activeSession) {
+        return;
+      }
+      const abandoned: SessionLog = {
+        ...activeSession,
+        status: 'abandoned'
+      };
+      await saveSession(abandoned);
+      set({ activeSession: null });
+      await get().refreshDashboard();
+    }),
+
+  completeSession: async () =>
+    queueSessionMutation(async () => {
+      const activeSession = get().activeSession;
+      if (!activeSession) {
+        return;
+      }
+      const completed: SessionLog = {
+        ...activeSession,
+        status: 'completed',
+        completedAt: new Date().toISOString()
+      };
+      await saveSession(completed);
+      set({ activeSession: null });
+      await get().refreshDashboard();
+      const syncedGamification = await syncBadges(get().gamification, get().dashboard);
+      set({ gamification: syncedGamification });
+    }),
+
+  recordTrial: async (trial) =>
+    queueSessionMutation(async () => {
+      const activeSession = get().activeSession;
+      if (!activeSession) {
+        throw new Error('Cannot record a trial without an active session');
+      }
+      await saveTrial(trial);
+      const award = awardXp(get().gamification, trial);
+      await saveGamification(award.nextState);
+      set({ gamification: award.nextState });
       const updated = { ...activeSession, completedTrials: activeSession.completedTrials + 1 };
       await saveSession(updated);
       set({ activeSession: updated });
-    }
-    set((state) => ({ dashboard: { ...state.dashboard, trials: [...state.dashboard.trials, trial] } }));
-    return award.result;
-  },
+      set((state) => ({ dashboard: { ...state.dashboard, trials: [...state.dashboard.trials, trial] } }));
+      return award.result;
+    }),
 
   recordThreshold: async (threshold) => {
     await saveThreshold(threshold);
@@ -171,15 +277,33 @@ export const useAppStore = create<AppState>((set, get) => ({
     }));
   },
 
-  updateDichopticSettings: async (settings) => {
-    await saveDichopticSettings(settings);
-    set({ dichopticSettings: settings });
+  setGoalType: async (goal, name) => {
+    await queueProfileWrite(
+      () => get().profile,
+      (profile) => set({ profile }),
+      (profile) => ({ ...profile, diagnosisType: goal, ...(name ? { displayName: name } : {}) })
+    );
   },
 
-  setAudioMuted: async (muted) => {
-    const updated = { ...get().gamification, audioMuted: muted, updatedAt: new Date().toISOString() };
-    await saveGamification(updated);
-    set({ gamification: updated });
+  setCurrentTab: (tab) => {
+    set({ currentTab: tab });
+  },
+
+  setTimePhase: (phase: TimePhase) => {
+    applyPhase(phase);
+    set({ timePhase: phase });
+  },
+
+  setMonocularMode: async (enabled, eye) => {
+    await queueProfileWrite(
+      () => get().profile,
+      (profile) => set({ profile }),
+      (profile) => ({
+        ...profile,
+        monocularMode: enabled,
+        ...(eye ? { monocularEye: eye } : {}),
+      })
+    );
   },
 
   refreshDashboard: async () => {
@@ -243,7 +367,7 @@ async function syncBadges(state: GamificationState, dashboard: DashboardSnapshot
     ['first-improvement', 'First Improvement', improvement],
     ['three-day-streak', '3-Day Streak', streak >= 3],
     ['week-streak', 'Week Streak', streak >= 7],
-    ['all-paradigms', 'All Paradigms Tried', completedParadigms.size >= 6]
+    ['all-paradigms', 'All Paradigms Tried', completedParadigms.size >= 5]
   ] as const;
 
   const earnedIds = new Set(state.earnedBadges.map((badge) => badge.id));
@@ -286,13 +410,23 @@ function sessionStreak(sessions: DashboardSnapshot['sessions']): number {
   const completedDates = new Set(
     sessions
       .filter((session) => session.status === 'completed' && session.completedAt)
-      .map((session) => session.completedAt?.slice(0, 10))
+      .map((session) => localDateKey(new Date(session.completedAt as string)))
   );
   let streak = 0;
   const cursor = new Date();
-  while (completedDates.has(cursor.toISOString().slice(0, 10))) {
+  if (!completedDates.has(localDateKey(cursor))) {
+    cursor.setDate(cursor.getDate() - 1);
+  }
+  while (completedDates.has(localDateKey(cursor))) {
     streak += 1;
     cursor.setDate(cursor.getDate() - 1);
   }
   return streak;
+}
+
+function localDateKey(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
