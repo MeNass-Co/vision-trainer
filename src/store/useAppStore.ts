@@ -96,7 +96,7 @@ let sessionStartInFlight: Promise<SessionLog> | null = null;
 let sessionMutationQueue: Promise<unknown> = Promise.resolve();
 
 function queueSessionMutation<T>(task: () => Promise<T>): Promise<T> {
-  const next = sessionMutationQueue.then(task, task);
+  const next = sessionMutationQueue.then(task);
   sessionMutationQueue = next.catch(() => undefined);
   return next;
 }

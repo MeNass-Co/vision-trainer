@@ -40,7 +40,7 @@ export function createBackwardMaskingTrial(
 
   return {
     blockId,
-    condition: { ...condition, gaborSizeDeg },
+    condition: { ...condition, durationMs: 50, gaborSizeDeg },
     trialIndex,
     targetInterval,
     intensityLog10,

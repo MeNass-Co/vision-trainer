@@ -84,7 +84,10 @@ export class QuestStaircase {
       );
     }
     const gridPointCount = Math.floor((gridMax - gridMin) / grain) + 1;
-    if (gridPointCount > MAX_GRID_POINTS) {
+    const lastSteppedPoint = gridMin + (gridPointCount - 1) * grain;
+    const willAppendGridMax = Math.abs(lastSteppedPoint - gridMax) > 1e-12;
+    const totalPoints = gridPointCount + (willAppendGridMax ? 1 : 0);
+    if (totalPoints > MAX_GRID_POINTS) {
       throw new Error('Invalid QUEST params: grid resolution is too fine for the supported range.');
     }
     this.grid = [];
