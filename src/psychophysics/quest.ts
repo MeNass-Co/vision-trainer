@@ -31,6 +31,40 @@ const CLAMP_MIN = -3;
 const CLAMP_MAX = Math.log10(0.9);
 const MAX_GRID_POINTS = 10_000;
 
+/**
+ * QUEST's internal Weibull re-parameterisation constant. `pThreshold` is the
+ * performance level at which the *threshold parameter* is defined; converting it
+ * to the Weibull's natural scale gives the multiplier applied to the slope term
+ * so that intensity == threshold yields exactly `pThreshold`. Extracted as a
+ * pure function so the synthetic-observer harness can speak the identical
+ * function family; the class calls it verbatim (no behaviour change).
+ */
+export function questThresholdScale(pThreshold: number, gamma: number, delta: number): number {
+  const dynamicRange = 1 - gamma - delta;
+  const thresholdProbability = (pThreshold - gamma) / dynamicRange;
+  return -Math.log(1 - thresholdProbability);
+}
+
+/**
+ * The exact 2AFC Weibull psychometric function QUEST fits, in log10-contrast
+ * units: p(correct) = gamma + (1 - gamma - upperLapse) * (1 - exp(-scale *
+ * 10^(beta*(intensity - threshold)))). `upperLapse` is QUEST's `delta` inside
+ * the estimator; a synthetic observer supplies its own lapse here. Pure export
+ * so estimator and observer share one source of truth.
+ */
+export function weibullProbabilityCorrect(input: {
+  intensityLog10: number;
+  thresholdLog10: number;
+  beta: number;
+  gamma: number;
+  upperLapse: number;
+  thresholdScale: number;
+}): number {
+  const slope = Math.pow(10, input.beta * (input.intensityLog10 - input.thresholdLog10));
+  const weibull = 1 - Math.exp(-input.thresholdScale * slope);
+  return input.gamma + (1 - input.gamma - input.upperLapse) * weibull;
+}
+
 export class QuestStaircase {
   private readonly grid: number[];
   private readonly posterior: number[];
@@ -74,8 +108,7 @@ export class QuestStaircase {
     if (pThreshold <= gamma || pThreshold >= 1 - delta) {
       throw new Error('Invalid QUEST params: require gamma < pThreshold < 1 - delta.');
     }
-    const thresholdProbability = (pThreshold - gamma) / dynamicRange;
-    this.thresholdScale = -Math.log(1 - thresholdProbability);
+    this.thresholdScale = questThresholdScale(pThreshold, gamma, delta);
 
     const gridMin = Math.max(tGuess - range / 2, CLAMP_MIN);
     const gridMax = Math.min(tGuess + range / 2, CLAMP_MAX);
@@ -156,9 +189,14 @@ export class QuestStaircase {
   }
 
   private psychometricProbability(intensityLog10: number, thresholdLog10: number): number {
-    const slope = Math.pow(10, this.params.beta * (intensityLog10 - thresholdLog10));
-    const weibull = 1 - Math.exp(-this.thresholdScale * slope);
-    return this.params.gamma + (1 - this.params.gamma - this.params.delta) * weibull;
+    return weibullProbabilityCorrect({
+      intensityLog10,
+      thresholdLog10,
+      beta: this.params.beta,
+      gamma: this.params.gamma,
+      upperLapse: this.params.delta,
+      thresholdScale: this.thresholdScale,
+    });
   }
 
   private quantile(target: number): number {
