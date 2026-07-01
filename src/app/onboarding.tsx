@@ -102,8 +102,10 @@ export default function OnboardingScreen() {
   };
 
   const handleStart = () => {
-    // Route first: flipping onboardingComplete while segments still read
-    // 'onboarding' would let the root gate race this replace toward the tabs.
+    // onboardingComplete is NOT flipped here: even navigating first, the flag
+    // flip re-renders the root gate while segments still read 'onboarding' and
+    // its replace toward the tabs stomps this one (observed on web). The
+    // paywall persists the flag on mount, once the handoff has really landed.
     router.replace('/paywall' as Href);
     if (remindersIntent) {
       // Deferred side effect from the reminders step, executed only at completion.
@@ -114,8 +116,6 @@ export default function OnboardingScreen() {
           // Scheduling failed; the setting stays off and can be enabled in Settings.
         });
     }
-    // Persisted so the root layout never re-onboards a returning user on cold launch.
-    useAppStore.getState().updateSetting('onboardingComplete', true);
   };
 
   return (

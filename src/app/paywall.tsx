@@ -1,4 +1,5 @@
 import { type Href, useRouter } from 'expo-router';
+import { useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { AmbientGradient } from '@/components/home/AmbientGradient';
@@ -16,6 +17,15 @@ const BENEFITS = [
 export default function PaywallScreen() {
   const router = useRouter();
   const reduceMotion = useEffectiveReducedMotion();
+
+  // Onboarding completion is persisted here, once the paywall has actually
+  // mounted: flipping it inside onboarding's completion handler raced the root
+  // route gate (segments still read 'onboarding' when the flag flips, so the
+  // gate's replace toward the tabs stomped the in-flight replace to this
+  // screen). Re-entry from Settings makes this a no-op rewrite.
+  useEffect(() => {
+    useAppStore.getState().updateSetting('onboardingComplete', true);
+  }, []);
 
   // Early access: no purchase can occur yet, so no prices and no subscription
   // claims are shown. Membership state is still recorded for the future gate.
