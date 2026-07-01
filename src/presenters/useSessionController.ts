@@ -9,12 +9,15 @@ import { useAppStore } from '@/store/useAppStore';
 import type {
   CalibrationProfile,
   GaborStimulus,
+  SessionLog,
   ThresholdEstimate,
   TrialInterval,
 } from '@/types';
 import { now } from '@/utils/clock';
 
 export type SessionStatus = 'ready' | 'running' | 'block-complete' | 'complete';
+
+export type SessionSaveState = 'idle' | 'saving' | 'saved' | 'failed';
 
 export type TrialPlan = {
   /** The two intervals; exactly one holds a stimulus, the other is null (blank). */
@@ -36,10 +39,14 @@ export type SessionController = {
   lastCorrect: boolean | null;
   progress: number;
   showBlockBreak: boolean;
+  saveState: SessionSaveState;
+  /** The persisted session's real id, set only once the save succeeds. */
+  savedSessionId: string | null;
   currentTrial: () => TrialPlan;
   respond: (choice: TrialInterval) => { correct: boolean };
   begin: () => void;
   advanceBlock: () => void;
+  retrySave: () => void;
 };
 
 type SessionState = {
@@ -85,7 +92,13 @@ function blocksForNextSession(): GuidedSessionBlock[] {
 export function useSessionController(): SessionController {
   const calibration = useMemo(() => buildDeviceCalibration(), []);
   const [state, setState] = useState(INITIAL_STATE);
+  const [saveState, setSaveState] = useState<SessionSaveState>('idle');
+  const [savedSessionId, setSavedSessionId] = useState<string | null>(null);
   const stateRef = useRef(state);
+  const pendingSaveRef = useRef<{ session: SessionLog; thresholds: ThresholdEstimate[] } | null>(
+    null
+  );
+  const saveInFlightRef = useRef(false);
   const trialRef = useRef<TrialPlan | null>(null);
   const sessionIdRef = useRef('');
   const startedAtRef = useRef('');
@@ -137,8 +150,41 @@ export function useSessionController(): SessionController {
     questsRef.current = blocks.map((block) => new QuestStaircase(block.questParams));
     thresholdsRef.current = [];
     trialRef.current = buildTrial(0);
+    pendingSaveRef.current = null;
+    setSaveState('idle');
+    setSavedSessionId(null);
     updateState({ ...INITIAL_STATE, status: 'running' });
   }, [buildTrial, updateState]);
+
+  // Save-state handling around session completion only — the trial path above
+  // and in respond() is untouched (measurement red line).
+  const persistSession = useCallback(
+    async (session: SessionLog, thresholds: ThresholdEstimate[]) => {
+      if (saveInFlightRef.current) return;
+
+      saveInFlightRef.current = true;
+      pendingSaveRef.current = { session, thresholds };
+      setSaveState('saving');
+      try {
+        await useAppStore.getState().recordSessionResult(session, thresholds);
+        setSavedSessionId(session.id);
+        setSaveState('saved');
+      } catch (error: unknown) {
+        console.warn('[session] failed to persist result', error);
+        setSaveState('failed');
+      } finally {
+        saveInFlightRef.current = false;
+      }
+    },
+    []
+  );
+
+  const retrySave = useCallback(() => {
+    const pending = pendingSaveRef.current;
+
+    if (!pending || stateRef.current.status !== 'complete') return;
+    void persistSession(pending.session, pending.thresholds);
+  }, [persistSession]);
 
   const respond = useCallback(
     (choice: TrialInterval) => {
@@ -186,12 +232,7 @@ export function useSessionController(): SessionController {
           plannedBlocks: blocks.map((block) => block.plannedBlock),
           completedTrials,
         });
-        void useAppStore
-          .getState()
-          .recordSessionResult(session, [...thresholdsRef.current])
-          .catch((error: unknown) => {
-            console.warn('[session] failed to persist result', error);
-          });
+        void persistSession(session, [...thresholdsRef.current]);
       }
 
       trialRef.current = finishedBlock ? null : buildTrial(currentState.blockIndex);
@@ -207,7 +248,7 @@ export function useSessionController(): SessionController {
 
       return { correct };
     },
-    [buildTrial, calibration.id, updateState]
+    [buildTrial, calibration.id, persistSession, updateState]
   );
 
   const advanceBlock = useCallback(() => {
@@ -242,9 +283,12 @@ export function useSessionController(): SessionController {
     lastCorrect: state.lastCorrect,
     progress: state.completedTrials / totalTrials,
     showBlockBreak: blocksRef.current[state.blockIndex]?.showBreak,
+    saveState,
+    savedSessionId,
     currentTrial,
     respond,
     begin,
     advanceBlock,
+    retrySave,
   };
 }

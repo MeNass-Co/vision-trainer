@@ -73,7 +73,6 @@ export default function SessionScreen() {
   const continueRunningRef = useRef(false);
   const choiceResolverRef = useRef<ChoiceResolver | null>(null);
   const blockStartCorrectCountRef = useRef(0);
-  const initialSessionCountRef = useRef(useAppStore.getState().sessions.length);
   const [uiPhase, setUiPhase] = useState<UiPhase>('ready');
   const [burst, setBurst] = useState(0);
   const [bigBurst, setBigBurst] = useState(false);
@@ -331,24 +330,21 @@ export default function SessionScreen() {
     router.back();
   }, [router]);
 
-  const handleCompletionDone = useCallback(async () => {
+  const handleCompletionDone = useCallback(() => {
+    // Continue is gated on a confirmed save: never guess at "the latest
+    // completed session" — the insight must belong to THIS session's real id.
+    if (controller.saveState !== 'saved' || !controller.savedSessionId) return;
+
     canvasRef.current?.clear();
-
-    const targetCount = initialSessionCountRef.current + 1;
-    for (let attempt = 0; attempt < 20; attempt += 1) {
-      if (useAppStore.getState().sessions.length >= targetCount) break;
-      await delay(80);
-    }
-
-    const completedSession = useAppStore
-      .getState()
-      .sessions.filter((session) => session.status === 'completed')
-      .at(-1);
-
-    setInsightSessionId(completedSession?.id ?? null);
+    setInsightSessionId(controller.savedSessionId);
     setShowCompletion(false);
     setShowInsight(true);
-  }, []);
+  }, [controller.savedSessionId, controller.saveState]);
+
+  const handleDiscard = useCallback(() => {
+    canvasRef.current?.clear();
+    router.replace('/(tabs)' as Href);
+  }, [router]);
 
   const handleInsightDone = useCallback(() => {
     canvasRef.current?.clear();
@@ -520,13 +516,35 @@ export default function SessionScreen() {
           accuracyTarget={Math.round(
             (controller.correctCount / controller.totalTrials) * 100
           )}
-          actionLabel="Continue"
+          actionLabel={controller.saveState === 'saving' ? 'Saving' : 'Continue'}
           correctCount={controller.correctCount}
-          onDone={() => void handleCompletionDone()}
+          onDone={handleCompletionDone}
           reduceMotion={reduceMotion}
           subtitle="Your session is ready to read"
           total={controller.totalTrials}
         />
+      ) : null}
+
+      {showCompletion && controller.saveState === 'failed' ? (
+        <View style={styles.centeredOverlay}>
+          <FadeIn duration={motion.timing.entranceMs}>
+            <GlassSurface radius={material.radius} style={styles.saveFailedCard}>
+              <AppText color="secondary" style={styles.saveFailedMessage} variant="body">
+                {"Couldn't save this session."}
+              </AppText>
+              <PrimaryButton label="Retry" onPress={controller.retrySave} />
+              <PressableScale
+                accessibilityLabel="Discard session and exit"
+                accessibilityRole="button"
+                onPress={handleDiscard}
+                style={styles.saveFailedDiscard}>
+                <AppText color="muted" variant="caption">
+                  Discard
+                </AppText>
+              </PressableScale>
+            </GlassSurface>
+          </FadeIn>
+        </View>
       ) : null}
 
       {showInsight && postSessionInsight ? (
@@ -734,6 +752,20 @@ const styles = StyleSheet.create({
     minHeight: 268,
     paddingHorizontal: space.xl,
     paddingVertical: space.xl,
+  },
+  saveFailedCard: {
+    alignItems: 'center',
+    gap: space.md,
+    minWidth: 260,
+    paddingHorizontal: space.xl,
+    paddingVertical: space.xl,
+  },
+  saveFailedDiscard: {
+    paddingHorizontal: space.md,
+    paddingVertical: space.sm,
+  },
+  saveFailedMessage: {
+    textAlign: 'center',
   },
   blockScore: {
     alignItems: 'center',

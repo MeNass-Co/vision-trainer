@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import type { SettingsState } from '@/presenters/types';
 import type { SessionLog, ThresholdEstimate } from '@/types';
 
+import { payloadToSettings } from './mappers';
 import { memoryPersistence } from './persistence';
 
 function session(id: string, startedAt = '2026-05-31T10:00:00.000Z'): SessionLog {
@@ -86,6 +87,31 @@ describe('memoryPersistence', () => {
 
     const loaded = await memoryPersistence.loadSettings();
     expect(loaded?.hapticsEnabled).toBe(true);
+  });
+
+  it('sanitizes loaded settings identically to the native mapper path', async () => {
+    const dirty = {
+      dichopticEnabled: false,
+      displayBrightness: 42,
+      monocularWeakEye: 'center',
+      hapticsEnabled: true,
+      soundEnabled: false,
+      reduceMotion: false,
+      remindersEnabled: false,
+      onboardingComplete: true,
+      subscriptionStatus: 'lifetime',
+      trialStartedAt: null,
+      visionGoal: 'unspecified',
+    } as unknown as SettingsState;
+
+    await memoryPersistence.saveSettings(dirty);
+    const loaded = await memoryPersistence.loadSettings();
+
+    // API parity: web load must clamp/sanitize exactly like the native sqlite mirror.
+    expect(loaded).toEqual(payloadToSettings(JSON.stringify(dirty)));
+    expect(loaded?.displayBrightness).toBe(1);
+    expect(loaded?.monocularWeakEye).toBe('off');
+    expect(loaded?.subscriptionStatus).toBe('free');
   });
 
   it('returns sessions and thresholds in native timestamp order', async () => {

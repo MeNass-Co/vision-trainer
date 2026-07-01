@@ -35,6 +35,24 @@ function isRecord(value: unknown): value is ParsedPayload {
   return !!value && typeof value === 'object' && !Array.isArray(value);
 }
 
+function isFiniteNumber(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value);
+}
+
+/**
+ * Rows written by older builds may lack fields with safe, non-load-bearing
+ * defaults; fill those instead of dropping the whole row. Identity fields,
+ * timestamps, and measurement numerics stay strictly validated below —
+ * a truly malformed row is still rejected, never invented.
+ */
+function repairSessionPayload(value: ParsedPayload): ParsedPayload {
+  return { metadata: {}, ...value };
+}
+
+function repairThresholdPayload(value: ParsedPayload): ParsedPayload {
+  return { lapseRate: 0, ...value };
+}
+
 function hasValidSessionShape(value: unknown): value is SessionLog {
   return (
     isRecord(value) &&
@@ -47,7 +65,7 @@ function hasValidSessionShape(value: unknown): value is SessionLog {
     typeof value.calibrationId === 'string' &&
     typeof value.protocolVersion === 'string' &&
     Array.isArray(value.plannedBlocks) &&
-    typeof value.completedTrials === 'number' &&
+    isFiniteNumber(value.completedTrials) &&
     isRecord(value.metadata)
   );
 }
@@ -60,14 +78,15 @@ function hasValidThresholdShape(value: unknown): value is ThresholdEstimate {
     typeof value.blockId === 'string' &&
     typeof value.conditionKey === 'string' &&
     typeof value.paradigm === 'string' &&
-    typeof value.spatialFrequencyCpd === 'number' &&
-    typeof value.orientationDeg === 'number' &&
-    typeof value.thresholdContrast === 'number' &&
-    typeof value.thresholdLog10 === 'number' &&
-    typeof value.ciLow === 'number' &&
-    typeof value.ciHigh === 'number' &&
-    typeof value.trialCount === 'number' &&
-    typeof value.lapseRate === 'number' &&
+    isFiniteNumber(value.spatialFrequencyCpd) &&
+    isFiniteNumber(value.orientationDeg) &&
+    isFiniteNumber(value.thresholdContrast) &&
+    value.thresholdContrast > 0 &&
+    isFiniteNumber(value.thresholdLog10) &&
+    isFiniteNumber(value.ciLow) &&
+    isFiniteNumber(value.ciHigh) &&
+    isFiniteNumber(value.trialCount) &&
+    isFiniteNumber(value.lapseRate) &&
     typeof value.createdAt === 'string'
   );
 }
@@ -99,7 +118,9 @@ function clampBrightness(value: unknown): number {
 export function rowToSession(row: SessionRow): SessionLog | null {
   try {
     const parsed = JSON.parse(row.payload) as unknown;
-    return hasValidSessionShape(parsed) ? parsed : null;
+    if (!isRecord(parsed)) return null;
+    const repaired = repairSessionPayload(parsed);
+    return hasValidSessionShape(repaired) ? repaired : null;
   } catch {
     return null;
   }
@@ -119,7 +140,9 @@ export function thresholdToRow(threshold: ThresholdEstimate): ThresholdRow {
 export function rowToThreshold(row: ThresholdRow): ThresholdEstimate | null {
   try {
     const parsed = JSON.parse(row.payload) as unknown;
-    return hasValidThresholdShape(parsed) ? parsed : null;
+    if (!isRecord(parsed)) return null;
+    const repaired = repairThresholdPayload(parsed);
+    return hasValidThresholdShape(repaired) ? repaired : null;
   } catch {
     return null;
   }
