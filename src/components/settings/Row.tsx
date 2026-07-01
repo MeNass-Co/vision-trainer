@@ -3,7 +3,6 @@ import { Pressable, StyleSheet, type ViewStyle, View } from 'react-native';
 import Animated, {
   interpolateColor,
   useAnimatedStyle,
-  useReducedMotion,
   useSharedValue,
   withSpring,
   withTiming,
@@ -12,6 +11,7 @@ import Animated, {
 import { AppText } from '@/components/ui';
 import { haptics } from '@/theme/haptics';
 import { motion, space, surface } from '@/theme/tokens';
+import { useEffectiveReducedMotion } from '@/theme/useEffectiveReducedMotion';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
@@ -50,7 +50,7 @@ function RowBody({ label, description, right, chevron, rightStyle }: RowBodyProp
 
 export function Row({ label, description, right, onPress, accessibilityLabel, chevron = false }: RowProps) {
   const pressed = useSharedValue(0);
-  const reduceMotion = useReducedMotion();
+  const reduceMotion = useEffectiveReducedMotion();
   const followX = useSharedValue(0);
   const rightStyle = useAnimatedStyle<ViewStyle>(() => ({
     transform: [{ translateX: followX.value }],

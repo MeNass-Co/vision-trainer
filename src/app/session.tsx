@@ -1,13 +1,12 @@
 import { type Href, useRouter } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { AppState, StyleSheet, View } from 'react-native';
 import Animated, {
   cancelAnimation,
   Extrapolation,
   interpolate,
   useAnimatedProps,
   useAnimatedStyle,
-  useReducedMotion,
   useSharedValue,
   withDelay,
   withSpring,
@@ -25,10 +24,12 @@ import { ResponseTap } from '@/components/session/ResponseTap';
 import { RewardBurst } from '@/components/session/RewardBurst';
 import { AppText, Bloom, FadeIn, GlassSurface, PressableScale, PrimaryButton } from '@/components/ui';
 import { usePostSessionInsight, useSessionController } from '@/presenters';
-import { applyBrightness, restoreSystemBrightness } from '@/services/brightness';
+import { applySessionBrightness, restoreCapturedBrightness } from '@/services/brightness';
+import { setSessionActive } from '@/services/notifications';
 import { useAppStore } from '@/store/useAppStore';
 import { haptics } from '@/theme/haptics';
 import { easings } from '@/theme/motion';
+import { useEffectiveReducedMotion } from '@/theme/useEffectiveReducedMotion';
 import {
   ACCENT,
   ACCENT_CORE,
@@ -52,7 +53,8 @@ type UiPhase =
   | 'interval-2'
   | 'response'
   | 'feedback'
-  | 'block-fold';
+  | 'block-fold'
+  | 'paused';
 
 type ChoiceResolver = (choice: TrialInterval | null) => void;
 
@@ -64,7 +66,7 @@ const delay = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve,
 export default function SessionScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const reduceMotion = useReducedMotion();
+  const reduceMotion = useEffectiveReducedMotion();
   const controller = useSessionController();
   const canvasRef = useRef<GaborCanvasHandle>(null);
   const isMountedRef = useRef(true);
@@ -72,14 +74,19 @@ export default function SessionScreen() {
   const foldRunningRef = useRef(false);
   const continueRunningRef = useRef(false);
   const choiceResolverRef = useRef<ChoiceResolver | null>(null);
+  // Bumped whenever a suspend interrupts the trial loop: in-flight runTrial
+  // continuations compare their captured epoch and bail without recording.
+  const interruptionEpochRef = useRef(0);
+  const statusRef = useRef(controller.status);
+  const rewardChordCancelRef = useRef<(() => void) | null>(null);
   const blockStartCorrectCountRef = useRef(0);
-  const initialSessionCountRef = useRef(useAppStore.getState().sessions.length);
   const [uiPhase, setUiPhase] = useState<UiPhase>('ready');
   const [burst, setBurst] = useState(0);
   const [bigBurst, setBigBurst] = useState(false);
   const [blockCorrectCount, setBlockCorrectCount] = useState(0);
   const [canvasReady, setCanvasReady] = useState(false);
   const [showBlockSummary, setShowBlockSummary] = useState(false);
+  const [showAbortConfirm, setShowAbortConfirm] = useState(false);
   const [showCompletion, setShowCompletion] = useState(false);
   const [showInsight, setShowInsight] = useState(false);
   const [insightSessionId, setInsightSessionId] = useState<string | null>(null);
@@ -139,11 +146,49 @@ export default function SessionScreen() {
   });
 
   useEffect(() => {
-    void applyBrightness(useAppStore.getState().settings.displayBrightness);
+    void applySessionBrightness(useAppStore.getState().settings.displayBrightness);
+    // A reminder banner dropping over the canvas mid-trial would corrupt the
+    // presented interval; the handler suppresses banners while a session runs.
+    setSessionActive(true);
 
     return () => {
-      void restoreSystemBrightness();
+      setSessionActive(false);
+      void restoreCapturedBrightness();
     };
+  }, []);
+
+  useEffect(() => {
+    statusRef.current = controller.status;
+  }, [controller.status]);
+
+  // Suspend handling: setTimeout freezes in the background and fires late on
+  // resume, which would corrupt the presented interval timing. On any exit from
+  // the foreground we hand the system its brightness back and abort the
+  // in-flight trial WITHOUT recording it; the same trial plan replays on
+  // resume (trialRef is only consumed by respond(), so QUEST never sees the
+  // interruption).
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (nextAppState) => {
+      if (nextAppState === 'active') {
+        if (statusRef.current === 'running' || statusRef.current === 'block-complete') {
+          void applySessionBrightness(useAppStore.getState().settings.displayBrightness);
+        }
+        return;
+      }
+      if (nextAppState !== 'background' && nextAppState !== 'inactive') return;
+
+      void restoreCapturedBrightness();
+      if (statusRef.current !== 'running') return;
+
+      interruptionEpochRef.current += 1;
+      canvasRef.current?.clear();
+      choiceResolverRef.current?.(null);
+      choiceResolverRef.current = null;
+      trialRunningRef.current = false;
+      if (isMountedRef.current) setUiPhase('paused');
+    });
+
+    return () => subscription.remove();
   }, []);
 
   const isStillMounted = useCallback(async (ms: number) => {
@@ -190,28 +235,34 @@ export default function SessionScreen() {
     if (trialRunningRef.current || !isMountedRef.current) return;
 
     trialRunningRef.current = true;
+    // Captured once per attempt: a background/inactive interruption bumps the
+    // epoch, so every await below bails without recording and the same trial
+    // plan replays after "Resume".
+    const epoch = interruptionEpochRef.current;
+    const live = () => epoch === interruptionEpochRef.current;
+
     setPhase('fixation');
-    if (!(await isStillMounted(500))) return;
+    if (!(await isStillMounted(500)) || !live()) return;
 
     const trial = controller.currentTrial();
     const stimulus = trial.intervals[0] ?? trial.intervals[1];
     const durationMs = stimulus?.durationMs ?? 150;
 
     setPhase('interval-1');
-    if (!(await presentInterval(trial.intervals[0], durationMs))) return;
+    if (!(await presentInterval(trial.intervals[0], durationMs)) || !live()) return;
 
     setPhase('isi');
     canvasRef.current?.clear();
-    if (!(await isStillMounted(400))) return;
+    if (!(await isStillMounted(400)) || !live()) return;
 
     setPhase('interval-2');
-    if (!(await presentInterval(trial.intervals[1], durationMs))) return;
+    if (!(await presentInterval(trial.intervals[1], durationMs)) || !live()) return;
 
     canvasRef.current?.clear();
     setPhase('response');
     const choice = await waitForChoice();
 
-    if (!choice || !isMountedRef.current) return;
+    if (!choice || !isMountedRef.current || !live()) return;
 
     const finishesBlock = controller.trialIndex + 1 >= controller.trialsPerBlock;
     const { correct } = controller.respond(choice);
@@ -234,7 +285,7 @@ export default function SessionScreen() {
       haptics.wrong();
     }
 
-    if (!(await isStillMounted(450))) return;
+    if (!(await isStillMounted(450)) || !live()) return;
 
     trialRunningRef.current = false;
     fieldScale.value = 1;
@@ -326,29 +377,51 @@ export default function SessionScreen() {
     setPhase('idle');
   }, [canvasReady, controller, setPhase]);
 
+  const handleResume = useCallback(() => {
+    // Back to 'idle': the status effect restarts runTrial, which replays the
+    // interrupted trial plan (nothing was recorded, the index never advanced).
+    setPhase('idle');
+  }, [setPhase]);
+
   const handleClose = useCallback(() => {
+    // A live session with at least one converged block holds real measurements:
+    // confirm before ending, keep what was earned. Zero blocks = nothing to lose.
+    if (
+      (controller.status === 'running' || controller.status === 'block-complete') &&
+      controller.completedBlockCount > 0
+    ) {
+      setShowAbortConfirm(true);
+      return;
+    }
     canvasRef.current?.clear();
     router.back();
-  }, [router]);
+  }, [controller.completedBlockCount, controller.status, router]);
 
-  const handleCompletionDone = useCallback(async () => {
+  const handleAbortConfirm = useCallback(() => {
+    controller.abandonSession();
     canvasRef.current?.clear();
+    router.replace('/(tabs)' as Href);
+  }, [controller, router]);
 
-    const targetCount = initialSessionCountRef.current + 1;
-    for (let attempt = 0; attempt < 20; attempt += 1) {
-      if (useAppStore.getState().sessions.length >= targetCount) break;
-      await delay(80);
-    }
+  const handleAbortCancel = useCallback(() => {
+    setShowAbortConfirm(false);
+  }, []);
 
-    const completedSession = useAppStore
-      .getState()
-      .sessions.filter((session) => session.status === 'completed')
-      .at(-1);
+  const handleCompletionDone = useCallback(() => {
+    // Continue is gated on a confirmed save: never guess at "the latest
+    // completed session" — the insight must belong to THIS session's real id.
+    if (controller.saveState !== 'saved' || !controller.savedSessionId) return;
 
-    setInsightSessionId(completedSession?.id ?? null);
+    canvasRef.current?.clear();
+    setInsightSessionId(controller.savedSessionId);
     setShowCompletion(false);
     setShowInsight(true);
-  }, []);
+  }, [controller.savedSessionId, controller.saveState]);
+
+  const handleDiscard = useCallback(() => {
+    canvasRef.current?.clear();
+    router.replace('/(tabs)' as Href);
+  }, [router]);
 
   const handleInsightDone = useCallback(() => {
     canvasRef.current?.clear();
@@ -377,7 +450,7 @@ export default function SessionScreen() {
       setShowCompletion(true);
       setBigBurst(true);
       setBurst((current) => current + 1);
-      haptics.rewardChord();
+      rewardChordCancelRef.current = haptics.rewardChord();
     }
   }, [
     controller.showBlockBreak,
@@ -394,9 +467,12 @@ export default function SessionScreen() {
 
     return () => {
       isMountedRef.current = false;
+      // eslint-disable-next-line react-hooks/exhaustive-deps -- unmount-only cleanup; the canvas ref is stable for the screen's lifetime (red-line measurement path, do not restructure)
       canvasRef.current?.clear();
       choiceResolverRef.current?.(null);
       choiceResolverRef.current = null;
+      rewardChordCancelRef.current?.();
+      rewardChordCancelRef.current = null;
     };
   }, []);
 
@@ -489,6 +565,25 @@ export default function SessionScreen() {
         </View>
       ) : null}
 
+      {uiPhase === 'paused' ? (
+        <View style={styles.readyOverlay}>
+          <View style={[styles.readyContent, { paddingBottom: insets.bottom + space.xxl }]}>
+            <AppText color="muted" style={styles.readyMeta} uppercase variant="micro">
+              {controller.blockLabel}
+            </AppText>
+            <AppText style={styles.readyHero} variant="hero">
+              Paused
+            </AppText>
+            <AppText color="secondary" style={styles.readyInstruction} variant="body">
+              Your place is saved. The interrupted trial will replay.
+            </AppText>
+            <View style={styles.beginWrap}>
+              <PrimaryButton haptic="select" label="Resume" onPress={handleResume} />
+            </View>
+          </View>
+        </View>
+      ) : null}
+
       {showBlockSummary ? (
         <View style={styles.centeredOverlay}>
           <FadeIn duration={motion.timing.entranceMs}>
@@ -515,18 +610,65 @@ export default function SessionScreen() {
         </View>
       ) : null}
 
+      {showAbortConfirm ? (
+        <View style={styles.centeredOverlay}>
+          <FadeIn duration={motion.timing.entranceMs}>
+            <GlassSurface radius={material.radius} style={styles.abortCard}>
+              <AppText color="primary" style={styles.abortTitle} variant="heading">
+                End session?
+              </AppText>
+              <AppText color="secondary" style={styles.abortMessage} variant="body">
+                Completed blocks will be kept.
+              </AppText>
+              <PrimaryButton label="End session" onPress={handleAbortConfirm} />
+              <PressableScale
+                accessibilityLabel="Keep training"
+                accessibilityRole="button"
+                onPress={handleAbortCancel}
+                style={styles.abortKeepGoing}>
+                <AppText color="muted" variant="caption">
+                  Keep training
+                </AppText>
+              </PressableScale>
+            </GlassSurface>
+          </FadeIn>
+        </View>
+      ) : null}
+
       {showCompletion ? (
         <CompletionReward
           accuracyTarget={Math.round(
             (controller.correctCount / controller.totalTrials) * 100
           )}
-          actionLabel="Continue"
+          actionLabel={controller.saveState === 'saving' ? 'Saving' : 'Continue'}
           correctCount={controller.correctCount}
-          onDone={() => void handleCompletionDone()}
+          onDone={handleCompletionDone}
           reduceMotion={reduceMotion}
           subtitle="Your session is ready to read"
           total={controller.totalTrials}
         />
+      ) : null}
+
+      {showCompletion && controller.saveState === 'failed' ? (
+        <View style={styles.centeredOverlay}>
+          <FadeIn duration={motion.timing.entranceMs}>
+            <GlassSurface radius={material.radius} style={styles.saveFailedCard}>
+              <AppText color="secondary" style={styles.saveFailedMessage} variant="body">
+                {"Couldn't save this session."}
+              </AppText>
+              <PrimaryButton label="Retry" onPress={controller.retrySave} />
+              <PressableScale
+                accessibilityLabel="Discard session and exit"
+                accessibilityRole="button"
+                onPress={handleDiscard}
+                style={styles.saveFailedDiscard}>
+                <AppText color="muted" variant="caption">
+                  Discard
+                </AppText>
+              </PressableScale>
+            </GlassSurface>
+          </FadeIn>
+        </View>
       ) : null}
 
       {showInsight && postSessionInsight ? (
@@ -734,6 +876,37 @@ const styles = StyleSheet.create({
     minHeight: 268,
     paddingHorizontal: space.xl,
     paddingVertical: space.xl,
+  },
+  abortCard: {
+    alignItems: 'center',
+    gap: space.md,
+    minWidth: 260,
+    paddingHorizontal: space.xl,
+    paddingVertical: space.xl,
+  },
+  abortKeepGoing: {
+    paddingHorizontal: space.md,
+    paddingVertical: space.sm,
+  },
+  abortMessage: {
+    textAlign: 'center',
+  },
+  abortTitle: {
+    textAlign: 'center',
+  },
+  saveFailedCard: {
+    alignItems: 'center',
+    gap: space.md,
+    minWidth: 260,
+    paddingHorizontal: space.xl,
+    paddingVertical: space.xl,
+  },
+  saveFailedDiscard: {
+    paddingHorizontal: space.md,
+    paddingVertical: space.sm,
+  },
+  saveFailedMessage: {
+    textAlign: 'center',
   },
   blockScore: {
     alignItems: 'center',

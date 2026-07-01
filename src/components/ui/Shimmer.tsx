@@ -5,13 +5,13 @@ import Animated, {
   cancelAnimation,
   Easing,
   useAnimatedStyle,
-  useReducedMotion,
   useSharedValue,
   withRepeat,
   withTiming,
 } from 'react-native-reanimated';
 
 import { surface } from '@/theme/tokens';
+import { useEffectiveReducedMotion } from '@/theme/useEffectiveReducedMotion';
 
 export type ShimmerProps = {
   width: number | '100%';
@@ -25,7 +25,7 @@ const FULL_WIDTH_FALLBACK = 320;
 export function Shimmer({ width, height, radius = 8, style }: ShimmerProps) {
   const sweepDistance = typeof width === 'number' ? width : FULL_WIDTH_FALLBACK;
   const translateX = useSharedValue(-sweepDistance);
-  const reduceMotion = useReducedMotion();
+  const reduceMotion = useEffectiveReducedMotion();
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: translateX.value }],
   }));

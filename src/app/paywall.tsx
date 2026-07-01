@@ -1,11 +1,12 @@
 import { type Href, useRouter } from 'expo-router';
+import { useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { useReducedMotion } from 'react-native-reanimated';
 
 import { AmbientGradient } from '@/components/home/AmbientGradient';
 import { AppText, Bloom, FadeIn, GlassSurface, PressableScale, PrimaryButton, Screen } from '@/components/ui';
 import { useAppStore } from '@/store/useAppStore';
 import { ACCENT_GLOW, material, radius, space, surface } from '@/theme/tokens';
+import { useEffectiveReducedMotion } from '@/theme/useEffectiveReducedMotion';
 
 const BENEFITS = [
   'Adaptive sessions adjusted to your readings',
@@ -15,16 +16,27 @@ const BENEFITS = [
 
 export default function PaywallScreen() {
   const router = useRouter();
-  const reduceMotion = useReducedMotion();
+  const reduceMotion = useEffectiveReducedMotion();
 
-  const startTrial = () => {
+  // Onboarding completion is persisted here, once the paywall has actually
+  // mounted: flipping it inside onboarding's completion handler raced the root
+  // route gate (segments still read 'onboarding' when the flag flips, so the
+  // gate's replace toward the tabs stomped the in-flight replace to this
+  // screen). Re-entry from Settings makes this a no-op rewrite.
+  useEffect(() => {
+    useAppStore.getState().updateSetting('onboardingComplete', true);
+  }, []);
+
+  // Early access: no purchase can occur yet, so no prices and no subscription
+  // claims are shown. Membership state is still recorded for the future gate.
+  const startTraining = () => {
     const store = useAppStore.getState();
     store.updateSetting('subscriptionStatus', 'trialing');
     store.updateSetting('trialStartedAt', new Date().toISOString());
     router.replace('/(tabs)' as Href);
   };
 
-  const continueLimited = () => {
+  const maybeLater = () => {
     useAppStore.getState().updateSetting('subscriptionStatus', 'free');
     router.replace('/(tabs)' as Href);
   };
@@ -37,7 +49,7 @@ export default function PaywallScreen() {
             <Bloom color={ACCENT_GLOW} opacity={0.7} rx="68%" ry="46%" />
           </View>
           <AppText style={styles.kicker} uppercase color="muted" variant="micro">
-            7-day baseline week
+            Early access
           </AppText>
           <AppText style={styles.title} variant="title">
             Train your vision with adaptive 5-minute sessions.
@@ -53,15 +65,10 @@ export default function PaywallScreen() {
             <View style={styles.planHeader}>
               <View>
                 <AppText color="primary" variant="heading">
-                  Vision Trainer Pro
+                  Vision Trainer
                 </AppText>
                 <AppText color="muted" variant="caption">
-                  Start free. Then $59.99/year.
-                </AppText>
-              </View>
-              <View style={styles.pricePill}>
-                <AppText color="accent" tabular variant="caption">
-                  $9.99/mo
+                  Everything included during early access.
                 </AppText>
               </View>
             </View>
@@ -78,18 +85,21 @@ export default function PaywallScreen() {
             </View>
 
             <AppText color="muted" style={styles.safety} variant="micro">
-              Science-based visual training. Not a medical test or treatment. Cancel anytime in Apple subscriptions.
+              Science-based visual training. Not a medical test or treatment.
             </AppText>
           </GlassSurface>
         </FadeIn>
 
         <FadeIn delay={160} style={styles.actions}>
-          <PrimaryButton label="Start 7-day free trial" onPress={startTrial} />
-          <PressableScale accessibilityRole="button" onPress={continueLimited} style={styles.secondaryAction}>
+          <PrimaryButton label="Start training" onPress={startTraining} />
+          <PressableScale accessibilityRole="button" onPress={maybeLater} style={styles.secondaryAction}>
             <AppText color="secondary" variant="caption">
-              Continue with limited access
+              Maybe later
             </AppText>
           </PressableScale>
+          <AppText color="muted" style={styles.earlyAccessNote} variant="micro">
+            Free while in early access.
+          </AppText>
         </FadeIn>
       </View>
     </Screen>
@@ -118,6 +128,9 @@ const styles = StyleSheet.create({
     height: 7,
     width: 7,
   },
+  earlyAccessNote: {
+    textAlign: 'center',
+  },
   glow: {
     height: 180,
     position: 'absolute',
@@ -143,14 +156,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingBottom: space.md,
-  },
-  pricePill: {
-    backgroundColor: 'rgba(51,210,214,0.11)',
-    borderColor: 'rgba(51,210,214,0.30)',
-    borderRadius: radius.pill,
-    borderWidth: 1,
-    paddingHorizontal: space.md,
-    paddingVertical: space.xs,
   },
   safety: {
     lineHeight: 17,

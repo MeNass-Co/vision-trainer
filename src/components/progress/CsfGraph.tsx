@@ -7,7 +7,6 @@ import Animated, {
   runOnJS,
   useAnimatedProps,
   useAnimatedStyle,
-  useReducedMotion,
   useSharedValue,
   withSpring,
   withTiming,
@@ -18,6 +17,7 @@ import { TrajectoryPointLight } from '@/components/progress/TrajectoryPointLight
 import { AppText } from '@/components/ui';
 import { haptics } from '@/theme/haptics';
 import { ACCENT, ACCENT_CORE, ACCENT_GLOW, ACCENT_HOT, motion, radius, surface } from '@/theme/tokens';
+import { useEffectiveReducedMotion } from '@/theme/useEffectiveReducedMotion';
 
 export type CsfGraphProps = {
   points: { spatialFrequency: number; sensitivity: number }[];
@@ -171,7 +171,7 @@ export function CsfGraph({ points, width, height, references = EMPTY_REFERENCES 
   );
   const path = createPath(chartPoints);
   const pathLength = getPathLength(chartPoints);
-  const reduceMotion = useReducedMotion();
+  const reduceMotion = useEffectiveReducedMotion();
   const isStatic = reduceMotion || Platform.OS === 'web';
   const strokeDashoffset = useSharedValue(isStatic ? 0 : pathLength);
   const animatedProps = useAnimatedProps(() => ({

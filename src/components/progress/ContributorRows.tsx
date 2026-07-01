@@ -3,7 +3,6 @@ import { Platform, StyleSheet, View } from 'react-native';
 import Animated, {
   cancelAnimation,
   useAnimatedStyle,
-  useReducedMotion,
   useSharedValue,
   withDelay,
   withTiming,
@@ -12,6 +11,7 @@ import Animated, {
 import { AppText, Hairline } from '@/components/ui';
 import { easings } from '@/theme/motion';
 import { data, radius, space, surface, verdict } from '@/theme/tokens';
+import { useEffectiveReducedMotion } from '@/theme/useEffectiveReducedMotion';
 
 export type ContributorRowsProps = {
   rows: { label: string; bandLabel: string; sensitivity: number; norm: number }[];
@@ -89,7 +89,7 @@ function ContributorRow({
 }
 
 export function ContributorRows({ rows }: ContributorRowsProps) {
-  const reduceMotion = useReducedMotion();
+  const reduceMotion = useEffectiveReducedMotion();
   const isStatic = reduceMotion || Platform.OS === 'web';
   const maxSensitivity = Math.max(...rows.map((row) => row.sensitivity), 1);
 

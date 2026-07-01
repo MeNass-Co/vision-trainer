@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, type ComponentType, type ComponentProps } from 'react';
+import { useCallback, useEffect, useRef, useState, type ComponentType, type ComponentProps } from 'react';
 import { StyleSheet, TextInput, View } from 'react-native';
 import Animated, {
   runOnJS,
@@ -74,6 +74,9 @@ export function CompletionReward({
   const streakIncrements = streakWasCounted && streakNow > streakFrom;
   const didSettleRef = useRef(false);
   const streakTargetRef = useRef(streakNow);
+  // The CTA spends ~2.3s at opacity 0; while invisible it must not be tappable,
+  // or a blind tap dismisses the reward the user never saw.
+  const [ctaInteractive, setCtaInteractive] = useState(reduceMotion);
   const backdropOpacity = useSharedValue(0);
   const skyIgnite = useSharedValue(0);
   const bloomOpacity = useSharedValue(0);
@@ -114,6 +117,7 @@ export function CompletionReward({
       ctaOpacity.value = 1;
       ctaTranslateY.value = 0;
       subtitleOpacity.value = 1;
+      setCtaInteractive(true);
       return;
     }
 
@@ -141,13 +145,31 @@ export function CompletionReward({
       withTiming(1, { duration: motion.timing.drawOnMs, easing: easings.out })
     );
     streakRowOpacity.value = withDelay(1500, withTiming(1, { duration: 280, easing: easings.out }));
-    ctaOpacity.value = withDelay(2300, withTiming(1, { duration: 280, easing: easings.out }));
+    ctaOpacity.value = withDelay(
+      2300,
+      withTiming(1, { duration: 280, easing: easings.out }, (finished) => {
+        if (finished) runOnJS(setCtaInteractive)(true);
+      })
+    );
     ctaTranslateY.value = withDelay(2300, withSpring(0, motion.spring.snap));
     subtitleOpacity.value = withDelay(2300, withTiming(1, { duration: 280, easing: easings.out }));
   }, [
+    accuracy,
     accuracyTarget,
+    backdropOpacity,
+    bloomOpacity,
+    bloomScale,
+    cardOpacity,
+    cardTranslateY,
+    constellation,
+    ctaOpacity,
+    ctaTranslateY,
     handleNumberSettle,
     reduceMotion,
+    skyIgnite,
+    streak,
+    streakRowOpacity,
+    subtitleOpacity,
   ]);
 
   useEffect(() => {
@@ -176,6 +198,7 @@ export function CompletionReward({
     return () => clearTimeout(timeout);
   }, [
     reduceMotion,
+    streak,
     streakFrom,
     streakIncrements,
   ]);
@@ -298,7 +321,7 @@ export function CompletionReward({
           {subtitle}
         </AppText>
       </Animated.View>
-      <Animated.View style={ctaStyle}>
+      <Animated.View pointerEvents={ctaInteractive ? 'auto' : 'none'} style={ctaStyle}>
         <PressableScale
           accessibilityLabel="Finish session"
           accessibilityRole="button"

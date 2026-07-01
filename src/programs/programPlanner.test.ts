@@ -37,7 +37,7 @@ describe('program planner', () => {
   it('prioritizes nearby low-frequency deficits from calibration thresholds', () => {
     vi.spyOn(Math, 'random').mockReturnValue(0.99);
 
-    const blocks = planProgramSession('sports-vision', 2, [
+    const blocks = planProgramSession('sports', 2, [
       threshold('bad-1-cpd', 1, 0.9),
       threshold('ok-2-cpd', 2, 0.12),
       threshold('strong-6-cpd', 6, 0.009),
@@ -48,7 +48,7 @@ describe('program planner', () => {
   });
 
   it('uses user-facing training labels instead of internal letters', () => {
-    const blocks = planProgramSession('sports-vision', 2, []);
+    const blocks = planProgramSession('sports', 2, []);
     const trainingLabels = blocks
       .filter((block) => block.role === 'training')
       .map((block) => block.label);
@@ -59,7 +59,7 @@ describe('program planner', () => {
   });
 
   it('keeps the default daily session at 100 flashes', () => {
-    const blocks = planProgramSession('sports-vision', 2, []);
+    const blocks = planProgramSession('sports', 2, []);
 
     expect(blocks.reduce((sum, block) => sum + block.condition.trialsPerBlock, 0)).toBe(100);
   });

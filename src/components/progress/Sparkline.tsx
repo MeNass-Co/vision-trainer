@@ -4,7 +4,6 @@ import Animated, {
   cancelAnimation,
   Easing,
   useAnimatedProps,
-  useReducedMotion,
   useSharedValue,
   withTiming,
 } from 'react-native-reanimated';
@@ -12,7 +11,8 @@ import Svg, { Circle, Path } from 'react-native-svg';
 
 import { TrajectoryPointLight } from '@/components/progress/TrajectoryPointLight';
 import { AppText } from '@/components/ui';
-import { ACCENT, ACCENT_GLOW, space } from '@/theme/tokens';
+import { ACCENT, ACCENT_GLOW } from '@/theme/tokens';
+import { useEffectiveReducedMotion } from '@/theme/useEffectiveReducedMotion';
 
 export type SparklineProps = {
   points: { day: string; value: number }[];
@@ -61,7 +61,7 @@ export function Sparkline({ points, width, height }: SparklineProps) {
   const chartPoints = createChartPoints(points, width, height);
   const path = createPath(chartPoints);
   const pathLength = getPathLength(chartPoints);
-  const reduceMotion = useReducedMotion();
+  const reduceMotion = useEffectiveReducedMotion();
   const isStatic = reduceMotion || Platform.OS === 'web';
   const strokeDashoffset = useSharedValue(isStatic ? 0 : pathLength);
   const animatedProps = useAnimatedProps(() => ({

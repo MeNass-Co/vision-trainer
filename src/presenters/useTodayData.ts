@@ -36,6 +36,9 @@ export function useTodayData(): Loadable<TodayView> {
       ...view,
       nextTargetLabel: `${formatCpd(nextTrainingBlock.condition.spatialFrequencyCpd)} cpd · 4 min`,
     };
+    // refreshKey is an intentional extra dependency: it busts the memo when the
+    // screen regains focus so "today" boundaries recompute against a fresh now().
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [refreshKey, sessions, settings.visionGoal, thresholds]);
   return { data, isLoading: !hydrated };
 }

@@ -1,36 +1,28 @@
 import { type Href, useRouter } from 'expo-router';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   cancelAnimation,
   Easing,
   interpolate,
-  interpolateColor,
-  runOnJS,
   useAnimatedStyle,
-  useReducedMotion,
   useSharedValue,
   withSpring,
   withTiming,
 } from 'react-native-reanimated';
 
+import { CalibrationCard } from '@/components/calibration/CalibrationCard';
 import { AmbientGradient } from '@/components/home/AmbientGradient';
 import { BreathingOrb } from '@/components/onboarding/BreathingOrb';
 import { StepReveal } from '@/components/onboarding/StepReveal';
 import { AppText, FadeIn, PressableScale, PrimaryButton, Screen } from '@/components/ui';
-import { applyBrightness, getCurrentBrightness } from '@/services/brightness';
 import { notificationService } from '@/services/notifications';
 import { useAppStore } from '@/store/useAppStore';
-import { haptics } from '@/theme/haptics';
 import { ACCENT, ACCENT_GLOW, motion, radius, space, surface, text, type } from '@/theme/tokens';
+import { useEffectiveReducedMotion } from '@/theme/useEffectiveReducedMotion';
 import type { GoalType } from '@/types';
 
 const BASE_ORB = 180;
-const BRIGHTNESS_MAX = 1;
-const BRIGHTNESS_MIN = 0.2;
-const BRIGHTNESS_RANGE = BRIGHTNESS_MAX - BRIGHTNESS_MIN;
-const SLIDER_KNOB_SIZE = 28;
 const REMINDER_HOUR = 19;
 const REMINDER_MINUTE = 0;
 
@@ -44,38 +36,59 @@ const STEPS = [
   { id: 'ready', buttonLabel: 'Start training' },
 ] as const;
 
-const GOAL_OPTIONS: Array<{ value: GoalType; label: string; detail: string }> = [
-  { value: 'myopia', label: 'Distance clarity', detail: 'Sharper contrast at farther targets.' },
-  { value: 'presbyopia', label: 'Near work', detail: 'Comfort for reading and close focus.' },
-  { value: 'sports-vision', label: 'Fast reactions', detail: 'Faster visual pickup and motion decisions.' },
+const GOAL_OPTIONS: { value: GoalType; label: string; detail: string }[] = [
+  { value: 'distance', label: 'Distance clarity', detail: 'Sharper contrast at farther targets.' },
+  { value: 'near', label: 'Near work', detail: 'Comfort for reading and close focus.' },
+  { value: 'sports', label: 'Fast reactions', detail: 'Faster visual pickup and motion decisions.' },
 ];
 
 export default function OnboardingScreen() {
   const router = useRouter();
-  const reduceMotion = useReducedMotion();
+  const reduceMotion = useEffectiveReducedMotion();
   const [step, setStep] = useState(0);
   const currentStep = STEPS[step];
   const [selectedGoal, setSelectedGoal] = useState<GoalType>(() => {
     const storedGoal = useAppStore.getState().settings.visionGoal;
-    return storedGoal === 'unspecified' ? 'myopia' : storedGoal;
+    return storedGoal === 'unspecified' ? 'distance' : storedGoal;
   });
+  // The reminders step only records intent; scheduling and persistence run at
+  // completion, so killing the app mid-flow leaves zero scheduled notifications.
+  const [remindersIntent, setRemindersIntent] = useState(false);
+  const [remindersBlocked, setRemindersBlocked] = useState(false);
+  const reminderRequestInFlightRef = useRef(false);
+  const blockedAdvancePendingRef = useRef(false);
 
   const advance = () => {
     setStep((current) => Math.min(current + 1, STEPS.length - 1));
   };
 
   const handleEnableReminders = async () => {
+    if (reminderRequestInFlightRef.current || blockedAdvancePendingRef.current) return;
+
+    reminderRequestInFlightRef.current = true;
     try {
-      const granted = await notificationService.requestRemindersPermission();
-      if (granted) {
-        await notificationService.scheduleDailyReminder(REMINDER_HOUR, REMINDER_MINUTE);
-        useAppStore.getState().updateSetting('remindersEnabled', true);
+      const permission = await notificationService.requestRemindersPermission();
+      if (permission.granted) {
+        setRemindersIntent(true);
+        advance();
+        return;
       }
-    } catch {
-      // Permission/scheduling failed — reflect the off state, never strand the user.
-      useAppStore.getState().updateSetting('remindersEnabled', false);
-    } finally {
+      if (!permission.canAskAgain) {
+        // Permanently denied: show a brief notice, then continue without reminders.
+        blockedAdvancePendingRef.current = true;
+        setRemindersBlocked(true);
+        setTimeout(() => {
+          blockedAdvancePendingRef.current = false;
+          advance();
+        }, 1400);
+        return;
+      }
       advance();
+    } catch {
+      // Permission request failed — continue without reminders, never strand the user.
+      advance();
+    } finally {
+      reminderRequestInFlightRef.current = false;
     }
   };
 
@@ -89,9 +102,20 @@ export default function OnboardingScreen() {
   };
 
   const handleStart = () => {
-    // Persisted so the root layout never re-onboards a returning user on cold launch.
-    useAppStore.getState().updateSetting('onboardingComplete', true);
+    // onboardingComplete is NOT flipped here: even navigating first, the flag
+    // flip re-renders the root gate while segments still read 'onboarding' and
+    // its replace toward the tabs stomps this one (observed on web). The
+    // paywall persists the flag on mount, once the handoff has really landed.
     router.replace('/paywall' as Href);
+    if (remindersIntent) {
+      // Deferred side effect from the reminders step, executed only at completion.
+      void notificationService
+        .scheduleDailyReminder(REMINDER_HOUR, REMINDER_MINUTE)
+        .then(() => useAppStore.getState().updateSetting('remindersEnabled', true))
+        .catch(() => {
+          // Scheduling failed; the setting stays off and can be enabled in Settings.
+        });
+    }
   };
 
   return (
@@ -99,7 +123,7 @@ export default function OnboardingScreen() {
       <View style={styles.screen}>
         {currentStep.id === 'calibration' ? (
           <FadeIn key="calibration" duration={420} style={styles.page}>
-            <CalibrationStep onComplete={handleCalibration} />
+            <CalibrationCard onComplete={handleCalibration} />
           </FadeIn>
         ) : (
           <View style={styles.page}>
@@ -135,6 +159,11 @@ export default function OnboardingScreen() {
                       Not now
                     </AppText>
                   </PressableScale>
+                ) : null}
+                {currentStep.id === 'reminders' && remindersBlocked ? (
+                  <AppText color="muted" style={styles.remindersNotice} variant="micro">
+                    Reminders are off in iOS Settings.
+                  </AppText>
                 ) : null}
               </View>
             </FadeIn>
@@ -178,7 +207,7 @@ type FocusInTextProps = {
 // Open: the welcome title collapses its letter-spacing into focus - the type itself is the entrance.
 function FocusInText({ children }: FocusInTextProps) {
   const progress = useSharedValue(0);
-  const reduceMotion = useReducedMotion();
+  const reduceMotion = useEffectiveReducedMotion();
 
   useEffect(() => {
     if (reduceMotion) {
@@ -263,7 +292,7 @@ function StepCopy({ step }: StepCopyProps) {
           </StepReveal>
           <StepReveal delay={120} duration={320}>
             <AppText color="secondary">
-              Daily reminders make it easier to keep your streak and retain each session's gains.
+              {"Daily reminders make it easier to keep your streak and retain each session's gains."}
             </AppText>
           </StepReveal>
         </>
@@ -271,7 +300,7 @@ function StepCopy({ step }: StepCopyProps) {
       {step === 6 ? (
         <>
           <StepReveal delay={0}>
-            <AppText variant="hero">You're set</AppText>
+            <AppText variant="hero">{"You're set"}</AppText>
           </StepReveal>
           <StepReveal delay={120} duration={320}>
             <AppText color="secondary" variant="caption">
@@ -313,153 +342,6 @@ function GoalChoices({ selected, onSelect }: GoalChoicesProps) {
           </PressableScale>
         );
       })}
-    </View>
-  );
-}
-
-type CalibrationStepProps = {
-  onComplete: () => void;
-};
-
-function clamp(value: number, minimum: number, maximum: number) {
-  return Math.min(Math.max(value, minimum), maximum);
-}
-
-function brightnessToProgress(value: number) {
-  return (clamp(value, BRIGHTNESS_MIN, BRIGHTNESS_MAX) - BRIGHTNESS_MIN) / BRIGHTNESS_RANGE;
-}
-
-function CalibrationStep({ onComplete }: CalibrationStepProps) {
-  const storedBrightness = useAppStore((state) => state.settings.displayBrightness);
-  const [brightness, setBrightness] = useState(
-    clamp(storedBrightness, BRIGHTNESS_MIN, BRIGHTNESS_MAX)
-  );
-  const [trackWidth, setTrackWidth] = useState(0);
-  const lastHapticStepRef = useRef(Math.round(brightness * 10));
-  const latestBrightnessRef = useRef(brightness);
-  const progress = useSharedValue(brightnessToProgress(brightness));
-  const reduceMotion = useReducedMotion();
-
-  useEffect(() => {
-    let active = true;
-
-    const loadInitialBrightness = async () => {
-      const currentBrightness = await getCurrentBrightness();
-      const initialBrightness = clamp(
-        currentBrightness ?? storedBrightness,
-        BRIGHTNESS_MIN,
-        BRIGHTNESS_MAX
-      );
-
-      if (!active) return;
-
-      latestBrightnessRef.current = initialBrightness;
-      lastHapticStepRef.current = Math.round(initialBrightness * 10);
-      setBrightness(initialBrightness);
-      progress.value = reduceMotion
-        ? brightnessToProgress(initialBrightness)
-        : withTiming(brightnessToProgress(initialBrightness), { duration: 180 });
-    };
-
-    void loadInitialBrightness();
-
-    return () => {
-      active = false;
-    };
-  }, [progress, reduceMotion, storedBrightness]);
-
-  const commitBrightness = useCallback((nextBrightness: number) => {
-    const calibratedBrightness = clamp(nextBrightness, BRIGHTNESS_MIN, BRIGHTNESS_MAX);
-    const hapticStep = Math.round(calibratedBrightness * 10);
-
-    latestBrightnessRef.current = calibratedBrightness;
-    setBrightness(calibratedBrightness);
-    void applyBrightness(calibratedBrightness);
-
-    if (hapticStep !== lastHapticStepRef.current) {
-      lastHapticStepRef.current = hapticStep;
-      haptics.select();
-    }
-  }, []);
-
-  const confirmBrightness = () => {
-    const calibratedBrightness = clamp(latestBrightnessRef.current, BRIGHTNESS_MIN, BRIGHTNESS_MAX);
-
-    useAppStore.getState().updateSetting('displayBrightness', calibratedBrightness);
-    onComplete();
-  };
-
-  const gesture = useMemo(() => {
-    const updateFromX = (x: number) => {
-      'worklet';
-      const travel = Math.max(trackWidth - SLIDER_KNOB_SIZE, 0);
-      const nextProgress =
-        travel === 0
-          ? progress.value
-          : Math.max(0, Math.min(1, (x - SLIDER_KNOB_SIZE / 2) / travel));
-      const nextBrightness = BRIGHTNESS_MIN + nextProgress * BRIGHTNESS_RANGE;
-
-      progress.value = nextProgress;
-      runOnJS(commitBrightness)(nextBrightness);
-    };
-    const pan = Gesture.Pan()
-      .activeOffsetX([-4, 4])
-      .onBegin((event) => {
-        updateFromX(event.x);
-      })
-      .onUpdate((event) => {
-        updateFromX(event.x);
-      });
-    const tap = Gesture.Tap().onEnd((event) => {
-      updateFromX(event.x);
-    });
-
-    return Gesture.Race(pan, tap);
-  }, [commitBrightness, progress, trackWidth]);
-
-  const fillStyle = useAnimatedStyle(() => ({
-    width: `${progress.value * 100}%`,
-  }));
-  const knobStyle = useAnimatedStyle(() => ({
-    backgroundColor: interpolateColor(progress.value, [0, 1], [text.secondary, text.inverse]),
-    shadowOpacity: 0.3 + progress.value * 0.35,
-    transform: [{ translateX: progress.value * Math.max(trackWidth - SLIDER_KNOB_SIZE, 0) }],
-  }));
-
-  return (
-    <View style={styles.calibration}>
-      <View style={styles.calibrationReference}>
-        <BreathingOrb cadence="breath" reactivity={0.9} size={206} />
-        <AppText style={styles.calibrationCopy} variant="title">
-          Set a comfortable glow for your room.
-        </AppText>
-      </View>
-
-      <View style={styles.calibrationControls}>
-        <GestureDetector gesture={gesture}>
-          <View
-            onLayout={(event) => setTrackWidth(event.nativeEvent.layout.width)}
-            style={styles.slider}>
-            <View pointerEvents="none" style={styles.sliderTrack}>
-              <Animated.View style={[styles.sliderFill, fillStyle]} />
-            </View>
-            <Animated.View pointerEvents="none" style={[styles.sliderKnob, knobStyle]} />
-          </View>
-        </GestureDetector>
-        <View style={styles.sliderLabels}>
-          <AppText color="muted" variant="micro">
-            Dim
-          </AppText>
-          <AppText color="muted" tabular variant="micro">
-            {Math.round(brightness * 100)}%
-          </AppText>
-          <AppText color="muted" variant="micro">
-            Bright
-          </AppText>
-        </View>
-      </View>
-
-      <PrimaryButton label="This feels right" onPress={confirmBrightness} />
     </View>
   );
 }
@@ -522,26 +404,6 @@ const styles = StyleSheet.create({
   },
   backPlaceholder: {
     height: 26,
-  },
-  calibration: {
-    alignItems: 'center',
-    gap: space.xl,
-    justifyContent: 'flex-end',
-    minHeight: 520,
-    paddingBottom: space.lg,
-  },
-  calibrationControls: {
-    gap: space.sm,
-    width: '100%',
-  },
-  calibrationCopy: {
-    maxWidth: 320,
-    textAlign: 'center',
-  },
-  calibrationReference: {
-    alignItems: 'center',
-    gap: space.xl,
-    justifyContent: 'center',
   },
   copy: {
     gap: space.base,
@@ -614,6 +476,9 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     width: '100%',
   },
+  remindersNotice: {
+    textAlign: 'center',
+  },
   screen: {
     flex: 1,
     paddingBottom: space.lg,
@@ -622,40 +487,5 @@ const styles = StyleSheet.create({
   secondaryChoice: {
     alignItems: 'center',
     paddingVertical: space.md,
-  },
-  slider: {
-    height: 44,
-    justifyContent: 'center',
-    width: '100%',
-  },
-  sliderFill: {
-    backgroundColor: ACCENT,
-    borderRadius: radius.pill,
-    height: '100%',
-  },
-  sliderKnob: {
-    backgroundColor: text.inverse,
-    borderColor: ACCENT_GLOW,
-    borderRadius: radius.pill,
-    borderWidth: 1,
-    height: SLIDER_KNOB_SIZE,
-    left: 0,
-    position: 'absolute',
-    shadowColor: ACCENT_GLOW,
-    shadowOffset: { width: 0, height: 0 },
-    shadowRadius: 12,
-    width: SLIDER_KNOB_SIZE,
-  },
-  sliderLabels: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  sliderTrack: {
-    backgroundColor: surface.hairlineStrong,
-    borderRadius: radius.pill,
-    height: 8,
-    overflow: 'hidden',
-    width: '100%',
   },
 });

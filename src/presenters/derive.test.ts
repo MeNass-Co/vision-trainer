@@ -258,4 +258,28 @@ describe('presenter derivation', () => {
       { day: 'Sat', value: 1.4 },
     ]);
   });
+
+  it('limits the sparkline to the trailing seven local days', () => {
+    // fixedNow is Sun 2026-05-31 → the window spans Mon 05-25 .. Sun 05-31.
+    const stale = new globalThis.Date(2026, 4, 20).toISOString();
+    const windowEdge = new globalThis.Date(2026, 4, 25).toISOString();
+    const today = fixedNow.toISOString();
+    const sessions = [
+      session('session-1', stale),
+      session('session-2', windowEdge),
+      session('session-3', today),
+    ];
+    const thresholds = [
+      threshold('threshold-1', 'session-1', 0.04, stale),
+      threshold('threshold-2', 'session-2', 0.04, windowEdge),
+      threshold('threshold-3', 'session-3', 0.04, today),
+    ];
+
+    const progressView = deriveProgressView(sessions, thresholds, fixedNow);
+
+    expect(progressView.sparkline).toEqual([
+      { day: 'Mon', value: 1.4 },
+      { day: 'Sun', value: 1.4 },
+    ]);
+  });
 });

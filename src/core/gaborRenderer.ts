@@ -1,7 +1,19 @@
-import type { ExpoWebGLRenderingContext } from 'expo-gl';
+/**
+ * REFERENCE IMPLEMENTATION — not in the live render path
+ * (live = components/GaborCanvas.tsx SVG). Kept as the mathematical reference
+ * and for a future GL/Skia renderer.
+ *
+ * NOTE: `luminanceToLinearGray` (displayCalibration) is misnamed — it
+ * gamma-ENCODES a normalized linear luminance into a display gray value.
+ */
 
 import type { CalibrationProfile, GaborStimulus } from '../types';
 import { luminanceToLinearGray, pixelsPerCycle, sigmaPixels } from './displayCalibration';
+
+// Structural stand-in for expo-gl's context type: the expo-gl dependency was
+// removed while this GL path is dormant. Restore the real import alongside a
+// future GL renderer.
+type ExpoWebGLRenderingContext = WebGL2RenderingContext & { endFrameEXP(): void };
 
 export const VERTEX_SHADER_SOURCE = `#version 300 es
 in vec2 a_position;

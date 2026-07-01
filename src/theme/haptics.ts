@@ -21,11 +21,15 @@ export const haptics = {
   wrong: () => run(() => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning)),
   milestone: () => run(() => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)),
   numberSettle: () => run(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)),
-  rewardChord: () => {
+  rewardChord: (): (() => void) => {
     run(() => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success));
-    if (ok && enabled) {
-      setTimeout(() => run(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)), 120);
-      setTimeout(() => run(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)), 240);
-    }
+    if (!ok || !enabled) return () => {};
+    const timeouts = [
+      setTimeout(() => run(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)), 120),
+      setTimeout(() => run(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)), 240),
+    ];
+    return () => {
+      for (const timeout of timeouts) clearTimeout(timeout);
+    };
   }
 } as const;

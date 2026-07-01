@@ -20,9 +20,9 @@ export type ProgramConfig = {
   phases: ProgramPhase[];
 };
 
-const MYOPIA_CONFIG: ProgramConfig = {
-  goalType: 'myopia',
-  label: 'Myopia Program',
+const DISTANCE_CONFIG: ProgramConfig = {
+  goalType: 'distance',
+  label: 'Distance Sharpness Program',
   spatialFrequencies: [6, 12],
   orientations: [0, 45, 90, 135],
   durationStartMs: 160,
@@ -55,9 +55,9 @@ const MYOPIA_CONFIG: ProgramConfig = {
   ]
 };
 
-const PRESBYOPIA_CONFIG: ProgramConfig = {
-  goalType: 'presbyopia',
-  label: 'Presbyopia Program',
+const NEAR_CONFIG: ProgramConfig = {
+  goalType: 'near',
+  label: 'Near Work Program',
   spatialFrequencies: [3, 6],
   orientations: [0, 45, 90, 135],
   durationStartMs: 200,
@@ -91,8 +91,8 @@ const PRESBYOPIA_CONFIG: ProgramConfig = {
 };
 
 const SPORTS_CONFIG: ProgramConfig = {
-  goalType: 'sports-vision',
-  label: 'Sports Vision Program',
+  goalType: 'sports',
+  label: 'Fast Reactions Program',
   spatialFrequencies: [1.5, 3, 6, 12],
   orientations: [0, 45, 90, 135],
   durationStartMs: 120,
@@ -136,9 +136,9 @@ const SPORTS_CONFIG: ProgramConfig = {
 };
 
 const PROGRAMS = new Map<GoalType, ProgramConfig>([
-  ['myopia', MYOPIA_CONFIG],
-  ['presbyopia', PRESBYOPIA_CONFIG],
-  ['sports-vision', SPORTS_CONFIG]
+  ['distance', DISTANCE_CONFIG],
+  ['near', NEAR_CONFIG],
+  ['sports', SPORTS_CONFIG]
 ]);
 
 export function getProgramConfig(goalType: GoalType): ProgramConfig {

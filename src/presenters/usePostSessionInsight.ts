@@ -11,10 +11,11 @@ export function usePostSessionInsight(sessionId: string | null): Loadable<PostSe
   const thresholds = useAppStore((state) => state.thresholds);
 
   const data = useMemo(() => {
-    const targetSessionId = sessionId ?? sessions.filter((session) => session.status === 'completed').at(-1)?.id;
-    if (!targetSessionId) return null;
+    // No fallback to "latest completed session": a null id must never surface
+    // some other session's results as this one's.
+    if (!sessionId) return null;
 
-    return derivePostSessionInsight(sessions, thresholds, targetSessionId);
+    return derivePostSessionInsight(sessions, thresholds, sessionId);
   }, [sessionId, sessions, thresholds]);
 
   return { data, isLoading: !hydrated };

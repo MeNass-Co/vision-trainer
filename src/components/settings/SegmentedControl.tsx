@@ -2,13 +2,13 @@ import { useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
 import Animated, {
   useAnimatedStyle,
-  useReducedMotion,
   useSharedValue,
   withSpring,
 } from 'react-native-reanimated';
 
 import { AppText, PressableScale } from '@/components/ui';
 import { ACCENT, ACCENT_MUTED, motion, radius, space, surface } from '@/theme/tokens';
+import { useEffectiveReducedMotion } from '@/theme/useEffectiveReducedMotion';
 
 export type SegmentOption<T extends string = string> = {
   label: string;
@@ -35,7 +35,7 @@ export function SegmentedControl<T extends string>({
     0,
   );
   const position = useSharedValue(selectedIndex);
-  const reduceMotion = useReducedMotion();
+  const reduceMotion = useEffectiveReducedMotion();
 
   useEffect(() => {
     position.value = reduceMotion

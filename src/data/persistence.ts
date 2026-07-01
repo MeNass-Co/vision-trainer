@@ -1,6 +1,8 @@
 import type { SessionLog, ThresholdEstimate } from '@/types';
 import type { SettingsState } from '@/presenters/types';
 
+import { payloadToSettings } from './mappers';
+
 export type Persistence = {
   init(): Promise<void>;
   loadSessions(): Promise<SessionLog[]>;
@@ -60,7 +62,9 @@ export const memoryPersistence: Persistence = {
   },
 
   async loadSettings() {
-    return store.settings ? clone(store.settings) : null;
+    // Route through the same sanitize/clamp path as the native sqlite mirror
+    // so web and native agree on what a loaded settings record looks like.
+    return store.settings ? payloadToSettings(JSON.stringify(store.settings)) : null;
   },
 
   async saveSettings(settings) {

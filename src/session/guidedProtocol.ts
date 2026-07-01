@@ -10,7 +10,6 @@ import {
   FIRST_VISIBLE_STIM_DURATION_MS,
   SECOND_VISIBLE_STIM_DURATION_MS,
 } from './calibrationQuest';
-import { GUIDED_STIM_DURATION_MS } from './sessionResult';
 
 export type GuidedSessionBlock = {
   id: string;
@@ -29,19 +28,19 @@ export type GuidedSessionPlanInput = {
   visionGoal: GoalType | 'unspecified';
 };
 
-const POST_BASELINE_FALLBACK_GOAL: GoalType = 'sports-vision';
+const POST_BASELINE_FALLBACK_GOAL: GoalType = 'sports';
 const THRESHOLD_LOCKED_SD = 0.45;
 const THRESHOLD_LOCKED_RANGE = 1.6;
 const QUEST_MIN_LOG10 = -3;
 const QUEST_MAX_LOG10 = Math.log10(0.9);
 
 function firstSessionBlocks(): GuidedSessionBlock[] {
-  const firstBlocks: Array<{
+  const firstBlocks: {
     condition: ContrastCondition;
     label: string;
     role: PlannedBlock['role'];
     questParams: QuestParameters;
-  }> = [
+  }[] = [
     {
       condition: {
         paradigm: 'contrast-detection',

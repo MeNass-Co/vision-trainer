@@ -1,8 +1,9 @@
+import { type Href, useRouter } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 import Svg, { Circle, Line, Path } from 'react-native-svg';
 
 import { CelestialGabor } from '@/components/home/CelestialGabor';
-import { AppText, FadeIn } from '@/components/ui';
+import { AppText, FadeIn, PrimaryButton } from '@/components/ui';
 import {
   ACCENT,
   ACCENT_CORE,
@@ -34,6 +35,8 @@ export type ProgressEmptySkyProps = {
 };
 
 export function ProgressEmptySky({ reduceMotion }: ProgressEmptySkyProps) {
+  const router = useRouter();
+
   return (
     <View style={styles.root}>
       <FadeIn>
@@ -92,6 +95,12 @@ export function ProgressEmptySky({ reduceMotion }: ProgressEmptySkyProps) {
         <AppText color="secondary" variant="body">
           Train once to light your first star.
         </AppText>
+        <View style={styles.ctaWrap}>
+          <PrimaryButton
+            label="Start a session"
+            onPress={() => router.push('/session' as Href)}
+          />
+        </View>
       </FadeIn>
     </View>
   );
@@ -104,6 +113,9 @@ const styles = StyleSheet.create({
   bottomBlock: {
     gap: space.md,
     paddingBottom: space.xl,
+  },
+  ctaWrap: {
+    marginTop: space.sm,
   },
   root: {
     flex: 1,

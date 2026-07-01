@@ -1,6 +1,6 @@
 export type Orientation = 0 | 45 | 90 | 135;
 
-export type GoalType = 'myopia' | 'presbyopia' | 'sports-vision';
+export type GoalType = 'distance' | 'near' | 'sports';
 
 export type TabId = 'home' | 'train' | 'progress' | 'science' | 'settings';
 
@@ -133,7 +133,7 @@ export type UserProfile = {
   id: string;
   createdAt: string;
   displayName: string;
-  diagnosisType: GoalType | 'unspecified';
+  goalType: GoalType | 'unspecified';
   targetCadencePerWeek: number;
   monocularMode: boolean;
   monocularEye: 'left' | 'right';

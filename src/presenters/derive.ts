@@ -1,8 +1,7 @@
 import { buildBeforeAfterCsf, buildLatestCsf, improvementPercent } from '@/progress/csf';
 import { populationNormContrast } from '@/progress/norms';
 import type { SessionLog, ThresholdEstimate } from '@/types';
-import { computeStreak, localDayKeyFromIso, weekCompletion, weekdayShortFromIso } from '@/utils/clock';
-import { todayIndex } from '@/utils/clock';
+import { computeStreak, localDayKey, localDayKeyFromIso, todayIndex, weekCompletion, weekdayShortFromIso } from '@/utils/clock';
 
 import {
   deriveMeasurementConfidence,
@@ -37,6 +36,17 @@ function completedSessionDayKeys(sessions: SessionLog[]): string[] {
   return sessions
     .filter((session) => session.status === 'completed')
     .map((session) => localDayKeyFromIso(session.startedAt));
+}
+
+/** Local day keys for the `count` calendar days ending at `now` (inclusive). */
+function trailingLocalDayKeys(now: Date, count: number): Set<string> {
+  const keys = new Set<string>();
+  const cursor = new Date(now);
+  for (let index = 0; index < count; index += 1) {
+    keys.add(localDayKey(cursor));
+    cursor.setDate(cursor.getDate() - 1);
+  }
+  return keys;
 }
 
 function latestThreshold(thresholds: ThresholdEstimate[]): ThresholdEstimate | null {
@@ -208,7 +218,7 @@ export function deriveTodayView(
 export function deriveProgressView(
   sessions: SessionLog[],
   thresholds: ThresholdEstimate[],
-  _now: Date
+  now: Date
 ): ProgressView {
   const measurementConfidence = deriveMeasurementConfidence(sessions, thresholds);
   if (thresholds.length === 0) {
@@ -251,8 +261,12 @@ export function deriveProgressView(
     bucket.push(threshold);
     thresholdsBySession.set(threshold.sessionId, bucket);
   }
+  // The card is titled "Last 7 days": only sessions inside the trailing seven
+  // local calendar days (today included) may plot, or the label is a lie.
+  const recentDayKeys = trailingLocalDayKeys(now, 7);
   const sparkline = sessions
     .filter((session) => session.status === 'completed')
+    .filter((session) => recentDayKeys.has(localDayKeyFromIso(session.startedAt)))
     .map((session) => ({ session, points: thresholdsBySession.get(session.id) ?? [] }))
     .filter((entry) => entry.points.length > 0)
     .map((entry) => ({

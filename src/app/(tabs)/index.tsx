@@ -1,7 +1,6 @@
 import { type Href, useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useRef } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { useReducedMotion, useSharedValue } from 'react-native-reanimated';
 
 import { AmbientGradient } from '@/components/home/AmbientGradient';
 import { CelestialGabor } from '@/components/home/CelestialGabor';
@@ -19,6 +18,7 @@ import {
   space,
   surface,
 } from '@/theme/tokens';
+import { useEffectiveReducedMotion } from '@/theme/useEffectiveReducedMotion';
 
 const DAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'] as const;
 
@@ -63,7 +63,7 @@ function WeekRow({ activeIndex = 3, weekDays }: WeekRowProps) {
 
 export default function TodayScreen() {
   const router = useRouter();
-  const reduceMotion = useReducedMotion();
+  const reduceMotion = useEffectiveReducedMotion();
   const { data, isLoading } = useTodayData();
 
   return (
@@ -84,7 +84,6 @@ type TodayContentProps = {
 };
 
 function TodayContent({ data, reduceMotion, router }: TodayContentProps) {
-  const exit = useSharedValue(0);
   const navigatingRef = useRef(false);
   const discContrast =
     data.contrastSensitivity > 0 ? Math.min(1, 0.5 + data.contrastSensitivity * 0.22) : 0.32;
@@ -129,7 +128,6 @@ function TodayContent({ data, reduceMotion, router }: TodayContentProps) {
           <View style={styles.orbScale}>
             <CelestialGabor
               contrast={discContrast}
-              exit={exit}
               progress={data.sessionDoneToday ? 1 : data.streakDays === 0 ? 0.08 : 0.5}
               reduceMotion={reduceMotion}
               resolveOnMount

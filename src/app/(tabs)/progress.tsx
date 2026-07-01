@@ -1,6 +1,5 @@
 import { useCallback, useState } from 'react';
 import { LayoutChangeEvent, StyleSheet, View } from 'react-native';
-import { useReducedMotion } from 'react-native-reanimated';
 
 import { AmbientGradient } from '@/components/home/AmbientGradient';
 import { ContributorRows } from '@/components/progress/ContributorRows';
@@ -13,18 +12,26 @@ import { AppText, Bloom, Card, FadeIn, Screen, Shimmer } from '@/components/ui';
 import { useProgressData } from '@/presenters';
 import { haptics } from '@/theme/haptics';
 import { ACCENT_HOT, data as tokenData, motion, radius, space, surface } from '@/theme/tokens';
+import { useEffectiveReducedMotion } from '@/theme/useEffectiveReducedMotion';
 
 const SPARKLINE_HEIGHT = 112;
 const CSF_GRAPH_HEIGHT = 220;
 
 export default function ProgressScreen() {
-  const reduceMotion = useReducedMotion();
+  const reduceMotion = useEffectiveReducedMotion();
   const { data, isLoading } = useProgressData();
   const isEmpty = data.csf.length === 0;
-  const [chartWidth, setChartWidth] = useState(0);
-  const handleChartLayout = useCallback((event: LayoutChangeEvent) => {
+  // One measured width per card: the two cards can legitimately differ, and a
+  // shared state would let each onLayout overwrite the other's measurement.
+  const [sparklineWidth, setSparklineWidth] = useState(0);
+  const [csfGraphWidth, setCsfGraphWidth] = useState(0);
+  const handleSparklineLayout = useCallback((event: LayoutChangeEvent) => {
     const next = Math.round(event.nativeEvent.layout.width);
-    setChartWidth((previous) => (previous === next ? previous : next));
+    setSparklineWidth((previous) => (previous === next ? previous : next));
+  }, []);
+  const handleCsfGraphLayout = useCallback((event: LayoutChangeEvent) => {
+    const next = Math.round(event.nativeEvent.layout.width);
+    setCsfGraphWidth((previous) => (previous === next ? previous : next));
   }, []);
 
   return (
@@ -117,10 +124,10 @@ export default function ProgressScreen() {
                   </AppText>
                 </View>
               ) : (
-                <View onLayout={handleChartLayout} style={styles.chartMeasure}>
-                  {chartWidth > 0 ? (
+                <View onLayout={handleSparklineLayout} style={styles.chartMeasure}>
+                  {sparklineWidth > 0 ? (
                     <FadeIn duration={motion.timing.rangeDrawMs}>
-                      <Sparkline height={SPARKLINE_HEIGHT} points={data.sparkline} width={chartWidth} />
+                      <Sparkline height={SPARKLINE_HEIGHT} points={data.sparkline} width={sparklineWidth} />
                     </FadeIn>
                   ) : null}
                 </View>
@@ -137,14 +144,14 @@ export default function ProgressScreen() {
                   Drag to inspect
                 </AppText>
               </View>
-              <View onLayout={handleChartLayout} style={styles.chartMeasure}>
-                {chartWidth > 0 ? (
+              <View onLayout={handleCsfGraphLayout} style={styles.chartMeasure}>
+                {csfGraphWidth > 0 ? (
                   <FadeIn duration={motion.timing.rangeDrawMs}>
                     <CsfGraph
                       height={CSF_GRAPH_HEIGHT}
                       points={data.csf}
                       references={data.csfReferences}
-                      width={chartWidth}
+                      width={csfGraphWidth}
                     />
                   </FadeIn>
                 ) : null}
