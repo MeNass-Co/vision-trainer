@@ -467,6 +467,7 @@ export default function SessionScreen() {
 
     return () => {
       isMountedRef.current = false;
+      // eslint-disable-next-line react-hooks/exhaustive-deps -- unmount-only cleanup; the canvas ref is stable for the screen's lifetime (red-line measurement path, do not restructure)
       canvasRef.current?.clear();
       choiceResolverRef.current?.(null);
       choiceResolverRef.current = null;

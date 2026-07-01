@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
+import { useAppStore } from './useAppStore';
+
 const mockPersistence = vi.hoisted(() => ({
   init: vi.fn(async () => {}),
   loadSessions: vi.fn(async () => []),
@@ -11,8 +13,6 @@ const mockPersistence = vi.hoisted(() => ({
 
 vi.mock('@/data/persistence', () => ({ activePersistence: mockPersistence }));
 vi.mock('@/theme/haptics', () => ({ setHapticsEnabled: vi.fn() }));
-
-import { useAppStore } from './useAppStore';
 
 // These tests share the store singleton and run in declaration order,
 // walking one degraded-boot narrative: fail, stay memory-only, retry, recover.

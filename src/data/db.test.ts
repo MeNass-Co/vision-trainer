@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 
-vi.mock('expo-sqlite', () => ({ openDatabaseAsync: vi.fn() }));
-
 import { MIGRATION_STEPS, runMigrations, type MigrationTarget } from './db';
+
+vi.mock('expo-sqlite', () => ({ openDatabaseAsync: vi.fn() }));
 
 function createFakeDb(initialVersion = 0) {
   const executed: string[] = [];

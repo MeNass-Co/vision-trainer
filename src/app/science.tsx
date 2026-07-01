@@ -7,7 +7,7 @@ import { radius, space, surface, text } from '@/theme/tokens';
 
 const SECTIONS = [
   {
-    body: 'Contrast sensitivity is not fixed. With brief, repeated exposure to faint striped patterns, the visual cortex sharpens how it encodes edges. This is perceptual learning, and the gains persist.',
+    body: 'Contrast sensitivity is not fixed. With brief, repeated exposure to faint striped patterns, the visual cortex sharpens how it encodes edges. This is perceptual learning, and the gains can persist.',
     eyebrow: 'Why it works',
     title: 'Your visual system keeps learning',
   },

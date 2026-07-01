@@ -1,10 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
 
+import { ACCENT, ACCENT_GLOW, ACCENT_MUTED, surface, text, tokens, type } from './tokens';
+
 vi.mock('react-native', () => ({
   StyleSheet: { hairlineWidth: 1 }
 }));
-
-import { ACCENT, ACCENT_GLOW, ACCENT_MUTED, surface, text, tokens, type } from './tokens';
 
 const PURE_BLACK_OR_WHITE = new Set(['#000', '#000000', '#fff', '#ffffff', 'black', 'white']);
 

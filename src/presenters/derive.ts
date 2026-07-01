@@ -1,8 +1,7 @@
 import { buildBeforeAfterCsf, buildLatestCsf, improvementPercent } from '@/progress/csf';
 import { populationNormContrast } from '@/progress/norms';
 import type { SessionLog, ThresholdEstimate } from '@/types';
-import { computeStreak, localDayKey, localDayKeyFromIso, weekCompletion, weekdayShortFromIso } from '@/utils/clock';
-import { todayIndex } from '@/utils/clock';
+import { computeStreak, localDayKey, localDayKeyFromIso, todayIndex, weekCompletion, weekdayShortFromIso } from '@/utils/clock';
 
 import {
   deriveMeasurementConfidence,

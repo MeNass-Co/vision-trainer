@@ -34,11 +34,12 @@ A quiet daily practice for sharper contrast vision. Adaptive Gabor exercises, yo
 ## Keywords (≤100 chars, comma-separated, no spaces)
 
 ```
-vision,contrast,eye training,perceptual,gabor,acuity,eyesight,focus,sharpness,dichoptic
+vision,contrast,eye training,perceptual,gabor,focus,sharpness,perception,clarity,dichoptic
 ```
 
 > Keywords name what the practice *is* (training, contrast, perceptual), never a clinical condition.
 > Naming a condition in keywords pairs with the Health category to invite Guideline 1.4.1 scrutiny.
+> Medically-adjacent tokens ("eyesight", "acuity") are deliberately excluded for the same reason.
 
 ---
 
@@ -127,6 +128,11 @@ The app is fully local — no account, no login, no backend, no network calls. R
 immediately with no credentials: open the app, tap Begin, complete the short onboarding, and start
 a session. All features are available offline on first launch.
 
+After onboarding, an "Early access" screen explains that everything is currently included for free.
+There are no in-app purchases, no subscriptions, and no prices anywhere in this build; the screen
+records a local preference only. The Privacy Policy and Terms of Use links in Settings open the
+published pages in an in-app browser.
+
 The optional "daily reminder" uses local notifications only; the in-app explanation precedes the
 system permission prompt.
 ```
@@ -149,3 +155,4 @@ system permission prompt.
 - [ ] No screenshot shows a claim ("improve your eyesight in X days", etc.).
 - [ ] Privacy + Support URLs resolve and render.
 - [ ] App Privacy set to "Data Not Collected".
+- [ ] TODO (once IAP lands): add a paywall screenshot to the screenshot set and an IAP section here (products, prices, Restore Purchases, auto-renew disclosure); update the reviewer note and privacy sections accordingly.

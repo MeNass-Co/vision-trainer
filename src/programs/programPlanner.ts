@@ -111,8 +111,8 @@ function distributeTrials(
   weights: Partial<Record<ParadigmId, number>>,
   totalTrials: number,
   blockSize: number
-): Array<[ParadigmId, number]> {
-  const entries = (Object.entries(weights) as Array<[ParadigmId, number]>).filter(([, weight]) => weight > 0);
+): [ParadigmId, number][] {
+  const entries = (Object.entries(weights) as [ParadigmId, number][]).filter(([, weight]) => weight > 0);
   const totalWeight = entries.reduce((sum, [, weight]) => sum + weight, 0);
   if (totalWeight <= 0) {
     throw new Error('Program phase has no positive paradigm weights');

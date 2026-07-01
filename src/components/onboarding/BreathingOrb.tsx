@@ -13,7 +13,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import Svg, { Circle, Defs, RadialGradient, Stop } from 'react-native-svg';
 
-import { ACCENT, ACCENT_CORE, ACCENT_GLOW, ACCENT_HOT, ACCENT_MUTED, ACCENT_SOFT } from '@/theme/tokens';
+import { ACCENT, ACCENT_CORE, ACCENT_HOT, ACCENT_MUTED, ACCENT_SOFT } from '@/theme/tokens';
 import { useEffectiveReducedMotion } from '@/theme/useEffectiveReducedMotion';
 
 export type BreathingOrbProps = {

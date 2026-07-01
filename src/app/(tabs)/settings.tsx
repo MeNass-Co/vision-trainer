@@ -1,5 +1,6 @@
 import Constants from 'expo-constants';
 import { type Href, useRouter } from 'expo-router';
+import * as WebBrowser from 'expo-web-browser';
 import { useRef, useState } from 'react';
 import { Linking, StyleSheet, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
@@ -16,6 +17,8 @@ import { useEffectiveReducedMotion } from '@/theme/useEffectiveReducedMotion';
 
 const REMINDER_HOUR = 19;
 const REMINDER_MINUTE = 0;
+const PRIVACY_URL = 'https://menass-co.github.io/vision-trainer/privacy.html';
+const TERMS_URL = 'https://menass-co.github.io/vision-trainer/terms.html';
 
 export default function SettingsScreen() {
   const reduceMotion = useEffectiveReducedMotion();
@@ -97,6 +100,18 @@ export default function SettingsScreen() {
         </Section>
       </FadeIn>
       <FadeIn delay={120}>
+        <Section title="Display">
+          <Row
+            accessibilityLabel="Display calibration"
+            chevron
+            description="Set a comfortable brightness for sessions"
+            label="Display calibration"
+            onPress={() => router.push('/calibration' as Href)}
+            right={<Chevron />}
+          />
+        </Section>
+      </FadeIn>
+      <FadeIn delay={180}>
         <Section title="Reminders">
           <Row
             description="A gentle evening nudge to keep your streak"
@@ -130,7 +145,7 @@ export default function SettingsScreen() {
           ) : null}
         </Section>
       </FadeIn>
-      <FadeIn delay={180}>
+      <FadeIn delay={240}>
         <Section title="About">
           <Row
             label="Version"
@@ -146,6 +161,32 @@ export default function SettingsScreen() {
             description="How perceptual learning works"
             label="The science"
             onPress={() => router.push('/science' as Href)}
+            right={<Chevron />}
+          />
+          <Row
+            accessibilityLabel="Early access"
+            chevron
+            description="What early access includes"
+            label="Early access"
+            onPress={() => router.push('/paywall' as Href)}
+            right={<Chevron />}
+          />
+          <Row
+            accessibilityLabel="Privacy Policy"
+            chevron
+            label="Privacy Policy"
+            onPress={() => {
+              void WebBrowser.openBrowserAsync(PRIVACY_URL);
+            }}
+            right={<Chevron />}
+          />
+          <Row
+            accessibilityLabel="Terms of Use"
+            chevron
+            label="Terms of Use"
+            onPress={() => {
+              void WebBrowser.openBrowserAsync(TERMS_URL);
+            }}
             right={<Chevron />}
           />
         </Section>

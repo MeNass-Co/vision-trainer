@@ -1,25 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
 import { QuestStaircase } from '@/psychophysics/quest';
-import type { SessionLog, ThresholdEstimate } from '@/types';
+import type { ThresholdEstimate } from '@/types';
 
 import { buildGuidedSessionBlocks, questParamsForCondition } from './guidedProtocol';
-
-function completedSession(id: string): SessionLog {
-  return {
-    id,
-    startedAt: '2026-06-06T10:00:00.000Z',
-    completedAt: '2026-06-06T10:30:00.000Z',
-    status: 'completed',
-    eyeMode: 'both',
-    sessionType: 'guided',
-    calibrationId: 'calibration-1',
-    protocolVersion: 'mvp-0.2',
-    plannedBlocks: [],
-    completedTrials: 20,
-    metadata: {},
-  };
-}
 
 function threshold(
   id: string,
@@ -50,7 +34,7 @@ describe('guided protocol planning', () => {
     const blocks = buildGuidedSessionBlocks({
       sessionsCompleted: 1,
       thresholds: [threshold('baseline-1', 1.5, 0.03)],
-      visionGoal: 'sports-vision',
+      visionGoal: 'sports',
     });
 
     expect(blocks.reduce((sum, block) => sum + block.trialsPerBlock, 0)).toBe(100);

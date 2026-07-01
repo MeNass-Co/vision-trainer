@@ -154,9 +154,22 @@ export function CompletionReward({
     ctaTranslateY.value = withDelay(2300, withSpring(0, motion.spring.snap));
     subtitleOpacity.value = withDelay(2300, withTiming(1, { duration: 280, easing: easings.out }));
   }, [
+    accuracy,
     accuracyTarget,
+    backdropOpacity,
+    bloomOpacity,
+    bloomScale,
+    cardOpacity,
+    cardTranslateY,
+    constellation,
+    ctaOpacity,
+    ctaTranslateY,
     handleNumberSettle,
     reduceMotion,
+    skyIgnite,
+    streak,
+    streakRowOpacity,
+    subtitleOpacity,
   ]);
 
   useEffect(() => {
@@ -185,6 +198,7 @@ export function CompletionReward({
     return () => clearTimeout(timeout);
   }, [
     reduceMotion,
+    streak,
     streakFrom,
     streakIncrements,
   ]);

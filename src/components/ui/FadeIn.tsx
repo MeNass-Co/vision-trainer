@@ -27,7 +27,7 @@ export function FadeIn({ children, delay = 0, duration = 280, style }: FadeInPro
       return;
     }
     progress.value = withDelay(delay, withTiming(1, { duration, easing: Easing.out(Easing.cubic) }));
-  }, [delay, duration, reduceMotion]);
+  }, [delay, duration, progress, reduceMotion]);
 
   const animatedStyle = useAnimatedStyle(() => ({
     opacity: progress.value,

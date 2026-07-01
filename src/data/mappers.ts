@@ -96,7 +96,26 @@ function isMonocularWeakEye(value: unknown): value is SettingsState['monocularWe
 }
 
 function isVisionGoal(value: unknown): value is SettingsState['visionGoal'] {
-  return value === 'myopia' || value === 'presbyopia' || value === 'sports-vision' || value === 'unspecified';
+  return value === 'distance' || value === 'near' || value === 'sports' || value === 'unspecified';
+}
+
+/**
+ * Migration: builds before the neutral goal naming persisted condition-flavored
+ * values. Map them onto the current vocabulary so existing installs keep their
+ * chosen goal instead of falling back to 'unspecified'.
+ */
+const LEGACY_VISION_GOALS: Record<string, SettingsState['visionGoal']> = {
+  myopia: 'distance',
+  presbyopia: 'near',
+  'sports-vision': 'sports',
+};
+
+function migrateVisionGoal(value: unknown): SettingsState['visionGoal'] | null {
+  if (isVisionGoal(value)) return value;
+  if (typeof value === 'string' && value in LEGACY_VISION_GOALS) {
+    return LEGACY_VISION_GOALS[value];
+  }
+  return null;
 }
 
 function isSubscriptionStatus(value: unknown): value is SettingsState['subscriptionStatus'] {
@@ -180,7 +199,11 @@ export function payloadToSettings(payload: string): SettingsState {
       trialStartedAt: isIsoStringOrNull(record.trialStartedAt)
         ? record.trialStartedAt
         : DEFAULT_SETTINGS.trialStartedAt,
-      visionGoal: isVisionGoal(record.visionGoal) ? record.visionGoal : DEFAULT_SETTINGS.visionGoal,
+      visionGoal:
+        migrateVisionGoal(record.visionGoal) ??
+        // Very early builds stored the goal under 'diagnosisType'.
+        migrateVisionGoal(record.diagnosisType) ??
+        DEFAULT_SETTINGS.visionGoal,
     };
   } catch {
     return { ...DEFAULT_SETTINGS };

@@ -1,5 +1,4 @@
 import type { SessionLog, ThresholdEstimate } from '@/types';
-import type { SettingsState } from '@/presenters/types';
 
 import { getDatabase, migrate } from './db';
 import {

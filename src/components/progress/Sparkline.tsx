@@ -11,7 +11,7 @@ import Svg, { Circle, Path } from 'react-native-svg';
 
 import { TrajectoryPointLight } from '@/components/progress/TrajectoryPointLight';
 import { AppText } from '@/components/ui';
-import { ACCENT, ACCENT_GLOW, space } from '@/theme/tokens';
+import { ACCENT, ACCENT_GLOW } from '@/theme/tokens';
 import { useEffectiveReducedMotion } from '@/theme/useEffectiveReducedMotion';
 
 export type SparklineProps = {

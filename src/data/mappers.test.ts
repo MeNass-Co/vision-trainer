@@ -3,6 +3,14 @@ import { describe, expect, it, vi } from 'vitest';
 import type { SettingsState } from '@/presenters/types';
 import type { SessionLog, ThresholdEstimate } from '@/types';
 import { DEFAULT_SETTINGS } from '../store/defaults';
+import {
+  payloadToSettings,
+  rowToSession,
+  rowToThreshold,
+  sessionToRow,
+  settingsToPayload,
+  thresholdToRow,
+} from './mappers';
 
 vi.mock('@/store/defaults', () => ({
   DEFAULT_SETTINGS: {
@@ -19,15 +27,6 @@ vi.mock('@/store/defaults', () => ({
     visionGoal: 'unspecified',
   },
 }));
-
-import {
-  payloadToSettings,
-  rowToSession,
-  rowToThreshold,
-  sessionToRow,
-  settingsToPayload,
-  thresholdToRow,
-} from './mappers';
 
 describe('data mappers', () => {
   it('round-trips a full session and populates the completed-at index', () => {
@@ -267,7 +266,7 @@ describe('data mappers', () => {
       soundEnabled: 'enabled',
       subscriptionStatus: 'trialing',
       trialStartedAt: '2026-06-09T10:00:00.000Z',
-      visionGoal: 'sports-vision',
+      visionGoal: 'sports',
       unknown: true,
     }))).toEqual({
       ...DEFAULT_SETTINGS,
@@ -279,7 +278,7 @@ describe('data mappers', () => {
       soundEnabled: true,
       subscriptionStatus: 'trialing',
       trialStartedAt: '2026-06-09T10:00:00.000Z',
-      visionGoal: 'sports-vision',
+      visionGoal: 'sports',
     });
     expect(payloadToSettings('{"displayBrightness":-1,"monocularWeakEye":"right"}')).toEqual({
       ...DEFAULT_SETTINGS,
@@ -287,6 +286,20 @@ describe('data mappers', () => {
       monocularWeakEye: 'right',
     });
     expect(payloadToSettings('{"displayBrightness":"bright"}')).toEqual(DEFAULT_SETTINGS);
+  });
+
+  it('migrates legacy condition-flavored goal values and the legacy field name', () => {
+    expect(payloadToSettings('{"visionGoal":"myopia"}').visionGoal).toBe('distance');
+    expect(payloadToSettings('{"visionGoal":"presbyopia"}').visionGoal).toBe('near');
+    expect(payloadToSettings('{"visionGoal":"sports-vision"}').visionGoal).toBe('sports');
+    // Very early builds stored the goal under 'diagnosisType'.
+    expect(payloadToSettings('{"diagnosisType":"myopia"}').visionGoal).toBe('distance');
+    // Current field wins over the legacy one when both are present.
+    expect(
+      payloadToSettings('{"visionGoal":"sports","diagnosisType":"myopia"}').visionGoal
+    ).toBe('sports');
+    // Unknown values still fall back to the default.
+    expect(payloadToSettings('{"visionGoal":"astigmatism"}').visionGoal).toBe('unspecified');
   });
 
   it('round-trips full settings', () => {
@@ -301,7 +314,7 @@ describe('data mappers', () => {
       onboardingComplete: true,
       subscriptionStatus: 'active',
       trialStartedAt: '2026-06-09T10:00:00.000Z',
-      visionGoal: 'presbyopia',
+      visionGoal: 'near',
     };
 
     expect(payloadToSettings(settingsToPayload(settings))).toEqual(settings);
