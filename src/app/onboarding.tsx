@@ -9,7 +9,6 @@ import Animated, {
   interpolateColor,
   runOnJS,
   useAnimatedStyle,
-  useReducedMotion,
   useSharedValue,
   withSpring,
   withTiming,
@@ -28,6 +27,7 @@ import { notificationService } from '@/services/notifications';
 import { useAppStore } from '@/store/useAppStore';
 import { haptics } from '@/theme/haptics';
 import { ACCENT, ACCENT_GLOW, motion, radius, space, surface, text, type } from '@/theme/tokens';
+import { useEffectiveReducedMotion } from '@/theme/useEffectiveReducedMotion';
 import type { GoalType } from '@/types';
 
 const BASE_ORB = 180;
@@ -56,30 +56,51 @@ const GOAL_OPTIONS: Array<{ value: GoalType; label: string; detail: string }> = 
 
 export default function OnboardingScreen() {
   const router = useRouter();
-  const reduceMotion = useReducedMotion();
+  const reduceMotion = useEffectiveReducedMotion();
   const [step, setStep] = useState(0);
   const currentStep = STEPS[step];
   const [selectedGoal, setSelectedGoal] = useState<GoalType>(() => {
     const storedGoal = useAppStore.getState().settings.visionGoal;
     return storedGoal === 'unspecified' ? 'myopia' : storedGoal;
   });
+  // The reminders step only records intent; scheduling and persistence run at
+  // completion, so killing the app mid-flow leaves zero scheduled notifications.
+  const [remindersIntent, setRemindersIntent] = useState(false);
+  const [remindersBlocked, setRemindersBlocked] = useState(false);
+  const reminderRequestInFlightRef = useRef(false);
+  const blockedAdvancePendingRef = useRef(false);
 
   const advance = () => {
     setStep((current) => Math.min(current + 1, STEPS.length - 1));
   };
 
   const handleEnableReminders = async () => {
+    if (reminderRequestInFlightRef.current || blockedAdvancePendingRef.current) return;
+
+    reminderRequestInFlightRef.current = true;
     try {
-      const granted = await notificationService.requestRemindersPermission();
-      if (granted) {
-        await notificationService.scheduleDailyReminder(REMINDER_HOUR, REMINDER_MINUTE);
-        useAppStore.getState().updateSetting('remindersEnabled', true);
+      const permission = await notificationService.requestRemindersPermission();
+      if (permission.granted) {
+        setRemindersIntent(true);
+        advance();
+        return;
       }
-    } catch {
-      // Permission/scheduling failed — reflect the off state, never strand the user.
-      useAppStore.getState().updateSetting('remindersEnabled', false);
-    } finally {
+      if (!permission.canAskAgain) {
+        // Permanently denied: show a brief notice, then continue without reminders.
+        blockedAdvancePendingRef.current = true;
+        setRemindersBlocked(true);
+        setTimeout(() => {
+          blockedAdvancePendingRef.current = false;
+          advance();
+        }, 1400);
+        return;
+      }
       advance();
+    } catch {
+      // Permission request failed — continue without reminders, never strand the user.
+      advance();
+    } finally {
+      reminderRequestInFlightRef.current = false;
     }
   };
 
@@ -93,9 +114,20 @@ export default function OnboardingScreen() {
   };
 
   const handleStart = () => {
+    // Route first: flipping onboardingComplete while segments still read
+    // 'onboarding' would let the root gate race this replace toward the tabs.
+    router.replace('/paywall' as Href);
+    if (remindersIntent) {
+      // Deferred side effect from the reminders step, executed only at completion.
+      void notificationService
+        .scheduleDailyReminder(REMINDER_HOUR, REMINDER_MINUTE)
+        .then(() => useAppStore.getState().updateSetting('remindersEnabled', true))
+        .catch(() => {
+          // Scheduling failed; the setting stays off and can be enabled in Settings.
+        });
+    }
     // Persisted so the root layout never re-onboards a returning user on cold launch.
     useAppStore.getState().updateSetting('onboardingComplete', true);
-    router.replace('/paywall' as Href);
   };
 
   return (
@@ -140,6 +172,11 @@ export default function OnboardingScreen() {
                     </AppText>
                   </PressableScale>
                 ) : null}
+                {currentStep.id === 'reminders' && remindersBlocked ? (
+                  <AppText color="muted" style={styles.remindersNotice} variant="micro">
+                    Reminders are off in iOS Settings.
+                  </AppText>
+                ) : null}
               </View>
             </FadeIn>
           </View>
@@ -182,7 +219,7 @@ type FocusInTextProps = {
 // Open: the welcome title collapses its letter-spacing into focus - the type itself is the entrance.
 function FocusInText({ children }: FocusInTextProps) {
   const progress = useSharedValue(0);
-  const reduceMotion = useReducedMotion();
+  const reduceMotion = useEffectiveReducedMotion();
 
   useEffect(() => {
     if (reduceMotion) {
@@ -342,7 +379,7 @@ function CalibrationStep({ onComplete }: CalibrationStepProps) {
   const lastHapticStepRef = useRef(Math.round(brightness * 10));
   const latestBrightnessRef = useRef(brightness);
   const progress = useSharedValue(brightnessToProgress(brightness));
-  const reduceMotion = useReducedMotion();
+  const reduceMotion = useEffectiveReducedMotion();
 
   useEffect(() => {
     let active = true;
@@ -626,6 +663,9 @@ const styles = StyleSheet.create({
     height: 3,
     overflow: 'hidden',
     width: '100%',
+  },
+  remindersNotice: {
+    textAlign: 'center',
   },
   screen: {
     flex: 1,

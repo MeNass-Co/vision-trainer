@@ -71,3 +71,16 @@ export function buildGuidedSessionLog(input: GuidedSessionLogInput): SessionLog 
     metadata: { targetSessionMinutes: 30, targetCadencePerWeek: 3 },
   };
 }
+
+/**
+ * A session ended early. Completed blocks already produced converged QUEST
+ * thresholds, so the log is kept as 'abandoned' rather than discarded; streaks
+ * and completion counts only honour 'completed', but the measurements survive.
+ * `completedAtIso` records when the session ended, not a full completion.
+ */
+export function buildPartialSessionResult(input: GuidedSessionLogInput): SessionLog {
+  return {
+    ...buildGuidedSessionLog(input),
+    status: 'abandoned',
+  };
+}

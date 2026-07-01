@@ -5,7 +5,6 @@ import Animated, {
   Easing,
   interpolate,
   useAnimatedStyle,
-  useReducedMotion,
   useSharedValue,
   withDelay,
   withRepeat,
@@ -15,6 +14,7 @@ import Animated, {
 import Svg, { Circle, Defs, RadialGradient, Stop } from 'react-native-svg';
 
 import { ACCENT, ACCENT_CORE, ACCENT_GLOW, ACCENT_HOT, ACCENT_MUTED, ACCENT_SOFT } from '@/theme/tokens';
+import { useEffectiveReducedMotion } from '@/theme/useEffectiveReducedMotion';
 
 export type BreathingOrbProps = {
   size?: number;
@@ -74,8 +74,8 @@ export function BreathingOrb({
   reduceMotion,
   resolveOnMount = false,
 }: BreathingOrbProps) {
-  const systemReduceMotion = useReducedMotion();
-  const shouldReduceMotion = reduceMotion ?? systemReduceMotion;
+  const effectiveReduceMotion = useEffectiveReducedMotion();
+  const shouldReduceMotion = reduceMotion ?? effectiveReduceMotion;
   const normalizedReactivity = Math.min(Math.max(reactivity, 0), 1);
   const haloSize = size * 1.42;
   const bodyR = size * 0.34;

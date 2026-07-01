@@ -6,7 +6,6 @@ import { useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
 import Animated, {
   useAnimatedStyle,
-  useReducedMotion,
   useSharedValue,
   withSpring,
 } from 'react-native-reanimated';
@@ -14,6 +13,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Line, Path } from 'react-native-svg';
 
 import { ACCENT, material, motion, space, text } from '@/theme/tokens';
+import { useEffectiveReducedMotion } from '@/theme/useEffectiveReducedMotion';
 
 import { AppText } from './AppText';
 import { PressableScale } from './PressableScale';
@@ -79,7 +79,7 @@ type TabButtonProps = {
 };
 
 function TabButton({ focused, label, onPress, routeName }: TabButtonProps) {
-  const reduceMotion = useReducedMotion();
+  const reduceMotion = useEffectiveReducedMotion();
   const progress = useSharedValue(focused ? 1 : 0);
 
   useEffect(() => {

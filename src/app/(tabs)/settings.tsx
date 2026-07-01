@@ -1,37 +1,28 @@
 import Constants from 'expo-constants';
 import { type Href, useRouter } from 'expo-router';
-import { useRef } from 'react';
-import { StyleSheet } from 'react-native';
+import { useRef, useState } from 'react';
+import { Linking, StyleSheet, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
-import { useReducedMotion } from 'react-native-reanimated';
 
 import { AmbientGradient } from '@/components/home/AmbientGradient';
 import { Row } from '@/components/settings/Row';
 import { Section } from '@/components/settings/Section';
-import {
-  SegmentedControl,
-  type SegmentOption,
-} from '@/components/settings/SegmentedControl';
 import { Toggle } from '@/components/settings/Toggle';
-import { AppText, FadeIn, Screen } from '@/components/ui';
-import { type SettingsState, useSettingsState } from '@/presenters';
+import { AppText, FadeIn, PressableScale, Screen } from '@/components/ui';
+import { useSettingsState } from '@/presenters';
 import { notificationService } from '@/services/notifications';
 import { space, text } from '@/theme/tokens';
+import { useEffectiveReducedMotion } from '@/theme/useEffectiveReducedMotion';
 
 const REMINDER_HOUR = 19;
 const REMINDER_MINUTE = 0;
 
-const WEAK_EYE_OPTIONS: SegmentOption<SettingsState['monocularWeakEye']>[] = [
-  { label: 'Left', value: 'left' },
-  { label: 'Right', value: 'right' },
-  { label: 'Off', value: 'off' },
-];
-
 export default function SettingsScreen() {
-  const reduceMotion = useReducedMotion();
+  const reduceMotion = useEffectiveReducedMotion();
   const router = useRouter();
   const { state, set } = useSettingsState();
   const reminderToggleInFlightRef = useRef(false);
+  const [remindersBlocked, setRemindersBlocked] = useState(false);
   const appVersion = Constants.expoConfig?.version ?? '1.0.0';
   const extra = Constants.expoConfig?.extra as
     | { buildNumber?: string; gitSha?: string }
@@ -48,12 +39,15 @@ export default function SettingsScreen() {
 
     try {
       if (next) {
-        const granted = await notificationService.requestRemindersPermission();
-        if (!granted) {
-          // Permission denied/unavailable - keep the toggle off.
+        const permission = await notificationService.requestRemindersPermission();
+        if (!permission.granted) {
+          // Permission denied/unavailable - keep the toggle off. A permanent
+          // denial gets a visible path to iOS Settings instead of a silent snap-back.
+          setRemindersBlocked(!permission.canAskAgain);
           set('remindersEnabled', false);
           return;
         }
+        setRemindersBlocked(false);
         await notificationService.scheduleDailyReminder(REMINDER_HOUR, REMINDER_MINUTE);
         set('remindersEnabled', true);
       } else {
@@ -78,33 +72,6 @@ export default function SettingsScreen() {
         <AppText variant="hero">Settings</AppText>
       </FadeIn>
       <FadeIn delay={60}>
-        <Section
-          footer="Emphasis directs more of the session to the selected eye. Both modes need red/cyan glasses."
-          title="Stimulus">
-          <Row
-            description="Sends a different pattern to each eye through red/cyan glasses"
-            label="Dichoptic mode"
-            right={
-              <Toggle
-                accessibilityLabel="Dichoptic mode"
-                onChange={(value) => set('dichopticEnabled', value)}
-                value={state.dichopticEnabled}
-              />
-            }
-          />
-          <Row
-            label="Eye emphasis"
-            right={
-              <SegmentedControl
-                onChange={(value) => set('monocularWeakEye', value)}
-                options={WEAK_EYE_OPTIONS}
-                value={state.monocularWeakEye}
-              />
-            }
-          />
-        </Section>
-      </FadeIn>
-      <FadeIn delay={120}>
         <Section title="Feedback">
           <Row
             label="Haptics"
@@ -113,16 +80,6 @@ export default function SettingsScreen() {
                 accessibilityLabel="Haptics"
                 onChange={(value) => set('hapticsEnabled', value)}
                 value={state.hapticsEnabled}
-              />
-            }
-          />
-          <Row
-            label="Sound cues"
-            right={
-              <Toggle
-                accessibilityLabel="Sound cues"
-                onChange={(value) => set('soundEnabled', value)}
-                value={state.soundEnabled}
               />
             }
           />
@@ -139,7 +96,7 @@ export default function SettingsScreen() {
           />
         </Section>
       </FadeIn>
-      <FadeIn delay={180}>
+      <FadeIn delay={120}>
         <Section title="Reminders">
           <Row
             description="A gentle evening nudge to keep your streak"
@@ -154,9 +111,26 @@ export default function SettingsScreen() {
               />
             }
           />
+          {remindersBlocked ? (
+            <View style={styles.remindersBlocked}>
+              <AppText color="muted" variant="micro">
+                Reminders are off in iOS Settings.
+              </AppText>
+              <PressableScale
+                accessibilityLabel="Open Settings"
+                accessibilityRole="button"
+                onPress={() => {
+                  void Linking.openSettings();
+                }}>
+                <AppText color="accent" variant="micro">
+                  Open Settings
+                </AppText>
+              </PressableScale>
+            </View>
+          ) : null}
         </Section>
       </FadeIn>
-      <FadeIn delay={240}>
+      <FadeIn delay={180}>
         <Section title="About">
           <Row
             label="Version"
@@ -196,6 +170,14 @@ function Chevron() {
 }
 
 const styles = StyleSheet.create({
+  remindersBlocked: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: space.sm,
+    justifyContent: 'space-between',
+    paddingHorizontal: space.base,
+    paddingVertical: space.md,
+  },
   screen: {
     paddingBottom: space.lg,
   },

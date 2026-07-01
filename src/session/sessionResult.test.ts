@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { contrastFromLog10 } from '@/psychophysics/quest';
 import type { PlannedBlock } from '@/types';
 
-import { buildBlockThreshold, buildGuidedSessionLog } from './sessionResult';
+import { buildBlockThreshold, buildGuidedSessionLog, buildPartialSessionResult } from './sessionResult';
 
 describe('sessionResult', () => {
   it('builds a threshold estimate from a QUEST block result', () => {
@@ -55,5 +55,22 @@ describe('sessionResult', () => {
     expect(session.plannedBlocks).toBe(plannedBlocks);
     expect(session.completedTrials).toBe(20);
     expect(session.metadata.targetSessionMinutes).toBe(30);
+  });
+
+  it('builds an abandoned partial session log that keeps everything else intact', () => {
+    const plannedBlocks: PlannedBlock[] = [];
+    const input = {
+      id: 'session-1',
+      startedAtIso: '2026-05-31T10:00:00.000Z',
+      completedAtIso: '2026-05-31T10:03:00.000Z',
+      calibrationId: 'calibration-1',
+      plannedBlocks,
+      completedTrials: 12,
+    };
+
+    const partial = buildPartialSessionResult(input);
+
+    expect(partial.status).toBe('abandoned');
+    expect(partial).toEqual({ ...buildGuidedSessionLog(input), status: 'abandoned' });
   });
 });

@@ -5,7 +5,6 @@ import Animated, {
   Easing,
   interpolate,
   useAnimatedStyle,
-  useReducedMotion,
   useSharedValue,
   withRepeat,
   withSpring,
@@ -15,6 +14,7 @@ import Animated, {
 import { AppText, Bloom } from '@/components/ui';
 import { haptics } from '@/theme/haptics';
 import { ACCENT_CORE, ACCENT_GLOW, motion, space, surface, text } from '@/theme/tokens';
+import { useEffectiveReducedMotion } from '@/theme/useEffectiveReducedMotion';
 import type { TrialInterval } from '@/types';
 
 export type ResponseTapProps = {
@@ -26,7 +26,7 @@ const COMMIT_DWELL_MS = 180;
 const HALO_SIZE = 144;
 
 export function ResponseTap({ enabled, onCommit }: ResponseTapProps) {
-  const reduceMotion = useReducedMotion();
+  const reduceMotion = useEffectiveReducedMotion();
   const breathe = useSharedValue(0.5);
   const leftFeedback = useSharedValue(0);
   const rightFeedback = useSharedValue(0);

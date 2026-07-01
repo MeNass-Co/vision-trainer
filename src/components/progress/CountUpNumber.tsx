@@ -4,7 +4,6 @@ import Animated, {
   cancelAnimation,
   runOnJS,
   useAnimatedProps,
-  useReducedMotion,
   useSharedValue,
   withTiming,
 } from 'react-native-reanimated';
@@ -12,6 +11,7 @@ import Animated, {
 import type { Variant } from '@/components/ui';
 import { easings } from '@/theme/motion';
 import { tabularFigures, text, type as typo } from '@/theme/tokens';
+import { useEffectiveReducedMotion } from '@/theme/useEffectiveReducedMotion';
 
 export type CountUpNumberProps = {
   from: number;
@@ -37,7 +37,7 @@ export function CountUpNumber({
   onSettle,
 }: CountUpNumberProps) {
   const value = useSharedValue(from);
-  const reduceMotion = useReducedMotion();
+  const reduceMotion = useEffectiveReducedMotion();
   const didSettleRef = useRef(false);
   const handleSettle = useCallback(() => {
     if (didSettleRef.current) return;

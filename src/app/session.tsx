@@ -7,7 +7,6 @@ import Animated, {
   interpolate,
   useAnimatedProps,
   useAnimatedStyle,
-  useReducedMotion,
   useSharedValue,
   withDelay,
   withSpring,
@@ -26,9 +25,11 @@ import { RewardBurst } from '@/components/session/RewardBurst';
 import { AppText, Bloom, FadeIn, GlassSurface, PressableScale, PrimaryButton } from '@/components/ui';
 import { usePostSessionInsight, useSessionController } from '@/presenters';
 import { applySessionBrightness, restoreCapturedBrightness } from '@/services/brightness';
+import { setSessionActive } from '@/services/notifications';
 import { useAppStore } from '@/store/useAppStore';
 import { haptics } from '@/theme/haptics';
 import { easings } from '@/theme/motion';
+import { useEffectiveReducedMotion } from '@/theme/useEffectiveReducedMotion';
 import {
   ACCENT,
   ACCENT_CORE,
@@ -65,7 +66,7 @@ const delay = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve,
 export default function SessionScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const reduceMotion = useReducedMotion();
+  const reduceMotion = useEffectiveReducedMotion();
   const controller = useSessionController();
   const canvasRef = useRef<GaborCanvasHandle>(null);
   const isMountedRef = useRef(true);
@@ -85,6 +86,7 @@ export default function SessionScreen() {
   const [blockCorrectCount, setBlockCorrectCount] = useState(0);
   const [canvasReady, setCanvasReady] = useState(false);
   const [showBlockSummary, setShowBlockSummary] = useState(false);
+  const [showAbortConfirm, setShowAbortConfirm] = useState(false);
   const [showCompletion, setShowCompletion] = useState(false);
   const [showInsight, setShowInsight] = useState(false);
   const [insightSessionId, setInsightSessionId] = useState<string | null>(null);
@@ -145,8 +147,12 @@ export default function SessionScreen() {
 
   useEffect(() => {
     void applySessionBrightness(useAppStore.getState().settings.displayBrightness);
+    // A reminder banner dropping over the canvas mid-trial would corrupt the
+    // presented interval; the handler suppresses banners while a session runs.
+    setSessionActive(true);
 
     return () => {
+      setSessionActive(false);
       void restoreCapturedBrightness();
     };
   }, []);
@@ -378,9 +384,28 @@ export default function SessionScreen() {
   }, [setPhase]);
 
   const handleClose = useCallback(() => {
+    // A live session with at least one converged block holds real measurements:
+    // confirm before ending, keep what was earned. Zero blocks = nothing to lose.
+    if (
+      (controller.status === 'running' || controller.status === 'block-complete') &&
+      controller.completedBlockCount > 0
+    ) {
+      setShowAbortConfirm(true);
+      return;
+    }
     canvasRef.current?.clear();
     router.back();
-  }, [router]);
+  }, [controller.completedBlockCount, controller.status, router]);
+
+  const handleAbortConfirm = useCallback(() => {
+    controller.abandonSession();
+    canvasRef.current?.clear();
+    router.replace('/(tabs)' as Href);
+  }, [controller, router]);
+
+  const handleAbortCancel = useCallback(() => {
+    setShowAbortConfirm(false);
+  }, []);
 
   const handleCompletionDone = useCallback(() => {
     // Continue is gated on a confirmed save: never guess at "the latest
@@ -577,6 +602,31 @@ export default function SessionScreen() {
               <PressableScale onPress={() => void handleContinue()} style={styles.action}>
                 <AppText color="inverse" variant="caption">
                   {controller.nextBlockLabel ? `Next: ${controller.nextBlockLabel}` : 'Continue'}
+                </AppText>
+              </PressableScale>
+            </GlassSurface>
+          </FadeIn>
+        </View>
+      ) : null}
+
+      {showAbortConfirm ? (
+        <View style={styles.centeredOverlay}>
+          <FadeIn duration={motion.timing.entranceMs}>
+            <GlassSurface radius={material.radius} style={styles.abortCard}>
+              <AppText color="primary" style={styles.abortTitle} variant="heading">
+                End session?
+              </AppText>
+              <AppText color="secondary" style={styles.abortMessage} variant="body">
+                Completed blocks will be kept.
+              </AppText>
+              <PrimaryButton label="End session" onPress={handleAbortConfirm} />
+              <PressableScale
+                accessibilityLabel="Keep training"
+                accessibilityRole="button"
+                onPress={handleAbortCancel}
+                style={styles.abortKeepGoing}>
+                <AppText color="muted" variant="caption">
+                  Keep training
                 </AppText>
               </PressableScale>
             </GlassSurface>
@@ -825,6 +875,23 @@ const styles = StyleSheet.create({
     minHeight: 268,
     paddingHorizontal: space.xl,
     paddingVertical: space.xl,
+  },
+  abortCard: {
+    alignItems: 'center',
+    gap: space.md,
+    minWidth: 260,
+    paddingHorizontal: space.xl,
+    paddingVertical: space.xl,
+  },
+  abortKeepGoing: {
+    paddingHorizontal: space.md,
+    paddingVertical: space.sm,
+  },
+  abortMessage: {
+    textAlign: 'center',
+  },
+  abortTitle: {
+    textAlign: 'center',
   },
   saveFailedCard: {
     alignItems: 'center',

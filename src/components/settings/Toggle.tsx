@@ -3,7 +3,6 @@ import { StyleSheet } from 'react-native';
 import Animated, {
   interpolateColor,
   useAnimatedStyle,
-  useReducedMotion,
   useSharedValue,
   withSpring,
 } from 'react-native-reanimated';
@@ -11,6 +10,7 @@ import Animated, {
 import { PressableScale } from '@/components/ui';
 import { haptics } from '@/theme/haptics';
 import { ACCENT, ACCENT_GLOW, motion, radius, surface, text } from '@/theme/tokens';
+import { useEffectiveReducedMotion } from '@/theme/useEffectiveReducedMotion';
 
 export type ToggleProps = {
   accessibilityLabel?: string;
@@ -27,7 +27,7 @@ const KNOB_TRAVEL = TRACK_WIDTH - KNOB_SIZE - KNOB_INSET * 2;
 
 export function Toggle({ accessibilityLabel, disabled = false, onChange, value }: ToggleProps) {
   const progress = useSharedValue(value ? 1 : 0);
-  const reduceMotion = useReducedMotion();
+  const reduceMotion = useEffectiveReducedMotion();
 
   useEffect(() => {
     const target = value ? 1 : 0;

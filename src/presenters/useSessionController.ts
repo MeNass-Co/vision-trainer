@@ -4,7 +4,12 @@ import { buildDeviceCalibration } from '@/core/deviceCalibration';
 import { uuid } from '@/core/uuid';
 import { contrastFromLog10, QuestStaircase } from '@/psychophysics/quest';
 import { buildGuidedSessionBlocks, type GuidedSessionBlock } from '@/session/guidedProtocol';
-import { buildBlockThreshold, buildGuidedSessionLog, GUIDED_STIM_DURATION_MS } from '@/session/sessionResult';
+import {
+  buildBlockThreshold,
+  buildGuidedSessionLog,
+  buildPartialSessionResult,
+  GUIDED_STIM_DURATION_MS,
+} from '@/session/sessionResult';
 import { useAppStore } from '@/store/useAppStore';
 import type {
   CalibrationProfile,
@@ -42,10 +47,14 @@ export type SessionController = {
   saveState: SessionSaveState;
   /** The persisted session's real id, set only once the save succeeds. */
   savedSessionId: string | null;
+  /** Blocks whose QUEST staircase converged to a recorded threshold. */
+  completedBlockCount: number;
   currentTrial: () => TrialPlan;
   respond: (choice: TrialInterval) => { correct: boolean };
   begin: () => void;
   advanceBlock: () => void;
+  /** Persist an early exit as an 'abandoned' log carrying the completed blocks' thresholds. */
+  abandonSession: () => void;
   retrySave: () => void;
 };
 
@@ -251,6 +260,25 @@ export function useSessionController(): SessionController {
     [buildTrial, calibration.id, persistSession, updateState]
   );
 
+  const abandonSession = useCallback(() => {
+    const currentState = stateRef.current;
+
+    // Only a live session with at least one converged block has anything worth
+    // keeping; a finished session already persisted through respond().
+    if (currentState.status !== 'running' && currentState.status !== 'block-complete') return;
+    if (thresholdsRef.current.length === 0) return;
+
+    const session = buildPartialSessionResult({
+      id: sessionIdRef.current,
+      startedAtIso: startedAtRef.current,
+      completedAtIso: now().toISOString(),
+      calibrationId: calibration.id,
+      plannedBlocks: blocksRef.current.map((block) => block.plannedBlock),
+      completedTrials: currentState.completedTrials,
+    });
+    void persistSession(session, [...thresholdsRef.current]);
+  }, [calibration.id, persistSession]);
+
   const advanceBlock = useCallback(() => {
     const currentState = stateRef.current;
 
@@ -268,6 +296,16 @@ export function useSessionController(): SessionController {
   }, [buildTrial, updateState]);
 
   const totalTrials = blocksRef.current.reduce((sum, block) => sum + block.trialsPerBlock, 0);
+  // Mirrors thresholdsRef.current.length, but derived from reactive state so
+  // consumers re-render: a block's threshold is pushed the instant it finishes.
+  const completedBlockCount =
+    state.status === 'complete'
+      ? blocksRef.current.length
+      : state.status === 'block-complete'
+        ? state.blockIndex + 1
+        : state.status === 'running'
+          ? state.blockIndex
+          : 0;
 
   return {
     calibration,
@@ -285,10 +323,12 @@ export function useSessionController(): SessionController {
     showBlockBreak: blocksRef.current[state.blockIndex]?.showBreak,
     saveState,
     savedSessionId,
+    completedBlockCount,
     currentTrial,
     respond,
     begin,
     advanceBlock,
+    abandonSession,
     retrySave,
   };
 }

@@ -4,11 +4,11 @@ import type { StyleProp, ViewStyle } from 'react-native';
 import Animated, {
   Easing,
   useAnimatedStyle,
-  useReducedMotion,
   useSharedValue,
   withDelay,
   withTiming,
 } from 'react-native-reanimated';
+import { useEffectiveReducedMotion } from '@/theme/useEffectiveReducedMotion';
 
 export type FadeInProps = {
   children: ReactNode;
@@ -19,7 +19,7 @@ export type FadeInProps = {
 
 export function FadeIn({ children, delay = 0, duration = 280, style }: FadeInProps) {
   const progress = useSharedValue(0);
-  const reduceMotion = useReducedMotion();
+  const reduceMotion = useEffectiveReducedMotion();
 
   useEffect(() => {
     if (reduceMotion) {

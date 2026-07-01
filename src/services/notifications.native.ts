@@ -5,9 +5,18 @@ import type { NotificationService } from './notifications';
 
 const DAILY_REMINDER_KIND = 'daily-reminder';
 
+// While a training session is on screen, a foreground banner over the grey
+// measurement field would corrupt the trial. The handler reads this flag live.
+let sessionActive = false;
+
+/** Marks a training session as active so foreground banners are suppressed. */
+export function setSessionActive(active: boolean): void {
+  sessionActive = active;
+}
+
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
-    shouldShowBanner: true,
+    shouldShowBanner: !sessionActive,
     shouldShowList: true,
     shouldPlaySound: false,
     shouldSetBadge: false,
@@ -30,10 +39,10 @@ async function cancelScheduledDailyReminders() {
 export const notificationService: NotificationService = {
   async requestRemindersPermission() {
     const current = await Notifications.getPermissionsAsync();
-    if (current.granted) return true;
-    if (current.canAskAgain === false) return false;
+    if (current.granted) return { granted: true, canAskAgain: current.canAskAgain };
+    if (current.canAskAgain === false) return { granted: false, canAskAgain: false };
     const next = await Notifications.requestPermissionsAsync();
-    return next.granted;
+    return { granted: next.granted, canAskAgain: next.canAskAgain };
   },
 
   async scheduleDailyReminder(hour: number, minute: number) {
@@ -62,5 +71,12 @@ export const notificationService: NotificationService = {
 
   async cancelDailyReminder() {
     await cancelScheduledDailyReminders();
+  },
+
+  addResponseListener(onResponse: () => void) {
+    const subscription = Notifications.addNotificationResponseReceivedListener(() => {
+      onResponse();
+    });
+    return () => subscription.remove();
   },
 };

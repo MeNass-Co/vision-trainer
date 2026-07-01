@@ -7,6 +7,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { AppText, PrimaryButton } from '@/components/ui';
+import { notificationService } from '@/services/notifications';
 import { useAppStore } from '@/store/useAppStore';
 import { space, surface } from '@/theme/tokens';
 import { useAppFonts } from '@/theme/useAppFonts';
@@ -33,17 +34,27 @@ export default function RootLayout() {
     if (ready) SplashScreen.hideAsync();
   }, [ready]);
 
+  // A tapped reminder lands the user on Today. The platform-split service is a
+  // no-op on web, so no native notification code enters the web bundle.
+  useEffect(() => {
+    return notificationService.addResponseListener(() => {
+      router.replace('/(tabs)');
+    });
+  }, [router]);
+
   // Route gate: a returning user skips onboarding; a fresh user can't slip past it.
   // `needsRedirect` is computed during render so we can withhold the tree until the
   // redirect settles — otherwise the deep-linked screen paints for one frame first.
   // A failed hydration never redirects: defaults would masquerade as a fresh user
   // and re-onboard a veteran over a transient load failure.
+  // The paywall is the tail of the onboarding funnel: it never triggers a redirect,
+  // so flipping onboardingComplete while it settles can't yank the user to the tabs.
   const inOnboarding = segments[0] === 'onboarding';
-  const inPaywall = segments[0] === 'paywall';
+  const inPaywall = (segments[0] as string) === 'paywall';
   const needsRedirect =
     ready &&
     !hydrateFailed &&
-    ((!onboardingComplete && !inOnboarding) || (onboardingComplete && inOnboarding && !inPaywall));
+    ((!onboardingComplete && !inOnboarding && !inPaywall) || (onboardingComplete && inOnboarding));
 
   useEffect(() => {
     if (!needsRedirect) return;
