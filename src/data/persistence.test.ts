@@ -16,6 +16,7 @@ function session(id: string, startedAt = '2026-05-31T10:00:00.000Z'): SessionLog
     sessionType: 'guided',
     calibrationId: 'default-calibration',
     protocolVersion: 'mvp-0.2',
+    stimulusVersion: 2,
     plannedBlocks: [],
     completedTrials: 20,
     metadata: {},

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import { STIMULUS_VERSION } from '@/core/gaborStops';
 import { contrastFromLog10 } from '@/psychophysics/quest';
 import type { PlannedBlock } from '@/types';
 
@@ -52,6 +53,7 @@ describe('sessionResult', () => {
     expect(session.startedAt).toBe('2026-05-31T10:00:00.000Z');
     expect(session.completedAt).toBe('2026-05-31T10:05:00.000Z');
     expect(session.protocolVersion).toBe('mvp-0.2');
+    expect(session.stimulusVersion).toBe(STIMULUS_VERSION);
     expect(session.plannedBlocks).toBe(plannedBlocks);
     expect(session.completedTrials).toBe(20);
     expect(session.metadata.targetSessionMinutes).toBe(30);

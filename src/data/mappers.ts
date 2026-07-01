@@ -8,6 +8,7 @@ export type SessionRow = {
   completed_at: string | null;
   status: string;
   payload: string;
+  stimulus_version: number | null;
 };
 
 export type ThresholdRow = {
@@ -26,6 +27,7 @@ export function sessionToRow(session: SessionLog): SessionRow {
     completed_at: session.completedAt ?? null,
     status: session.status,
     payload: JSON.stringify(session),
+    stimulus_version: session.stimulusVersion,
   };
 }
 
@@ -46,7 +48,9 @@ function isFiniteNumber(value: unknown): value is number {
  * a truly malformed row is still rejected, never invented.
  */
 function repairSessionPayload(value: ParsedPayload): ParsedPayload {
-  return { metadata: {}, ...value };
+  // Sessions persisted before the stamp existed were measured by the legacy
+  // v1 stripe engine (see STIMULUS_VERSION in core/gaborStops).
+  return { metadata: {}, stimulusVersion: 1, ...value };
 }
 
 function repairThresholdPayload(value: ParsedPayload): ParsedPayload {
@@ -64,6 +68,7 @@ function hasValidSessionShape(value: unknown): value is SessionLog {
     typeof value.sessionType === 'string' &&
     typeof value.calibrationId === 'string' &&
     typeof value.protocolVersion === 'string' &&
+    isFiniteNumber(value.stimulusVersion) &&
     Array.isArray(value.plannedBlocks) &&
     isFiniteNumber(value.completedTrials) &&
     isRecord(value.metadata)

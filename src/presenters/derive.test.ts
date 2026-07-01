@@ -14,6 +14,7 @@ function session(id: string, startedAt: string): SessionLog {
     sessionType: 'guided',
     calibrationId: 'calibration-1',
     protocolVersion: 'mvp-0.2',
+    stimulusVersion: 2,
     plannedBlocks: [],
     completedTrials: 16,
     metadata: {},

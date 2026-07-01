@@ -24,6 +24,16 @@ import { pixelsPerDegree } from './displayCalibration';
  * quantities explicitly separate.
  */
 
+/**
+ * Version of the stimulus engine, stamped onto every stored session so
+ * threshold histories stay comparable across engine changes:
+ * 1 = legacy uncalibrated SVG stripe stimulus (nominal spatial frequency,
+ *     no Gaussian envelope, contrast applied as sRGB opacity);
+ * 2 = calibrated Gaussian Gabor (real spatial frequency, Gaussian envelope,
+ *     gamma-symmetric Michelson contrast).
+ */
+export const STIMULUS_VERSION = 2;
+
 /** Mirrors the max-luminance normalization in displayCalibration (Lmax = 80 cd/m² → 1). */
 const MAX_LUMINANCE_CDM2 = 80;
 

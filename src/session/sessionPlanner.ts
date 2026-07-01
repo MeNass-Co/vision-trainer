@@ -8,6 +8,7 @@ import type {
   ThresholdEstimate
 } from '../types';
 import { conditionKey } from '../core/displayCalibration';
+import { STIMULUS_VERSION } from '../core/gaborStops';
 import { uuid } from '../core/uuid';
 import { planProgramSession } from '../programs/programPlanner';
 import { populationNormContrast } from '../progress/norms';
@@ -30,6 +31,7 @@ export function createSessionLog(
     sessionType,
     calibrationId,
     protocolVersion: 'mvp-0.2',
+    stimulusVersion: STIMULUS_VERSION,
     plannedBlocks,
     completedTrials: 0,
     metadata: {

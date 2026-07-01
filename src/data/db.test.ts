@@ -4,19 +4,28 @@ import { MIGRATION_STEPS, runMigrations, type MigrationTarget } from './db';
 
 vi.mock('expo-sqlite', () => ({ openDatabaseAsync: vi.fn() }));
 
-function createFakeDb(initialVersion = 0) {
+function createFakeDb(initialVersion = 0, options: { stimulusColumnExists?: boolean } = {}) {
   const executed: string[] = [];
   let userVersion = initialVersion;
+  let stimulusColumnExists = options.stimulusColumnExists ?? false;
 
   const db: MigrationTarget = {
     async execAsync(source) {
       executed.push(source);
       const match = /PRAGMA user_version = (\d+)/.exec(source);
       if (match) userVersion = Number(match[1]);
+      if (source.includes('ALTER TABLE sessions ADD COLUMN stimulus_version')) {
+        // Mirror real sqlite: re-adding an existing column is an error.
+        if (stimulusColumnExists) throw new Error('duplicate column name: stimulus_version');
+        stimulusColumnExists = true;
+      }
     },
     async getFirstAsync<T>(source: string): Promise<T | null> {
       if (source === 'PRAGMA user_version') {
         return { user_version: userVersion } as T;
+      }
+      if (source.includes("pragma_table_info('sessions')")) {
+        return { found: stimulusColumnExists ? 1 : 0 } as T;
       }
       return null;
     },
@@ -64,5 +73,57 @@ describe('sqlite migration ladder', () => {
     await runMigrations(fake.db);
 
     expect(fake.executed.some((sql) => sql.includes('CREATE TABLE'))).toBe(false);
+  });
+
+  it('adds the sessions.stimulus_version column and backfills it at version 2', async () => {
+    const fake = createFakeDb();
+
+    await runMigrations(fake.db);
+
+    expect(
+      fake.executed.some((sql) => sql.includes('ALTER TABLE sessions ADD COLUMN stimulus_version INTEGER'))
+    ).toBe(true);
+    expect(fake.executed.some((sql) => sql.includes('UPDATE sessions SET stimulus_version = 1'))).toBe(true);
+  });
+
+  it('re-stamps without re-running the alter when the column already landed (crash window)', async () => {
+    // Crash after the step-2 statements but before its version bump: the
+    // column exists while user_version still reads 1. The rerun must skip the
+    // ALTER (which would throw "duplicate column name") and only re-stamp.
+    const fake = createFakeDb(1, { stimulusColumnExists: true });
+
+    await runMigrations(fake.db);
+
+    expect(fake.executed.some((sql) => sql.includes('ALTER TABLE'))).toBe(false);
+    expect(fake.version()).toBe(2);
+  });
+
+  it('backfills pre-existing session rows to legacy stimulus_version 1 on a real database', async () => {
+    const { DatabaseSync } = await import('node:sqlite');
+    const raw = new DatabaseSync(':memory:');
+    const db: MigrationTarget = {
+      async execAsync(source) {
+        raw.exec(source);
+      },
+      async getFirstAsync<T>(source: string): Promise<T | null> {
+        return (raw.prepare(source).get() as T | undefined) ?? null;
+      },
+    };
+    // A version-1 database holding a session written before the stamp existed.
+    raw.exec(MIGRATION_STEPS[0].statements);
+    raw.exec('PRAGMA user_version = 1');
+    raw.exec(
+      "INSERT INTO sessions (id, started_at, completed_at, status, payload) VALUES ('session-legacy', '2026-05-31T08:00:00.000Z', NULL, 'completed', '{}')"
+    );
+
+    await runMigrations(db);
+
+    const row = raw
+      .prepare("SELECT stimulus_version FROM sessions WHERE id = 'session-legacy'")
+      .get() as { stimulus_version: number };
+    expect(row.stimulus_version).toBe(1);
+    expect(raw.prepare('PRAGMA user_version').get()).toMatchObject({
+      user_version: MIGRATION_STEPS[MIGRATION_STEPS.length - 1].toVersion,
+    });
   });
 });

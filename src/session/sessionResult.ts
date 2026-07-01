@@ -1,4 +1,5 @@
 import { conditionKey } from '@/core/displayCalibration';
+import { STIMULUS_VERSION } from '@/core/gaborStops';
 import { uuid } from '@/core/uuid';
 import { contrastFromLog10 } from '@/psychophysics/quest';
 import type { QuestEstimate } from '@/psychophysics/quest';
@@ -66,6 +67,7 @@ export function buildGuidedSessionLog(input: GuidedSessionLogInput): SessionLog 
     sessionType: 'guided',
     calibrationId: input.calibrationId,
     protocolVersion: 'mvp-0.2',
+    stimulusVersion: STIMULUS_VERSION,
     plannedBlocks: input.plannedBlocks,
     completedTrials: input.completedTrials,
     metadata: { targetSessionMinutes: 30, targetCadencePerWeek: 3 },
