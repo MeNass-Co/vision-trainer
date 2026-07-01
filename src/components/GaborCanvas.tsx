@@ -79,45 +79,61 @@ export const GaborCanvas = forwardRef<GaborCanvasHandle, GaborCanvasProps>(
     const stripeId = `gabor-stripes-${rawId}`;
     const windowId = `gabor-window-${rawId}`;
     const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const pendingPresentRef = useRef<{
+      onset: number;
+      resolve: (result: { onset: number; offset: number }) => void;
+    } | null>(null);
     const mountedRef = useRef(false);
+    const onReadyChangeRef = useRef(onReadyChange);
     const [stimulus, setStimulus] = useState<GaborStimulus | null>(null);
     const stops = useStripeStops(stimulus);
     const backgroundColor = grayColor(calibration.backgroundLuminanceCdM2, calibration);
 
-    const clearTimeoutIfNeeded = useCallback(() => {
+    useEffect(() => {
+      onReadyChangeRef.current = onReadyChange;
+    });
+
+    // A present() cleared mid-flight must still settle, or its awaiting caller
+    // parks forever: resolve the pending promise with the clear moment as offset.
+    const settlePendingPresent = useCallback(() => {
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
         timeoutRef.current = null;
       }
+      const pending = pendingPresentRef.current;
+      pendingPresentRef.current = null;
+      pending?.resolve({ onset: pending.onset, offset: now() });
     }, []);
 
     useEffect(() => {
       mountedRef.current = true;
-      onReadyChange?.(true);
+      onReadyChangeRef.current?.(true);
 
       return () => {
         mountedRef.current = false;
-        clearTimeoutIfNeeded();
-        onReadyChange?.(false);
+        settlePendingPresent();
+        onReadyChangeRef.current?.(false);
       };
-    }, [clearTimeoutIfNeeded, onReadyChange]);
+    }, [settlePendingPresent]);
 
     useImperativeHandle(
       ref,
       () => ({
         clear: () => {
-          clearTimeoutIfNeeded();
+          settlePendingPresent();
           setStimulus(null);
         },
         present: (nextStimulus) =>
           new Promise((resolve) => {
-            clearTimeoutIfNeeded();
+            settlePendingPresent();
             const onset = now();
+            pendingPresentRef.current = { onset, resolve };
             setStimulus(nextStimulus);
             timeoutRef.current = setTimeout(() => {
               const offset = now();
 
               timeoutRef.current = null;
+              pendingPresentRef.current = null;
               if (mountedRef.current) {
                 setStimulus(null);
               }
@@ -125,7 +141,7 @@ export const GaborCanvas = forwardRef<GaborCanvasHandle, GaborCanvasProps>(
             }, Math.max(0, nextStimulus.durationMs));
           }),
       }),
-      [clearTimeoutIfNeeded]
+      [settlePendingPresent]
     );
 
     const vector = stimulus ? orientationVector(stimulus.orientationDeg) : null;

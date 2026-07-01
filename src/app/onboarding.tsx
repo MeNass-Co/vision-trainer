@@ -19,7 +19,11 @@ import { AmbientGradient } from '@/components/home/AmbientGradient';
 import { BreathingOrb } from '@/components/onboarding/BreathingOrb';
 import { StepReveal } from '@/components/onboarding/StepReveal';
 import { AppText, FadeIn, PressableScale, PrimaryButton, Screen } from '@/components/ui';
-import { applyBrightness, getCurrentBrightness } from '@/services/brightness';
+import {
+  applySessionBrightness,
+  getCurrentBrightness,
+  restoreCapturedBrightness,
+} from '@/services/brightness';
 import { notificationService } from '@/services/notifications';
 import { useAppStore } from '@/store/useAppStore';
 import { haptics } from '@/theme/haptics';
@@ -368,13 +372,22 @@ function CalibrationStep({ onComplete }: CalibrationStepProps) {
     };
   }, [progress, reduceMotion, storedBrightness]);
 
+  useEffect(() => {
+    // The slider drives the physical backlight live. However the step ends
+    // (Back, abandoning onboarding, or Continue) the phone gets its own
+    // brightness back; sessions re-apply the calibrated level at session start.
+    return () => {
+      void restoreCapturedBrightness();
+    };
+  }, []);
+
   const commitBrightness = useCallback((nextBrightness: number) => {
     const calibratedBrightness = clamp(nextBrightness, BRIGHTNESS_MIN, BRIGHTNESS_MAX);
     const hapticStep = Math.round(calibratedBrightness * 10);
 
     latestBrightnessRef.current = calibratedBrightness;
     setBrightness(calibratedBrightness);
-    void applyBrightness(calibratedBrightness);
+    void applySessionBrightness(calibratedBrightness);
 
     if (hapticStep !== lastHapticStepRef.current) {
       lastHapticStepRef.current = hapticStep;

@@ -1,6 +1,6 @@
 import { type Href, useRouter } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { AppState, StyleSheet, View } from 'react-native';
 import Animated, {
   cancelAnimation,
   Extrapolation,
@@ -25,7 +25,7 @@ import { ResponseTap } from '@/components/session/ResponseTap';
 import { RewardBurst } from '@/components/session/RewardBurst';
 import { AppText, Bloom, FadeIn, GlassSurface, PressableScale, PrimaryButton } from '@/components/ui';
 import { usePostSessionInsight, useSessionController } from '@/presenters';
-import { applyBrightness, restoreSystemBrightness } from '@/services/brightness';
+import { applySessionBrightness, restoreCapturedBrightness } from '@/services/brightness';
 import { useAppStore } from '@/store/useAppStore';
 import { haptics } from '@/theme/haptics';
 import { easings } from '@/theme/motion';
@@ -52,7 +52,8 @@ type UiPhase =
   | 'interval-2'
   | 'response'
   | 'feedback'
-  | 'block-fold';
+  | 'block-fold'
+  | 'paused';
 
 type ChoiceResolver = (choice: TrialInterval | null) => void;
 
@@ -72,6 +73,11 @@ export default function SessionScreen() {
   const foldRunningRef = useRef(false);
   const continueRunningRef = useRef(false);
   const choiceResolverRef = useRef<ChoiceResolver | null>(null);
+  // Bumped whenever a suspend interrupts the trial loop: in-flight runTrial
+  // continuations compare their captured epoch and bail without recording.
+  const interruptionEpochRef = useRef(0);
+  const statusRef = useRef(controller.status);
+  const rewardChordCancelRef = useRef<(() => void) | null>(null);
   const blockStartCorrectCountRef = useRef(0);
   const [uiPhase, setUiPhase] = useState<UiPhase>('ready');
   const [burst, setBurst] = useState(0);
@@ -138,11 +144,45 @@ export default function SessionScreen() {
   });
 
   useEffect(() => {
-    void applyBrightness(useAppStore.getState().settings.displayBrightness);
+    void applySessionBrightness(useAppStore.getState().settings.displayBrightness);
 
     return () => {
-      void restoreSystemBrightness();
+      void restoreCapturedBrightness();
     };
+  }, []);
+
+  useEffect(() => {
+    statusRef.current = controller.status;
+  }, [controller.status]);
+
+  // Suspend handling: setTimeout freezes in the background and fires late on
+  // resume, which would corrupt the presented interval timing. On any exit from
+  // the foreground we hand the system its brightness back and abort the
+  // in-flight trial WITHOUT recording it; the same trial plan replays on
+  // resume (trialRef is only consumed by respond(), so QUEST never sees the
+  // interruption).
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (nextAppState) => {
+      if (nextAppState === 'active') {
+        if (statusRef.current === 'running' || statusRef.current === 'block-complete') {
+          void applySessionBrightness(useAppStore.getState().settings.displayBrightness);
+        }
+        return;
+      }
+      if (nextAppState !== 'background' && nextAppState !== 'inactive') return;
+
+      void restoreCapturedBrightness();
+      if (statusRef.current !== 'running') return;
+
+      interruptionEpochRef.current += 1;
+      canvasRef.current?.clear();
+      choiceResolverRef.current?.(null);
+      choiceResolverRef.current = null;
+      trialRunningRef.current = false;
+      if (isMountedRef.current) setUiPhase('paused');
+    });
+
+    return () => subscription.remove();
   }, []);
 
   const isStillMounted = useCallback(async (ms: number) => {
@@ -189,28 +229,34 @@ export default function SessionScreen() {
     if (trialRunningRef.current || !isMountedRef.current) return;
 
     trialRunningRef.current = true;
+    // Captured once per attempt: a background/inactive interruption bumps the
+    // epoch, so every await below bails without recording and the same trial
+    // plan replays after "Resume".
+    const epoch = interruptionEpochRef.current;
+    const live = () => epoch === interruptionEpochRef.current;
+
     setPhase('fixation');
-    if (!(await isStillMounted(500))) return;
+    if (!(await isStillMounted(500)) || !live()) return;
 
     const trial = controller.currentTrial();
     const stimulus = trial.intervals[0] ?? trial.intervals[1];
     const durationMs = stimulus?.durationMs ?? 150;
 
     setPhase('interval-1');
-    if (!(await presentInterval(trial.intervals[0], durationMs))) return;
+    if (!(await presentInterval(trial.intervals[0], durationMs)) || !live()) return;
 
     setPhase('isi');
     canvasRef.current?.clear();
-    if (!(await isStillMounted(400))) return;
+    if (!(await isStillMounted(400)) || !live()) return;
 
     setPhase('interval-2');
-    if (!(await presentInterval(trial.intervals[1], durationMs))) return;
+    if (!(await presentInterval(trial.intervals[1], durationMs)) || !live()) return;
 
     canvasRef.current?.clear();
     setPhase('response');
     const choice = await waitForChoice();
 
-    if (!choice || !isMountedRef.current) return;
+    if (!choice || !isMountedRef.current || !live()) return;
 
     const finishesBlock = controller.trialIndex + 1 >= controller.trialsPerBlock;
     const { correct } = controller.respond(choice);
@@ -233,7 +279,7 @@ export default function SessionScreen() {
       haptics.wrong();
     }
 
-    if (!(await isStillMounted(450))) return;
+    if (!(await isStillMounted(450)) || !live()) return;
 
     trialRunningRef.current = false;
     fieldScale.value = 1;
@@ -325,6 +371,12 @@ export default function SessionScreen() {
     setPhase('idle');
   }, [canvasReady, controller, setPhase]);
 
+  const handleResume = useCallback(() => {
+    // Back to 'idle': the status effect restarts runTrial, which replays the
+    // interrupted trial plan (nothing was recorded, the index never advanced).
+    setPhase('idle');
+  }, [setPhase]);
+
   const handleClose = useCallback(() => {
     canvasRef.current?.clear();
     router.back();
@@ -373,7 +425,7 @@ export default function SessionScreen() {
       setShowCompletion(true);
       setBigBurst(true);
       setBurst((current) => current + 1);
-      haptics.rewardChord();
+      rewardChordCancelRef.current = haptics.rewardChord();
     }
   }, [
     controller.showBlockBreak,
@@ -393,6 +445,8 @@ export default function SessionScreen() {
       canvasRef.current?.clear();
       choiceResolverRef.current?.(null);
       choiceResolverRef.current = null;
+      rewardChordCancelRef.current?.();
+      rewardChordCancelRef.current = null;
     };
   }, []);
 
@@ -481,6 +535,25 @@ export default function SessionScreen() {
                 onPress={handleBegin}
               />
             </Animated.View>
+          </View>
+        </View>
+      ) : null}
+
+      {uiPhase === 'paused' ? (
+        <View style={styles.readyOverlay}>
+          <View style={[styles.readyContent, { paddingBottom: insets.bottom + space.xxl }]}>
+            <AppText color="muted" style={styles.readyMeta} uppercase variant="micro">
+              {controller.blockLabel}
+            </AppText>
+            <AppText style={styles.readyHero} variant="hero">
+              Paused
+            </AppText>
+            <AppText color="secondary" style={styles.readyInstruction} variant="body">
+              Your place is saved. The interrupted trial will replay.
+            </AppText>
+            <View style={styles.beginWrap}>
+              <PrimaryButton haptic="select" label="Resume" onPress={handleResume} />
+            </View>
           </View>
         </View>
       ) : null}
