@@ -12,6 +12,12 @@ import { StyleSheet, View } from 'react-native';
 import Svg, { Circle, Defs, LinearGradient, RadialGradient, Stop } from 'react-native-svg';
 
 import { luminanceToLinearGray } from '@/core/displayCalibration';
+import {
+  computeEnvelopeStops,
+  computeGaborGeometry,
+  computeStripeStops,
+  MIN_CYCLE_PX,
+} from '@/core/gaborStops';
 import type { CalibrationProfile, GaborStimulus } from '@/types';
 
 export type GaborCanvasHandle = {
@@ -24,10 +30,8 @@ type GaborCanvasProps = {
   onReadyChange?: (ready: boolean) => void;
 };
 
-const SIZE = 320;
-const CENTER = SIZE / 2;
-const RADIUS = 132;
-const STOP_COUNT = 96;
+// Independent of the stimulus: the occluder alphas only depend on r/σ.
+const ENVELOPE_STOPS = computeEnvelopeStops();
 const now = () => (globalThis.performance?.now?.() ?? Date.now());
 
 function grayColor(luminanceCdM2: number, calibration: CalibrationProfile) {
@@ -50,27 +54,33 @@ function orientationVector(orientationDeg: number) {
   };
 }
 
-function useStripeStops(stimulus: GaborStimulus | null) {
+/**
+ * Calibrated rendering plan for one stimulus. Geometry (patch size, cycle
+ * count) comes from the calibration profile — see gaborStops.ts for the
+ * deg → physical px → dp unit chain. The stripe stops carry the
+ * gamma-symmetric sinusoid; the envelope occluder shapes it into a Gaussian.
+ */
+function useGaborRendering(stimulus: GaborStimulus | null, calibration: CalibrationProfile) {
   return useMemo(() => {
     if (!stimulus) {
-      return [];
+      return null;
     }
 
-    const cycles = Math.max(2.5, Math.min(10, stimulus.spatialFrequencyCpd * 1.45));
-    const contrast = Math.max(0, Math.min(stimulus.contrast, 1));
-    const opacity = contrast;
-
-    return Array.from({ length: STOP_COUNT + 1 }, (_, index) => {
-      const t = index / STOP_COUNT;
-      const signal = Math.cos(2 * Math.PI * cycles * t + stimulus.phaseRad);
-
-      return {
-        color: signal >= 0 ? '#F9FEFF' : '#020506',
-        offset: t,
-        opacity: Math.max(0.06, Math.abs(signal)) * opacity,
-      };
+    const geometry = computeGaborGeometry(
+      calibration,
+      stimulus.spatialFrequencyCpd,
+      stimulus.gaborSizeDeg
+    );
+    const stripeStops = computeStripeStops({
+      cyclesAcrossPatch: geometry.cyclesAcrossPatch,
+      contrast: stimulus.contrast,
+      phaseRad: stimulus.phaseRad,
+      backgroundLuminanceCdM2: stimulus.backgroundLuminanceCdM2,
+      gamma: calibration.gamma,
     });
-  }, [stimulus]);
+
+    return { geometry, stripeStops, vector: orientationVector(stimulus.orientationDeg) };
+  }, [calibration, stimulus]);
 }
 
 export const GaborCanvas = forwardRef<GaborCanvasHandle, GaborCanvasProps>(
@@ -86,12 +96,22 @@ export const GaborCanvas = forwardRef<GaborCanvasHandle, GaborCanvasProps>(
     const mountedRef = useRef(false);
     const onReadyChangeRef = useRef(onReadyChange);
     const [stimulus, setStimulus] = useState<GaborStimulus | null>(null);
-    const stops = useStripeStops(stimulus);
+    const rendering = useGaborRendering(stimulus, calibration);
     const backgroundColor = grayColor(calibration.backgroundLuminanceCdM2, calibration);
 
     useEffect(() => {
       onReadyChangeRef.current = onReadyChange;
     });
+
+    useEffect(() => {
+      if (stimulus && rendering?.geometry.cycleWidthClamped) {
+        console.warn(
+          `[GaborCanvas] ${stimulus.spatialFrequencyCpd} cpd is unresolvable on this display ` +
+            `(cycle < ${MIN_CYCLE_PX} device px); cycle width clamped — the presented frequency ` +
+            'is coarser than the nominal condition.'
+        );
+      }
+    }, [rendering, stimulus]);
 
     // A present() cleared mid-flight must still settle, or its awaiting caller
     // parks forever: resolve the pending promise with the clear moment as offset.
@@ -144,33 +164,32 @@ export const GaborCanvas = forwardRef<GaborCanvasHandle, GaborCanvasProps>(
       [settlePendingPresent]
     );
 
-    const vector = stimulus ? orientationVector(stimulus.orientationDeg) : null;
+    const size = rendering?.geometry.diameterDp ?? 0;
+    const center = size / 2;
 
     return (
       <View style={[styles.container, { backgroundColor }]}>
-        {stimulus && vector ? (
-          <Svg height={SIZE} width={SIZE}>
+        {rendering ? (
+          <Svg height={size} width={size}>
             <Defs>
-              <LinearGradient id={stripeId} {...vector}>
-                {stops.map((stop, index) => (
+              <LinearGradient id={stripeId} {...rendering.vector}>
+                {rendering.stripeStops.map((stop, index) => (
+                  <Stop key={index} offset={stop.offset} stopColor={stop.color} stopOpacity={1} />
+                ))}
+              </LinearGradient>
+              <RadialGradient cx="50%" cy="50%" id={windowId} r="50%">
+                {ENVELOPE_STOPS.map((stop, index) => (
                   <Stop
                     key={index}
                     offset={stop.offset}
-                    stopColor={stop.color}
+                    stopColor={backgroundColor}
                     stopOpacity={stop.opacity}
                   />
                 ))}
-              </LinearGradient>
-              <RadialGradient id={windowId} cx="50%" cy="50%" r="50%">
-                <Stop offset="0%" stopColor={backgroundColor} stopOpacity={0} />
-                <Stop offset="58%" stopColor={backgroundColor} stopOpacity={0} />
-                <Stop offset="82%" stopColor={backgroundColor} stopOpacity={0.5} />
-                <Stop offset="100%" stopColor={backgroundColor} stopOpacity={1} />
               </RadialGradient>
             </Defs>
-            <Circle cx={CENTER} cy={CENTER} fill={backgroundColor} r={RADIUS} />
-            <Circle cx={CENTER} cy={CENTER} fill={`url(#${stripeId})`} r={RADIUS} />
-            <Circle cx={CENTER} cy={CENTER} fill={`url(#${windowId})`} r={RADIUS} />
+            <Circle cx={center} cy={center} fill={`url(#${stripeId})`} r={center} />
+            <Circle cx={center} cy={center} fill={`url(#${windowId})`} r={center} />
           </Svg>
         ) : null}
       </View>

@@ -2,8 +2,9 @@ import { useCallback, useMemo, useRef, useState } from 'react';
 
 import { buildDeviceCalibration } from '@/core/deviceCalibration';
 import { uuid } from '@/core/uuid';
-import { contrastFromLog10, QuestStaircase } from '@/psychophysics/quest';
+import { QuestStaircase } from '@/psychophysics/quest';
 import { buildGuidedSessionBlocks, type GuidedSessionBlock } from '@/session/guidedProtocol';
+import { buildTrialPlan, type TrialPlan } from '@/session/trialPlan';
 import {
   buildBlockThreshold,
   buildGuidedSessionLog,
@@ -13,7 +14,6 @@ import {
 import { useAppStore } from '@/store/useAppStore';
 import type {
   CalibrationProfile,
-  GaborStimulus,
   SessionLog,
   ThresholdEstimate,
   TrialInterval,
@@ -24,11 +24,7 @@ export type SessionStatus = 'ready' | 'running' | 'block-complete' | 'complete';
 
 export type SessionSaveState = 'idle' | 'saving' | 'saved' | 'failed';
 
-export type TrialPlan = {
-  /** The two intervals; exactly one holds a stimulus, the other is null (blank). */
-  intervals: [GaborStimulus | null, GaborStimulus | null];
-  targetInterval: TrialInterval;
-};
+export type { TrialPlan } from '@/session/trialPlan';
 
 export type SessionController = {
   calibration: CalibrationProfile;
@@ -85,8 +81,6 @@ function mulberry32(seed: number) {
   };
 }
 
-const nextRandom = mulberry32(0x53455353);
-
 function blocksForNextSession(): GuidedSessionBlock[] {
   const { sessions, settings, thresholds } = useAppStore.getState();
 
@@ -114,7 +108,15 @@ export function useSessionController(): SessionController {
   const questsRef = useRef<QuestStaircase[]>([]);
   const blocksRef = useRef<GuidedSessionBlock[]>(blocksForNextSession());
   const thresholdsRef = useRef<ThresholdEstimate[]>([]);
-  const currentIntensityRef = useRef(0);
+  // Seeded per session from the wall clock so trial sequences (target sides,
+  // phases, catch-trial placement) differ across users and launches; mulberry32
+  // keeps a session's sequence reproducible from its seed for debugging.
+  const randomRef = useRef<(() => number) | null>(null);
+
+  const nextRandom = useCallback(() => {
+    randomRef.current ??= mulberry32(now().getTime() >>> 0);
+    return randomRef.current();
+  }, []);
 
   const updateState = useCallback((nextState: SessionState) => {
     stateRef.current = nextState;
@@ -122,23 +124,16 @@ export function useSessionController(): SessionController {
   }, []);
 
   const buildTrial = useCallback((blockIndex: number): TrialPlan => {
-    const quest = questsRef.current[blockIndex];
     const block = blocksRef.current[blockIndex] ?? blocksRef.current[0];
-    const condition = block.condition;
-    const intensityLog10 = quest.nextIntensity();
-    currentIntensityRef.current = intensityLog10;
-    const targetInterval: TrialInterval = nextRandom() < 0.5 ? 1 : 2;
-    const stimulus: GaborStimulus = {
-      spatialFrequencyCpd: condition.spatialFrequencyCpd,
-      orientationDeg: condition.orientationDeg,
-      contrast: contrastFromLog10(intensityLog10),
-      phaseRad: nextRandom() * Math.PI * 2,
-      durationMs: condition.durationMs ?? GUIDED_STIM_DURATION_MS,
-      gaborSizeDeg: condition.gaborSizeDeg,
+
+    return buildTrialPlan({
+      quest: questsRef.current[blockIndex],
+      condition: block.condition,
+      random: nextRandom,
       backgroundLuminanceCdM2: calibration.backgroundLuminanceCdM2,
-    };
-    return { intervals: targetInterval === 1 ? [stimulus, null] : [null, stimulus], targetInterval };
-  }, [calibration.backgroundLuminanceCdM2]);
+      defaultDurationMs: GUIDED_STIM_DURATION_MS,
+    });
+  }, [calibration.backgroundLuminanceCdM2, nextRandom]);
 
   const currentTrial = useCallback(() => {
     if (!trialRef.current) {
@@ -155,6 +150,7 @@ export function useSessionController(): SessionController {
 
     sessionIdRef.current = `session-${uuid()}`;
     startedAtRef.current = now().toISOString();
+    randomRef.current = mulberry32(now().getTime() >>> 0);
     blocksRef.current = blocks;
     questsRef.current = blocks.map((block) => new QuestStaircase(block.questParams));
     thresholdsRef.current = [];
@@ -205,7 +201,11 @@ export function useSessionController(): SessionController {
       }
 
       const correct = choice === trial.targetInterval;
-      questsRef.current[currentState.blockIndex].record(currentIntensityRef.current, correct);
+      questsRef.current[currentState.blockIndex].record(
+        trial.intensityLog10,
+        correct,
+        trial.catchTrial
+      );
       const completedTrials = currentState.completedTrials + 1;
       const nextTrialIndex = currentState.trialIndex + 1;
       const blocks = blocksRef.current;

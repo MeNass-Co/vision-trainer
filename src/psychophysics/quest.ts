@@ -37,6 +37,7 @@ export class QuestStaircase {
   private readonly thresholdScale: number;
   private trialCountValue = 0;
   private lapseCount = 0;
+  private catchCount = 0;
 
   private readonly params: QuestParameters;
 
@@ -113,8 +114,15 @@ export class QuestStaircase {
 
   record(intensityLog10: number, correct: boolean, catchTrial = false): void {
     this.trialCountValue += 1;
-    if (catchTrial && !correct) {
-      this.lapseCount += 1;
+    if (catchTrial) {
+      // Catch trials probe attention only: they count toward the block's trial
+      // tally and the lapse estimate, but must never touch the threshold
+      // posterior — a suprathreshold probe is off the staircase's grid.
+      this.catchCount += 1;
+      if (!correct) {
+        this.lapseCount += 1;
+      }
+      return;
     }
     for (let i = 0; i < this.grid.length; i += 1) {
       const pCorrect = this.psychometricProbability(intensityLog10, this.grid[i]);
@@ -138,8 +146,13 @@ export class QuestStaircase {
     return this.trialCountValue;
   }
 
+  catchTrialCount(): number {
+    return this.catchCount;
+  }
+
+  /** Fraction of CATCH trials missed — the attention-lapse estimate. */
   lapseRate(): number {
-    return this.trialCountValue === 0 ? 0 : this.lapseCount / this.trialCountValue;
+    return this.catchCount === 0 ? 0 : this.lapseCount / this.catchCount;
   }
 
   private psychometricProbability(intensityLog10: number, thresholdLog10: number): number {
