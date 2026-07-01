@@ -39,6 +39,7 @@ describe('data mappers', () => {
       sessionType: 'guided',
       calibrationId: 'calibration-1',
       protocolVersion: '1.0.0',
+      stimulusVersion: 2,
       plannedBlocks: [
         {
           id: 'block-1',
@@ -62,6 +63,7 @@ describe('data mappers', () => {
     const row = sessionToRow(session);
 
     expect(row.completed_at).toBe('2026-05-31T08:12:00.000Z');
+    expect(row.stimulus_version).toBe(2);
     expect(rowToSession(row)).toEqual(session);
   });
 
@@ -72,6 +74,7 @@ describe('data mappers', () => {
       payload: '{bad json',
       started_at: '2026-05-31T08:00:00.000Z',
       status: 'completed',
+      stimulus_version: null,
     })).toBeNull();
     expect(rowToSession({
       completed_at: null,
@@ -79,6 +82,7 @@ describe('data mappers', () => {
       payload: JSON.stringify({ id: 'session-invalid' }),
       started_at: '2026-05-31T08:00:00.000Z',
       status: 'completed',
+      stimulus_version: null,
     })).toBeNull();
   });
 
@@ -211,7 +215,7 @@ describe('data mappers', () => {
       protocolVersion: '1.0.0',
       plannedBlocks: [],
       completedTrials: 20,
-      // metadata intentionally missing (older builds).
+      // metadata and stimulusVersion intentionally missing (older builds).
     };
     const repairedSession = rowToSession({
       completed_at: null,
@@ -219,10 +223,22 @@ describe('data mappers', () => {
       payload: JSON.stringify(session),
       started_at: '2026-05-31T08:00:00.000Z',
       status: 'completed',
+      stimulus_version: null,
     });
 
     expect(repairedSession).not.toBeNull();
     expect(repairedSession?.metadata).toEqual({});
+    // Pre-stamp sessions were measured by the legacy v1 stripe engine.
+    expect(repairedSession?.stimulusVersion).toBe(1);
+    // A present-but-invalid stamp is still rejected, never silently defaulted.
+    expect(rowToSession({
+      completed_at: null,
+      id: 'session-repair',
+      payload: JSON.stringify({ ...session, metadata: {}, stimulusVersion: 'v2' }),
+      started_at: '2026-05-31T08:00:00.000Z',
+      status: 'completed',
+      stimulus_version: null,
+    })).toBeNull();
   });
 
   it('still rejects rows missing load-bearing fields', () => {
@@ -232,6 +248,7 @@ describe('data mappers', () => {
       payload: JSON.stringify({ id: 'session-no-start', status: 'completed' }),
       started_at: '2026-05-31T08:00:00.000Z',
       status: 'completed',
+      stimulus_version: null,
     })).toBeNull();
     expect(rowToThreshold({
       condition_key: 'contrast-detection:6:90',

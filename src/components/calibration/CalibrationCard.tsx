@@ -11,6 +11,8 @@ import Animated, {
 
 import { BreathingOrb } from '@/components/onboarding/BreathingOrb';
 import { AppText, PrimaryButton } from '@/components/ui';
+import { buildDeviceCalibration } from '@/core/deviceCalibration';
+import { viewingDistanceReminder } from '@/core/displayCalibration';
 import {
   applySessionBrightness,
   getCurrentBrightness,
@@ -49,6 +51,10 @@ export function CalibrationCard({ onComplete, confirmLabel = 'This feels right' 
   const latestBrightnessRef = useRef(brightness);
   const progress = useSharedValue(brightnessToProgress(brightness));
   const reduceMotion = useEffectiveReducedMotion();
+  const distanceLine = useMemo(
+    () => viewingDistanceReminder(buildDeviceCalibration().viewingDistanceCm),
+    []
+  );
 
   useEffect(() => {
     let active = true;
@@ -152,6 +158,9 @@ export function CalibrationCard({ onComplete, confirmLabel = 'This feels right' 
         <AppText style={styles.calibrationCopy} variant="title">
           Set a comfortable glow for your room.
         </AppText>
+        <AppText color="muted" style={styles.calibrationDistance} variant="caption">
+          {distanceLine}
+        </AppText>
       </View>
 
       <View style={styles.calibrationControls}>
@@ -196,6 +205,11 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   calibrationCopy: {
+    maxWidth: 320,
+    textAlign: 'center',
+  },
+  calibrationDistance: {
+    marginTop: -space.md,
     maxWidth: 320,
     textAlign: 'center',
   },

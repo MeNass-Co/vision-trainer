@@ -23,6 +23,13 @@ export type MigrationStep = {
   /** The `PRAGMA user_version` this step upgrades the database to. */
   toVersion: number;
   statements: string;
+  /**
+   * ALTER TABLE ADD COLUMN has no IF NOT EXISTS form, so a step whose
+   * statements cannot be natively idempotent reports here whether its schema
+   * change already landed (crash between the statements and the version
+   * bump); runMigrations then only re-stamps the version.
+   */
+  alreadyApplied?(db: MigrationTarget): Promise<boolean>;
 };
 
 /**
@@ -30,7 +37,8 @@ export type MigrationStep = {
  * schema from `toVersion - 1` to `toVersion`; future schema changes append a
  * new step instead of editing an existing one. Every step must stay idempotent
  * (IF NOT EXISTS et al.) so a crash between the statements and the version
- * bump reruns safely on the next launch.
+ * bump reruns safely on the next launch — or, when SQL cannot express that,
+ * declare `alreadyApplied` so the rerun skips the statements.
  */
 export const MIGRATION_STEPS: readonly MigrationStep[] = [
   {
@@ -58,6 +66,22 @@ export const MIGRATION_STEPS: readonly MigrationStep[] = [
       );
     `,
   },
+  {
+    // Stamp each session with the stimulus engine that measured it (see
+    // STIMULUS_VERSION in core/gaborStops): rows written before the column
+    // existed all predate the calibrated engine, so backfill them as legacy 1.
+    toVersion: 2,
+    statements: `
+      ALTER TABLE sessions ADD COLUMN stimulus_version INTEGER;
+      UPDATE sessions SET stimulus_version = 1;
+    `,
+    async alreadyApplied(db) {
+      const row = await db.getFirstAsync<{ found: number }>(
+        "SELECT COUNT(*) AS found FROM pragma_table_info('sessions') WHERE name = 'stimulus_version'"
+      );
+      return (row?.found ?? 0) > 0;
+    },
+  },
 ];
 
 export async function runMigrations(db: MigrationTarget): Promise<void> {
@@ -73,7 +97,9 @@ export async function runMigrations(db: MigrationTarget): Promise<void> {
 
   for (const step of MIGRATION_STEPS) {
     if (version >= step.toVersion) continue;
-    await db.execAsync(step.statements);
+    if (!step.alreadyApplied || !(await step.alreadyApplied(db))) {
+      await db.execAsync(step.statements);
+    }
     await db.execAsync(`PRAGMA user_version = ${step.toVersion}`);
     version = step.toVersion;
   }

@@ -38,6 +38,18 @@ export function luminanceToLinearGray(luminanceCdM2: number, profile: Calibratio
   return Math.pow(normalized, 1 / profile.gamma);
 }
 
+/**
+ * One-sentence reminder for the pre-session intro and calibration copy.
+ * Every threshold assumes the calibrated viewing distance, so the copy is
+ * derived from the live profile value (never hardcoded in the UI) and
+ * rounded to the nearest 10 cm for natural phrasing.
+ */
+export function viewingDistanceReminder(viewingDistanceCm: number): string {
+  const roundedCm = Math.max(10, Math.round(viewingDistanceCm / 10) * 10);
+  const reach = roundedCm <= 40 ? "a short arm's length" : "an arm's length";
+  return `Hold your phone about ${roundedCm} cm away (${reach}) — the distance your calibration assumes.`;
+}
+
 export function conditionKey(
   spatialFrequencyCpd: number,
   orientationDeg: number,

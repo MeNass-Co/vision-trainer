@@ -23,6 +23,7 @@ import { PostSessionInsight } from '@/components/session/PostSessionInsight';
 import { ResponseTap } from '@/components/session/ResponseTap';
 import { RewardBurst } from '@/components/session/RewardBurst';
 import { AppText, Bloom, FadeIn, GlassSurface, PressableScale, PrimaryButton } from '@/components/ui';
+import { viewingDistanceReminder } from '@/core/displayCalibration';
 import { usePostSessionInsight, useSessionController } from '@/presenters';
 import { applySessionBrightness, restoreCapturedBrightness } from '@/services/brightness';
 import { setSessionActive } from '@/services/notifications';
@@ -552,6 +553,9 @@ export default function SessionScreen() {
               <AppText color="secondary" style={styles.readyInstruction} variant="body">
                 Pick the one with the pattern.
               </AppText>
+              <AppText color="muted" style={styles.readyDistance} variant="caption">
+                {viewingDistanceReminder(controller.calibration.viewingDistanceCm)}
+              </AppText>
             </Animated.View>
             <Animated.View style={[styles.beginWrap, beginRiseStyle]}>
               <PrimaryButton
@@ -862,6 +866,9 @@ const styles = StyleSheet.create({
     marginTop: space.md,
   },
   readyInstruction: {
+    marginTop: space.sm,
+  },
+  readyDistance: {
     marginTop: space.sm,
   },
   beginWrap: {

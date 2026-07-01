@@ -21,7 +21,7 @@ export const sqlitePersistence: Persistence = {
   async loadSessions() {
     const db = await getDatabase();
     const rows = await db.getAllAsync<SessionRow>(
-      'SELECT id, started_at, completed_at, status, payload FROM sessions ORDER BY started_at ASC'
+      'SELECT id, started_at, completed_at, status, payload, stimulus_version FROM sessions ORDER BY started_at ASC'
     );
     const sessions = rows.map(rowToSession).filter((session): session is SessionLog => session !== null);
     if (sessions.length < rows.length) {
@@ -70,12 +70,13 @@ export const sqlitePersistence: Persistence = {
       // deferred BEGIN (no lock taken yet), so this runs before any lock attempt.
       await txn.execAsync('PRAGMA busy_timeout = 5000;');
       await txn.runAsync(
-        'INSERT OR REPLACE INTO sessions (id, started_at, completed_at, status, payload) VALUES (?, ?, ?, ?, ?)',
+        'INSERT OR REPLACE INTO sessions (id, started_at, completed_at, status, payload, stimulus_version) VALUES (?, ?, ?, ?, ?, ?)',
         sessionRow.id,
         sessionRow.started_at,
         sessionRow.completed_at,
         sessionRow.status,
-        sessionRow.payload
+        sessionRow.payload,
+        sessionRow.stimulus_version
       );
       for (const row of thresholdRows) {
         await txn.runAsync(

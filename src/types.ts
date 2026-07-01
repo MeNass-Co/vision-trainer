@@ -124,6 +124,7 @@ export type SessionLog = {
   sessionType: SessionType;
   calibrationId: string;
   protocolVersion: string;
+  stimulusVersion: number;
   plannedBlocks: PlannedBlock[];
   completedTrials: number;
   metadata: Record<string, string | number | boolean>;
