@@ -71,8 +71,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: radius.pill,
     justifyContent: 'center',
+    minHeight: 56,
     overflow: 'hidden',
-    paddingVertical: space.base,
+    paddingVertical: space.md,
   },
   solid: {
     backgroundColor: ACCENT,

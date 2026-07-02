@@ -71,15 +71,25 @@ export default function PaywallScreen() {
                   Everything included during early access.
                 </AppText>
               </View>
+              <View style={styles.planBadge}>
+                <AppText color="accent" style={styles.planBadgeText} variant="micro">
+                  OPEN
+                </AppText>
+              </View>
             </View>
 
             <View style={styles.benefits}>
-              {BENEFITS.map((benefit) => (
-                <View key={benefit} style={styles.benefitRow}>
-                  <View style={styles.dot} />
-                  <AppText color="secondary" style={styles.benefitText} variant="caption">
-                    {benefit}
-                  </AppText>
+              {BENEFITS.map((benefit, index) => (
+                <View key={benefit}>
+                  {index > 0 ? <View style={styles.benefitRule} /> : null}
+                  <View style={styles.benefitRow}>
+                    <View style={styles.featureGlyph}>
+                      <View style={styles.dot} />
+                    </View>
+                    <AppText color="secondary" style={styles.benefitText} variant="caption">
+                      {benefit}
+                    </AppText>
+                  </View>
                 </View>
               ))}
             </View>
@@ -111,28 +121,45 @@ export default function PaywallScreen() {
 
 const styles = StyleSheet.create({
   actions: {
-    gap: space.md,
+    gap: 11,
+  },
+  benefitRule: {
+    backgroundColor: surface.hairline,
+    height: StyleSheet.hairlineWidth,
+    marginLeft: 42,
   },
   benefitRow: {
     alignItems: 'center',
     flexDirection: 'row',
-    gap: space.sm,
+    gap: space.md,
+    minHeight: 56,
+    paddingVertical: space.sm,
   },
   benefitText: {
     flex: 1,
     lineHeight: 20,
   },
   benefits: {
-    gap: space.md,
+    gap: 0,
   },
   dot: {
     backgroundColor: 'rgba(91,233,236,0.86)',
     borderRadius: radius.pill,
-    height: 7,
-    width: 7,
+    height: 6,
+    width: 6,
   },
   earlyAccessNote: {
     textAlign: 'center',
+  },
+  featureGlyph: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(51, 210, 214, 0.10)',
+    borderColor: 'rgba(91, 233, 236, 0.18)',
+    borderRadius: radius.pill,
+    borderWidth: StyleSheet.hairlineWidth,
+    height: 30,
+    justifyContent: 'center',
+    width: 30,
   },
   glow: {
     height: 180,
@@ -149,8 +176,21 @@ const styles = StyleSheet.create({
     letterSpacing: 1.8,
   },
   plan: {
-    gap: space.lg,
-    padding: space.lg,
+    gap: space.base,
+    padding: 18,
+  },
+  planBadge: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(51, 210, 214, 0.10)',
+    borderColor: 'rgba(91, 233, 236, 0.30)',
+    borderRadius: radius.pill,
+    borderWidth: StyleSheet.hairlineWidth,
+    height: 24,
+    justifyContent: 'center',
+    paddingHorizontal: space.sm,
+  },
+  planBadgeText: {
+    letterSpacing: 0.8,
   },
   planHeader: {
     alignItems: 'center',

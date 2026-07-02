@@ -102,8 +102,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flexDirection: 'row',
     gap: space.md,
+    minHeight: 56,
     paddingHorizontal: space.base,
-    paddingVertical: space.md,
+    paddingVertical: 14,
   },
   copy: {
     flex: 1,

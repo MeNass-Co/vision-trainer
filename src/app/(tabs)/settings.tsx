@@ -72,7 +72,9 @@ export default function SettingsScreen() {
       background={<AmbientGradient constellation reduceMotion={reduceMotion} />}
       style={styles.screen}>
       <FadeIn style={styles.title}>
-        <AppText variant="hero">Settings</AppText>
+        <AppText style={styles.settingsTitle} variant="title">
+          Settings
+        </AppText>
       </FadeIn>
       <FadeIn delay={60}>
         <Section title="Feedback">
@@ -221,6 +223,10 @@ const styles = StyleSheet.create({
   },
   screen: {
     paddingBottom: space.lg,
+  },
+  settingsTitle: {
+    fontSize: 34,
+    lineHeight: 40,
   },
   title: {
     marginBottom: space.lg,

@@ -15,7 +15,7 @@ export function Section({ title, children, footer }: SectionProps) {
 
   return (
     <View style={styles.section}>
-      <AppText color="muted" uppercase variant="micro">
+      <AppText color="muted" style={styles.title} uppercase variant="micro">
         {title}
       </AppText>
       <GlassSurface radius={radius.lg} style={styles.group}>
@@ -46,7 +46,10 @@ const styles = StyleSheet.create({
     marginLeft: space.base,
   },
   section: {
-    gap: space.md,
-    marginBottom: space.xl,
+    gap: 10,
+    marginBottom: 26,
+  },
+  title: {
+    letterSpacing: 1.8,
   },
 });

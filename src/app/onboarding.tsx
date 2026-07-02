@@ -10,6 +10,7 @@ import Animated, {
   withSpring,
   withTiming,
 } from 'react-native-reanimated';
+import Svg, { Path } from 'react-native-svg';
 
 import { CalibrationCard } from '@/components/calibration/CalibrationCard';
 import { AmbientGradient } from '@/components/home/AmbientGradient';
@@ -124,6 +125,14 @@ export default function OnboardingScreen() {
   return (
     <Screen padded warm background={<AmbientGradient constellation reduceMotion={reduceMotion} />}>
       <View style={styles.screen}>
+        {step > 0 ? (
+          <PressableScale
+            hitSlop={space.sm}
+            onPress={() => setStep((current) => Math.max(current - 1, 0))}
+            style={styles.topBackButton}>
+            <BackChevron />
+          </PressableScale>
+        ) : null}
         {currentStep.id === 'calibration' ? (
           <FadeIn key="calibration" duration={420} style={styles.page}>
             <CalibrationCard onComplete={handleCalibration} />
@@ -175,7 +184,6 @@ export default function OnboardingScreen() {
         )}
         <Footer
           contentWidth={webContentWidth}
-          onBack={() => setStep((current) => Math.max(current - 1, 0))}
           step={step}
         />
       </View>
@@ -356,26 +364,29 @@ function GoalChoices({ selected, onSelect }: GoalChoicesProps) {
 
 type FooterProps = {
   contentWidth?: number;
-  onBack: () => void;
   step: number;
 };
 
-function Footer({ contentWidth, onBack, step }: FooterProps) {
+function Footer({ contentWidth, step }: FooterProps) {
   return (
     <View style={styles.footer}>
       <ProgressBar contentWidth={contentWidth} step={step} />
-      <View style={styles.footerNav}>
-        {step > 0 ? (
-          <PressableScale hitSlop={space.sm} onPress={onBack} style={styles.backButton}>
-            <AppText color="muted" variant="caption">
-              Back
-            </AppText>
-          </PressableScale>
-        ) : (
-          <View style={styles.backPlaceholder} />
-        )}
-      </View>
     </View>
+  );
+}
+
+function BackChevron() {
+  return (
+    <Svg height={18} width={18}>
+      <Path
+        d="M11.5 4L6.5 9L11.5 14"
+        fill="none"
+        stroke={text.secondary}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={1.8}
+      />
+    </Svg>
   );
 }
 
@@ -408,13 +419,6 @@ const styles = StyleSheet.create({
     gap: space.xs,
     paddingBottom: space.lg,
   },
-  backButton: {
-    alignSelf: 'flex-start',
-    paddingVertical: space.xs,
-  },
-  backPlaceholder: {
-    height: 26,
-  },
   copy: {
     gap: space.base,
     maxWidth: 348,
@@ -426,40 +430,40 @@ const styles = StyleSheet.create({
     lineHeight: type.hero.lineHeight,
   },
   footer: {
-    gap: space.sm,
     paddingTop: space.sm,
-  },
-  footerNav: {
-    minHeight: 28,
   },
   goalChoice: {
     alignItems: 'center',
     backgroundColor: 'rgba(14, 19, 22, 0.78)',
     borderColor: 'rgba(167, 178, 180, 0.18)',
-    borderRadius: radius.md,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: radius.lg,
+    borderWidth: 1,
     flexDirection: 'row',
-    gap: space.md,
+    gap: space.base,
     justifyContent: 'space-between',
-    minHeight: 56,
-    paddingHorizontal: space.md,
-    paddingVertical: space.sm,
+    minHeight: 68,
+    paddingHorizontal: space.base,
+    paddingVertical: space.md,
   },
   goalChoiceSelected: {
     backgroundColor: 'rgba(51, 210, 214, 0.14)',
-    borderColor: 'rgba(91, 233, 236, 0.42)',
+    borderColor: 'rgba(91, 233, 236, 0.56)',
+    borderWidth: 1.5,
   },
   goalDetail: {
     marginTop: 1,
   },
   goalDot: {
-    backgroundColor: surface.hairline,
+    backgroundColor: 'transparent',
+    borderColor: surface.hairlineStrong,
+    borderWidth: 1.5,
     borderRadius: radius.pill,
-    height: 10,
-    width: 10,
+    height: 18,
+    width: 18,
   },
   goalDotSelected: {
     backgroundColor: ACCENT,
+    borderColor: ACCENT,
     shadowColor: ACCENT_GLOW,
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.7,
@@ -503,9 +507,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     alignSelf: 'center',
     borderRadius: radius.pill,
-    minHeight: 44,
     justifyContent: 'center',
+    minHeight: 44,
     paddingHorizontal: space.lg,
     paddingVertical: space.sm,
+  },
+  topBackButton: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(14, 19, 22, 0.72)',
+    borderColor: 'rgba(167, 178, 180, 0.18)',
+    borderRadius: radius.pill,
+    borderWidth: StyleSheet.hairlineWidth,
+    height: 38,
+    justifyContent: 'center',
+    left: 0,
+    position: 'absolute',
+    top: 0,
+    width: 38,
+    zIndex: 3,
   },
 });
