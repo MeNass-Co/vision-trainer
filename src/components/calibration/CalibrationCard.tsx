@@ -9,8 +9,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
-import { BreathingOrb } from '@/components/onboarding/BreathingOrb';
-import { AppText, PrimaryButton } from '@/components/ui';
+import { AppText, GaborMark, GlassSurface, PressableScale } from '@/components/ui';
 import { buildDeviceCalibration } from '@/core/deviceCalibration';
 import { viewingDistanceReminder } from '@/core/displayCalibration';
 import {
@@ -154,7 +153,7 @@ export function CalibrationCard({ onComplete, confirmLabel = 'This feels right' 
   return (
     <View style={styles.calibration}>
       <View style={styles.calibrationReference}>
-        <BreathingOrb cadence="breath" reactivity={0.9} size={206} />
+        <GaborMark size={212} />
         <AppText style={styles.calibrationCopy} variant="title">
           Set a comfortable glow for your room.
         </AppText>
@@ -187,7 +186,19 @@ export function CalibrationCard({ onComplete, confirmLabel = 'This feels right' 
         </View>
       </View>
 
-      <PrimaryButton label={confirmLabel} onPress={confirmBrightness} style={styles.confirmButton} />
+      <PressableScale
+        accessibilityLabel={confirmLabel}
+        accessibilityRole="button"
+        haptic="select"
+        onPress={confirmBrightness}
+        scaleTo={0.97}
+        style={styles.confirmButton}>
+        <GlassSurface interactive radius={radius.pill} style={styles.confirmGlass}>
+          <AppText color="primary" style={styles.confirmText} variant="heading">
+            {confirmLabel}
+          </AppText>
+        </GlassSurface>
+      </PressableScale>
     </View>
   );
 }
@@ -222,11 +233,22 @@ const styles = StyleSheet.create({
   },
   calibrationReference: {
     alignItems: 'center',
-    gap: space.lg,
+    gap: space.base,
     justifyContent: 'center',
   },
   confirmButton: {
     width: '100%',
+  },
+  confirmGlass: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderColor: 'rgba(255,255,255,0.22)',
+    justifyContent: 'center',
+    minHeight: 56,
+    width: '100%',
+  },
+  confirmText: {
+    letterSpacing: 0,
   },
   slider: {
     height: 48,

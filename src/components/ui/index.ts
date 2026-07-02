@@ -4,6 +4,7 @@ export * from './Card';
 export * from './FadeIn';
 export { Grain } from './Grain';
 export type { GrainProps } from './Grain';
+export * from './GaborMark';
 export * from './GlassSurface';
 export * from './Hairline';
 export * from './PressableScale';

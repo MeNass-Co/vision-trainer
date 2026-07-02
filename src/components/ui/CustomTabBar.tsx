@@ -2,61 +2,63 @@ import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { BlurView } from 'expo-blur';
 import { GlassView, isGlassEffectAPIAvailable, isLiquidGlassAvailable } from 'expo-glass-effect';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useEffect } from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-} from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Line, Path } from 'react-native-svg';
 
-import { ACCENT, material, motion, space, text } from '@/theme/tokens';
-import { useEffectiveReducedMotion } from '@/theme/useEffectiveReducedMotion';
+import { ACCENT_CORE, material, space, surface } from '@/theme/tokens';
 
 import { AppText } from './AppText';
 import { PressableScale } from './PressableScale';
 
-const TAB_BAR_HEIGHT = 68;
-const TAB_BAR_RADIUS = 34;
-const TAB_BAR_SIDE_INSET = 18;
-const ACTIVE_AURA_HEIGHT = 32;
-const ACTIVE_AURA_WIDTH = 46;
+const BAR_HEIGHT = 50;
+const BAR_RADIUS = BAR_HEIGHT / 2;
+const ACTION_SIZE = 50;
+const OUTER_INSET = 22;
 
 type TabIconProps = {
   color: string;
+  focused: boolean;
   routeName: string;
 };
 
-function TabIcon({ color, routeName }: TabIconProps) {
+type RouteItem = BottomTabBarProps['state']['routes'][number];
+
+function TabIcon({ color, focused, routeName }: TabIconProps) {
   const content = (() => {
     switch (routeName) {
       case 'progress':
         return (
           <>
-            <Path d="M3 17 C 8 17, 9 8, 13 8 S 18 5, 21 4" />
-            <Circle cx={3} cy={17} r={1.4} />
-            <Circle cx={21} cy={4} r={1.4} />
+            <Path d="M3.5 16.8 C 7.4 16.8, 9.2 9, 12.8 9 S 17.5 5.3, 20.5 4.5" />
+            <Circle cx={3.5} cy={16.8} r={1.25} />
+            <Circle cx={20.5} cy={4.5} r={1.25} />
           </>
         );
       case 'settings':
         return (
           <>
-            <Line x1={4} x2={20} y1={7} y2={7} />
-            <Circle cx={16} cy={7} r={2} />
-            <Line x1={4} x2={20} y1={12} y2={12} />
-            <Circle cx={9} cy={12} r={2} />
-            <Line x1={4} x2={20} y1={17} y2={17} />
-            <Circle cx={14} cy={17} r={2} />
+            <Line x1={4.2} x2={19.8} y1={7} y2={7} />
+            <Circle cx={15.8} cy={7} r={1.85} />
+            <Line x1={4.2} x2={19.8} y1={12} y2={12} />
+            <Circle cx={8.9} cy={12} r={1.85} />
+            <Line x1={4.2} x2={19.8} y1={17} y2={17} />
+            <Circle cx={13.9} cy={17} r={1.85} />
           </>
         );
       case 'index':
       default:
-        return (
+        return focused ? (
+          <Path
+            d="M4.7 11.2 12 4.8l7.3 6.4v8.1h-5v-4.7H9.7v4.7h-5z"
+            fill={color}
+            stroke="none"
+          />
+        ) : (
           <>
-            <Circle cx={12} cy={12} r={8} />
-            <Path d="M12 4 A8 8 0 0 1 18 7" />
+            <Path d="M5 11.5 12 5.2l7 6.3" />
+            <Path d="M7.2 10.5v8.1h9.6v-8.1" />
+            <Path d="M10.2 18.6v-4.7h3.6v4.7" />
           </>
         );
     }
@@ -65,256 +67,275 @@ function TabIcon({ color, routeName }: TabIconProps) {
   return (
     <Svg
       fill="none"
-      height={24}
+      height={22}
       stroke={color}
       strokeLinecap="round"
       strokeLinejoin="round"
-      strokeWidth={1.75}
+      strokeWidth={1.85}
       viewBox="0 0 24 24"
-      width={24}>
+      width={22}>
       {content}
     </Svg>
   );
 }
 
 type TabButtonProps = {
+  compact?: boolean;
   focused: boolean;
   label: string;
   onPress: () => void;
   routeName: string;
 };
 
-function TabButton({ focused, label, onPress, routeName }: TabButtonProps) {
-  const reduceMotion = useEffectiveReducedMotion();
-  const progress = useSharedValue(focused ? 1 : 0);
-
-  useEffect(() => {
-    const target = focused ? 1 : 0;
-    if (reduceMotion) {
-      progress.value = target;
-      return;
-    }
-    progress.value = withSpring(target, motion.spring.snap);
-  }, [focused, progress, reduceMotion]);
-
-  const liftStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: 1 + progress.value * 0.06 }, { translateY: progress.value * -1 }],
-  }));
-  const accentLayerStyle = useAnimatedStyle(() => ({ opacity: progress.value }));
+function TabButton({ compact = false, focused, label, onPress, routeName }: TabButtonProps) {
+  const color = focused ? ACCENT_CORE : 'rgba(210,249,250,0.70)';
 
   return (
     <PressableScale
+      accessibilityLabel={label}
       accessibilityRole="button"
       accessibilityState={{ selected: focused }}
       haptic="selection"
       onPress={onPress}
-      style={styles.tabContent}>
+      scaleTo={1}
+      style={compact ? styles.actionButton : styles.tabButton}>
       {focused ? (
-        <Animated.View pointerEvents="none" style={[styles.activeAura, accentLayerStyle]}>
-          <LinearGradient
-            colors={['rgba(255,255,255,0.16)', 'rgba(255,255,255,0.035)', 'rgba(0,0,0,0)']}
-            end={{ x: 0.5, y: 1 }}
-            start={{ x: 0.5, y: 0 }}
-            style={StyleSheet.absoluteFill}
-          />
-        </Animated.View>
+        <LinearGradient
+          colors={[
+            'rgba(91,233,236,0.32)',
+            'rgba(207,250,251,0.18)',
+            'rgba(91,233,236,0.09)',
+          ]}
+          end={{ x: 1, y: 1 }}
+          pointerEvents="none"
+          start={{ x: 0, y: 0 }}
+          style={compact ? styles.actionActiveFill : styles.activeFill}
+        />
       ) : null}
-      <Animated.View style={[styles.iconWrap, liftStyle]}>
-        <TabIcon color={text.muted} routeName={routeName} />
-        <Animated.View style={[styles.iconOverlay, accentLayerStyle]}>
-          <TabIcon color={ACCENT} routeName={routeName} />
-        </Animated.View>
-      </Animated.View>
-      <View style={styles.labelWrap}>
-        <AppText color="muted" numberOfLines={1} style={styles.label} variant="micro">
+      <LinearGradient
+        colors={['rgba(167,247,249,0.20)', 'rgba(167,247,249,0.06)', 'rgba(167,247,249,0)']}
+        end={{ x: 0.5, y: 1 }}
+        pointerEvents="none"
+        start={{ x: 0.5, y: 0 }}
+        style={compact ? styles.actionSheen : styles.tabSheen}
+      />
+      <TabIcon color={color} focused={focused} routeName={routeName} />
+      {compact ? null : (
+        <AppText numberOfLines={1} style={[styles.label, { color }]} variant="micro">
           {label}
         </AppText>
-        <Animated.View pointerEvents="none" style={[styles.labelOverlay, accentLayerStyle]}>
-          <AppText
-            color="accent"
-            numberOfLines={1}
-            style={styles.label}
-            variant="micro">
-            {label}
-          </AppText>
-        </Animated.View>
-      </View>
+      )}
     </PressableScale>
   );
 }
 
 export function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
-  const liquidGlass = isLiquidGlassAvailable() && isGlassEffectAPIAvailable();
+  const liquidGlass =
+    Platform.OS === 'ios' && isLiquidGlassAvailable() && isGlassEffectAPIAvailable();
+  const primaryRoutes = state.routes;
 
-  const row = (
-    <View style={styles.row}>
-      {state.routes.map((route, index) => {
-        const focused = state.index === index;
-        const label = descriptors[route.key].options.title ?? route.name;
-        const handlePress = () => {
-          const event = navigation.emit({
-            type: 'tabPress',
-            target: route.key,
-            canPreventDefault: true,
-          });
-          if (!focused && !event.defaultPrevented) {
-            navigation.navigate(route.name);
-          }
-        };
+  const renderTab = (route: RouteItem, compact = false) => {
+    const index = state.routes.findIndex((item) => item.key === route.key);
+    const focused = state.index === index;
+    const label = descriptors[route.key].options.title ?? route.name;
+    const handlePress = () => {
+      const event = navigation.emit({
+        type: 'tabPress',
+        target: route.key,
+        canPreventDefault: true,
+      });
+      if (!focused && !event.defaultPrevented) {
+        navigation.navigate(route.name);
+      }
+    };
 
-        return (
-          <TabButton
-            focused={focused}
-            key={route.key}
-            label={label}
-            onPress={handlePress}
-            routeName={route.name}
-          />
-        );
-      })}
-    </View>
+    return (
+      <TabButton
+        compact={compact}
+        focused={focused}
+        key={route.key}
+        label={label}
+        onPress={handlePress}
+        routeName={route.name}
+      />
+    );
+  };
+
+  const primaryContent = (
+    <View style={styles.primaryRow}>{primaryRoutes.map((route) => renderTab(route))}</View>
   );
-
-  const sheen = (
-    <LinearGradient
-      colors={['rgba(255,255,255,0.12)', 'rgba(255,255,255,0.035)', 'rgba(255,255,255,0)']}
-      end={{ x: 0.5, y: 1 }}
-      pointerEvents="none"
-      start={{ x: 0.5, y: 0 }}
-      style={styles.sheen}
-    />
-  );
-
   return (
     <View style={[styles.outer, { paddingBottom: insets.bottom + space.sm }]}>
-      <View style={styles.pillShadow}>
-        {liquidGlass ? (
-          <GlassView
-            colorScheme="dark"
-            glassEffectStyle={{ style: 'regular', animate: true, animationDuration: 0.2 }}
-            isInteractive
-            style={[styles.pill, styles.pillLiquid]}
-            tintColor="rgba(10,16,20,0.54)">
-            {sheen}
-            <View pointerEvents="none" style={styles.darkFloor} />
-            {row}
-          </GlassView>
-        ) : (
-          <BlurView
-            experimentalBlurMethod={Platform.OS === 'android' ? 'dimezisBlurView' : undefined}
-            intensity={
-              Platform.OS === 'ios' ? Math.max(material.blurIntensity, 58) : material.blurIntensity
-            }
-            style={[styles.pill, styles.pillFallback]}
-            tint="dark">
-            {sheen}
-            {row}
-          </BlurView>
-        )}
+      <LinearGradient
+        colors={['rgba(5,8,10,0)', 'rgba(5,8,10,0.34)', surface.base]}
+        pointerEvents="none"
+        style={styles.bottomField}
+      />
+      <View style={styles.musicRow}>
+        <View style={styles.primaryShadow}>
+          {liquidGlass ? (
+            <GlassView
+              colorScheme="light"
+              glassEffectStyle={{ style: 'regular', animate: true, animationDuration: 0.2 }}
+              style={styles.primaryBar}
+              tintColor="rgba(187,249,250,0.26)">
+              <LinearGradient
+                colors={[
+                  'rgba(255,255,255,0.30)',
+                  'rgba(207,250,251,0.16)',
+                  'rgba(91,233,236,0.06)',
+                ]}
+                pointerEvents="none"
+                style={styles.barSheen}
+              />
+              {primaryContent}
+            </GlassView>
+          ) : (
+            <BlurView
+              experimentalBlurMethod={Platform.OS === 'android' ? 'dimezisBlurView' : undefined}
+              intensity={Platform.OS === 'ios' ? Math.max(material.blurIntensity, 76) : 62}
+              style={styles.primaryBar}
+              tint="light">
+              <LinearGradient
+                colors={[
+                  'rgba(255,255,255,0.30)',
+                  'rgba(207,250,251,0.16)',
+                  'rgba(91,233,236,0.06)',
+                ]}
+                pointerEvents="none"
+                style={styles.barSheen}
+              />
+              {primaryContent}
+            </BlurView>
+          )}
+        </View>
+
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  actionActiveFill: {
+    borderRadius: 19,
+    height: 38,
+    left: 6,
+    position: 'absolute',
+    top: 6,
+    width: 38,
+  },
+  actionButton: {
+    alignItems: 'center',
+    borderRadius: ACTION_SIZE / 2,
+    height: ACTION_SIZE,
+    justifyContent: 'center',
+    overflow: 'hidden',
+    width: ACTION_SIZE,
+  },
+  actionGlass: {
+    backgroundColor: 'rgba(207,250,251,0.20)',
+    borderRadius: ACTION_SIZE / 2,
+    height: ACTION_SIZE,
+    overflow: 'hidden',
+    width: ACTION_SIZE,
+  },
+  actionShadow: {
+    borderRadius: ACTION_SIZE / 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.13,
+    shadowRadius: 16,
+  },
+  actionSheen: {
+    borderRadius: ACTION_SIZE / 2,
+    height: 20,
+    left: 4,
+    position: 'absolute',
+    right: 4,
+    top: 3,
+  },
+  activeFill: {
+    borderRadius: 19,
+    height: 38,
+    left: '50%',
+    marginLeft: -29,
+    position: 'absolute',
+    top: 6,
+    width: 58,
+  },
+  barSheen: {
+    height: 22,
+    left: 0,
+    position: 'absolute',
+    right: 0,
+    top: 0,
+  },
+  bottomField: {
+    bottom: 0,
+    height: 132,
+    left: 0,
+    position: 'absolute',
+    right: 0,
+  },
+  label: {
+    fontSize: 9,
+    letterSpacing: 0,
+    lineHeight: 11,
+  },
+  musicRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 7,
+    justifyContent: 'center',
+    width: '100%',
+  },
   outer: {
     alignItems: 'center',
     backgroundColor: 'transparent',
-    paddingHorizontal: TAB_BAR_SIDE_INSET,
+    paddingHorizontal: OUTER_INSET,
     paddingTop: space.sm,
-  },
-  pillShadow: {
-    borderRadius: TAB_BAR_RADIUS,
-    shadowColor: '#061316',
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.28,
-    shadowRadius: 26,
-    width: '100%',
-  },
-  pill: {
-    borderColor: material.hairlineOnGlass,
-    borderRadius: TAB_BAR_RADIUS,
-    borderWidth: 1,
-    flexDirection: 'row',
-    height: TAB_BAR_HEIGHT,
-    overflow: 'hidden',
-  },
-  pillLiquid: {
-    backgroundColor: 'transparent',
-    borderColor: 'rgba(255,255,255,0.10)',
-  },
-  pillFallback: {
-    backgroundColor: 'rgba(12,16,20,0.72)',
-  },
-  sheen: {
-    height: '40%',
-    left: 0,
-    position: 'absolute',
-    right: 0,
-    top: 0,
-  },
-  darkFloor: {
-    backgroundColor: 'rgba(0,0,0,0.18)',
-    bottom: 0,
-    height: '46%',
-    left: 0,
-    position: 'absolute',
-    right: 0,
-  },
-  row: {
-    flexDirection: 'row',
-    paddingHorizontal: 7,
-    paddingVertical: 6,
-    width: '100%',
-  },
-  iconOverlay: {
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
-    right: 0,
-    top: 0,
-  },
-  iconWrap: {
-    alignItems: 'center',
-    height: 25,
-    justifyContent: 'center',
-  },
-  label: {
-    fontSize: 10,
-    letterSpacing: 0,
-    lineHeight: 13,
-  },
-  labelOverlay: {
-    alignItems: 'center',
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
-    right: 0,
-    top: 0,
-  },
-  labelWrap: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  tabContent: {
-    alignItems: 'center',
-    flex: 1,
-    gap: space.xs,
-    minHeight: 54,
-    overflow: 'hidden',
-    paddingVertical: 5,
     position: 'relative',
+    width: '100%',
   },
-  activeAura: {
-    borderRadius: 18,
-    height: ACTIVE_AURA_HEIGHT,
-    left: '50%',
-    marginLeft: -ACTIVE_AURA_WIDTH / 2,
-    opacity: 0.72,
+  primaryBar: {
+    backgroundColor: 'rgba(207,250,251,0.18)',
+    borderRadius: BAR_RADIUS,
+    height: BAR_HEIGHT,
     overflow: 'hidden',
+    width: '100%',
+  },
+  primaryRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    height: '100%',
+    paddingHorizontal: 4,
+    width: '100%',
+  },
+  primaryShadow: {
+    borderRadius: BAR_RADIUS,
+    flex: 1,
+    maxWidth: 264,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.12,
+    shadowRadius: 16,
+  },
+  tabButton: {
+    alignItems: 'center',
+    borderRadius: 25,
+    flex: 1,
+    gap: 1,
+    height: BAR_HEIGHT - 7,
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  tabSheen: {
+    borderRadius: 25,
+    height: 18,
+    left: 4,
     position: 'absolute',
-    top: 3,
-    width: ACTIVE_AURA_WIDTH,
+    right: 4,
+    top: 2,
   },
 });

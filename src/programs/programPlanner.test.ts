@@ -1,3 +1,6 @@
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { conditionKey } from '@/core/displayCalibration';
@@ -62,5 +65,11 @@ describe('program planner', () => {
     const blocks = planProgramSession('sports', 2, []);
 
     expect(blocks.reduce((sum, block) => sum + block.condition.trialsPerBlock, 0)).toBe(100);
+  });
+
+  it('does not import the session planner at runtime', () => {
+    const source = readFileSync(fileURLToPath(new URL('./programPlanner.ts', import.meta.url).href), 'utf8');
+
+    expect(source).not.toMatch(/from ['"]\.\.\/session\/sessionPlanner['"]/);
   });
 });

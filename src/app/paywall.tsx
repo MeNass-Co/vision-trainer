@@ -3,9 +3,9 @@ import { useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { AmbientGradient } from '@/components/home/AmbientGradient';
-import { AppText, Bloom, FadeIn, GlassSurface, PressableScale, PrimaryButton, Screen } from '@/components/ui';
+import { AppText, FadeIn, GaborMark, GlassSurface, PressableScale, PrimaryButton, Screen } from '@/components/ui';
 import { useAppStore } from '@/store/useAppStore';
-import { ACCENT_GLOW, material, radius, space, surface } from '@/theme/tokens';
+import { material, radius, space, surface } from '@/theme/tokens';
 import { useEffectiveReducedMotion } from '@/theme/useEffectiveReducedMotion';
 
 const BENEFITS = [
@@ -42,25 +42,34 @@ export default function PaywallScreen() {
   };
 
   return (
-    <Screen padded background={<AmbientGradient constellation reduceMotion={reduceMotion} />}>
+    <Screen scroll padded background={<AmbientGradient constellation reduceMotion={reduceMotion} />}>
       <View style={styles.screen}>
         <FadeIn duration={360} style={styles.hero}>
-          <View style={styles.glow}>
-            <Bloom color={ACCENT_GLOW} opacity={0.7} rx="68%" ry="46%" />
-          </View>
-          <AppText style={styles.kicker} uppercase color="muted" variant="micro">
+          <GaborMark quiet size={168} style={styles.gabor} />
+          <AppText style={styles.kicker} uppercase color="primary" variant="micro">
             Early access
           </AppText>
           <AppText style={styles.title} variant="title">
-            Train your vision with adaptive 5-minute sessions.
+            Free while we finish the instrument.
           </AppText>
           <AppText color="secondary" style={styles.subtitle} variant="body">
-            Your first week helps you understand your baseline and see whether the routine fits.
-            Real change takes consistency.
+            Build a baseline, test the routine, and keep your readings private on this device.
           </AppText>
         </FadeIn>
 
-        <FadeIn delay={80}>
+        <FadeIn delay={80} style={styles.actions}>
+          <PrimaryButton label="Start training" onPress={startTraining} />
+          <PressableScale accessibilityRole="button" onPress={maybeLater} style={styles.secondaryAction}>
+            <AppText color="primary" variant="caption">
+              Maybe later
+            </AppText>
+          </PressableScale>
+          <AppText color="secondary" style={styles.earlyAccessNote} variant="caption">
+            Free while in Early Access. No subscription is active.
+          </AppText>
+        </FadeIn>
+
+        <FadeIn delay={140}>
           <GlassSurface radius={material.radius} style={styles.plan}>
             <View style={styles.planHeader}>
               <View>
@@ -68,12 +77,12 @@ export default function PaywallScreen() {
                   Vision Trainer
                 </AppText>
                 <AppText color="muted" variant="caption">
-                  Everything included during early access.
+                  Early builds. No payment today.
                 </AppText>
               </View>
               <View style={styles.planBadge}>
                 <AppText color="accent" style={styles.planBadgeText} variant="micro">
-                  OPEN
+                  FREE
                 </AppText>
               </View>
             </View>
@@ -101,18 +110,6 @@ export default function PaywallScreen() {
               </AppText>
             </View>
           </GlassSurface>
-        </FadeIn>
-
-        <FadeIn delay={160} style={styles.actions}>
-          <PrimaryButton label="Start training" onPress={startTraining} />
-          <PressableScale accessibilityRole="button" onPress={maybeLater} style={styles.secondaryAction}>
-            <AppText color="secondary" variant="caption">
-              Maybe later
-            </AppText>
-          </PressableScale>
-          <AppText color="muted" style={styles.earlyAccessNote} variant="micro">
-            Free while in early access.
-          </AppText>
         </FadeIn>
       </View>
     </Screen>
@@ -161,19 +158,23 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     width: 30,
   },
-  glow: {
-    height: 180,
-    position: 'absolute',
-    top: -42,
-    width: 220,
+  gabor: {
+    marginBottom: -space.sm,
   },
   hero: {
     alignItems: 'center',
     gap: space.md,
-    paddingTop: space.xxl,
+    paddingTop: space.lg,
   },
   kicker: {
-    letterSpacing: 1.8,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderColor: 'rgba(255,255,255,0.14)',
+    borderRadius: radius.pill,
+    borderWidth: StyleSheet.hairlineWidth,
+    letterSpacing: 1.2,
+    overflow: 'hidden',
+    paddingHorizontal: space.md,
+    paddingVertical: 5,
   },
   plan: {
     gap: space.base,
@@ -221,14 +222,20 @@ const styles = StyleSheet.create({
   },
   screen: {
     flex: 1,
-    gap: space.xl,
+    gap: space.lg,
     justifyContent: 'space-between',
+    minHeight: 700,
     paddingBottom: space.xl,
   },
   secondaryAction: {
     alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.075)',
+    borderColor: 'rgba(255,255,255,0.13)',
     borderRadius: radius.pill,
-    paddingVertical: space.sm,
+    borderWidth: StyleSheet.hairlineWidth,
+    minHeight: 48,
+    justifyContent: 'center',
+    paddingVertical: space.md,
   },
   subtitle: {
     lineHeight: 24,

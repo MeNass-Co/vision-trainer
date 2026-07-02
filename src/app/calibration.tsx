@@ -1,4 +1,4 @@
-import { useRouter } from 'expo-router';
+import { type Href, useRouter } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 
@@ -11,6 +11,13 @@ import { useEffectiveReducedMotion } from '@/theme/useEffectiveReducedMotion';
 export default function CalibrationScreen() {
   const router = useRouter();
   const reduceMotion = useEffectiveReducedMotion();
+  const exitCalibration = () => {
+    if (router.canGoBack()) {
+      router.back();
+      return;
+    }
+    router.replace('/(tabs)' as Href);
+  };
 
   return (
     <Screen padded warm background={<AmbientGradient constellation reduceMotion={reduceMotion} />}>
@@ -19,7 +26,7 @@ export default function CalibrationScreen() {
           accessibilityLabel="Close"
           accessibilityRole="button"
           hitSlop={12}
-          onPress={() => router.back()}
+          onPress={exitCalibration}
           style={styles.close}>
           <Svg height={14} width={14}>
             <Path
@@ -32,7 +39,7 @@ export default function CalibrationScreen() {
         </PressableScale>
       </View>
       <FadeIn duration={420} style={styles.body}>
-        <CalibrationCard confirmLabel="Done" onComplete={() => router.back()} />
+        <CalibrationCard confirmLabel="Done" onComplete={exitCalibration} />
       </FadeIn>
     </Screen>
   );

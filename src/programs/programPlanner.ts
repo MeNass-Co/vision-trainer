@@ -1,8 +1,8 @@
 import { conditionKey } from '../core/displayCalibration';
 import { uuid } from '../core/uuid';
+import { populationNormContrast } from '../progress/norms';
 import type { ContrastCondition } from '../tasks/contrastDetection';
 import { getParadigmModule } from '../tasks/paradigmRegistry';
-import { populationNormContrast } from '../session/sessionPlanner';
 import type { GoalType, Orientation, ParadigmId, PlannedBlock, ThresholdEstimate } from '../types';
 import { computeDurationMs, getPhaseForSession, getProgramConfig } from './programConfig';
 

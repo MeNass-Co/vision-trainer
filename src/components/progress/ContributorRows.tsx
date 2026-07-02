@@ -121,7 +121,6 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-end',
     borderBottomColor: surface.hairline,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderStyle: 'dotted',
     flex: 1,
     marginBottom: space.xs,
     marginHorizontal: space.sm,
