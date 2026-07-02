@@ -87,7 +87,7 @@ export default function PaywallScreen() {
             <View style={styles.practiceNote}>
               <View style={styles.practiceDot} />
               <AppText color="muted" style={styles.practiceText} variant="caption">
-                Visual training practice only. No health assessment or care advice.
+                Built for practice, not promises. Readings only track this routine.
               </AppText>
             </View>
           </GlassSurface>

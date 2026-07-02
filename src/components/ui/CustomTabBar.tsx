@@ -3,7 +3,7 @@ import { BlurView } from 'expo-blur';
 import { GlassView, isGlassEffectAPIAvailable, isLiquidGlassAvailable } from 'expo-glass-effect';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -17,6 +17,12 @@ import { useEffectiveReducedMotion } from '@/theme/useEffectiveReducedMotion';
 
 import { AppText } from './AppText';
 import { PressableScale } from './PressableScale';
+
+const TAB_BAR_HEIGHT = 68;
+const TAB_BAR_RADIUS = 34;
+const TAB_BAR_SIDE_INSET = 18;
+const ACTIVE_AURA_HEIGHT = 32;
+const ACTIVE_AURA_WIDTH = 46;
 
 type TabIconProps = {
   color: string;
@@ -120,7 +126,7 @@ function TabButton({ focused, label, onPress, routeName }: TabButtonProps) {
         </Animated.View>
       </Animated.View>
       <View style={styles.labelWrap}>
-        <AppText color="muted" numberOfLines={1} style={styles.label} uppercase variant="micro">
+        <AppText color="muted" numberOfLines={1} style={styles.label} variant="micro">
           {label}
         </AppText>
         <Animated.View pointerEvents="none" style={[styles.labelOverlay, accentLayerStyle]}>
@@ -128,7 +134,6 @@ function TabButton({ focused, label, onPress, routeName }: TabButtonProps) {
             color="accent"
             numberOfLines={1}
             style={styles.label}
-            uppercase
             variant="micro">
             {label}
           </AppText>
@@ -173,7 +178,7 @@ export function CustomTabBar({ state, descriptors, navigation }: BottomTabBarPro
 
   const sheen = (
     <LinearGradient
-      colors={['rgba(255,255,255,0.10)', 'rgba(255,255,255,0)']}
+      colors={['rgba(255,255,255,0.12)', 'rgba(255,255,255,0.035)', 'rgba(255,255,255,0)']}
       end={{ x: 0.5, y: 1 }}
       pointerEvents="none"
       start={{ x: 0.5, y: 0 }}
@@ -190,15 +195,17 @@ export function CustomTabBar({ state, descriptors, navigation }: BottomTabBarPro
             glassEffectStyle={{ style: 'regular', animate: true, animationDuration: 0.2 }}
             isInteractive
             style={[styles.pill, styles.pillLiquid]}
-            tintColor="rgba(0,0,0,0.82)">
+            tintColor="rgba(10,16,20,0.54)">
             {sheen}
             <View pointerEvents="none" style={styles.darkFloor} />
             {row}
           </GlassView>
         ) : (
           <BlurView
-            experimentalBlurMethod="dimezisBlurView"
-            intensity={material.blurIntensity}
+            experimentalBlurMethod={Platform.OS === 'android' ? 'dimezisBlurView' : undefined}
+            intensity={
+              Platform.OS === 'ios' ? Math.max(material.blurIntensity, 58) : material.blurIntensity
+            }
             style={[styles.pill, styles.pillFallback]}
             tint="dark">
             {sheen}
@@ -214,30 +221,31 @@ const styles = StyleSheet.create({
   outer: {
     alignItems: 'center',
     backgroundColor: 'transparent',
-    paddingHorizontal: space.lg,
+    paddingHorizontal: TAB_BAR_SIDE_INSET,
     paddingTop: space.sm,
   },
   pillShadow: {
-    borderRadius: 28,
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.58,
-    shadowRadius: 28,
+    borderRadius: TAB_BAR_RADIUS,
+    shadowColor: '#061316',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.28,
+    shadowRadius: 26,
     width: '100%',
   },
   pill: {
     borderColor: material.hairlineOnGlass,
-    borderRadius: 28,
+    borderRadius: TAB_BAR_RADIUS,
     borderWidth: 1,
     flexDirection: 'row',
+    height: TAB_BAR_HEIGHT,
     overflow: 'hidden',
   },
   pillLiquid: {
     backgroundColor: 'transparent',
-    borderColor: 'rgba(255,255,255,0.13)',
+    borderColor: 'rgba(255,255,255,0.10)',
   },
   pillFallback: {
-    backgroundColor: 'rgba(12,20,23,0.55)',
+    backgroundColor: 'rgba(12,16,20,0.72)',
   },
   sheen: {
     height: '40%',
@@ -247,17 +255,17 @@ const styles = StyleSheet.create({
     top: 0,
   },
   darkFloor: {
-    backgroundColor: 'rgba(0,0,0,0.30)',
+    backgroundColor: 'rgba(0,0,0,0.18)',
     bottom: 0,
-    height: '54%',
+    height: '46%',
     left: 0,
     position: 'absolute',
     right: 0,
   },
   row: {
     flexDirection: 'row',
-    paddingHorizontal: space.sm,
-    paddingVertical: space.sm,
+    paddingHorizontal: 7,
+    paddingVertical: 6,
     width: '100%',
   },
   iconOverlay: {
@@ -269,10 +277,13 @@ const styles = StyleSheet.create({
   },
   iconWrap: {
     alignItems: 'center',
+    height: 25,
     justifyContent: 'center',
   },
   label: {
-    letterSpacing: 1,
+    fontSize: 10,
+    letterSpacing: 0,
+    lineHeight: 13,
   },
   labelOverlay: {
     alignItems: 'center',
@@ -289,20 +300,21 @@ const styles = StyleSheet.create({
   tabContent: {
     alignItems: 'center',
     flex: 1,
-    gap: space.sm,
-    minHeight: 58,
+    gap: space.xs,
+    minHeight: 54,
     overflow: 'hidden',
-    paddingVertical: space.sm,
+    paddingVertical: 5,
     position: 'relative',
   },
   activeAura: {
-    borderRadius: 22,
-    bottom: 4,
-    left: 7,
+    borderRadius: 18,
+    height: ACTIVE_AURA_HEIGHT,
+    left: '50%',
+    marginLeft: -ACTIVE_AURA_WIDTH / 2,
     opacity: 0.72,
     overflow: 'hidden',
     position: 'absolute',
-    right: 7,
-    top: 4,
+    top: 3,
+    width: ACTIVE_AURA_WIDTH,
   },
 });
