@@ -14,13 +14,22 @@ import * as Crypto from 'expo-crypto';
 export function uuid(): string {
   const native = Crypto.randomUUID;
   if (typeof native === 'function') {
-    return native();
+    try {
+      return native();
+    } catch {
+      // Expo web can expose randomUUID while delegating to an unavailable Web
+      // Crypto method. Fall through to the explicit browser/runtime fallback.
+    }
   }
 
   const cryptoApi = globalThis.crypto;
   const randomUUID = cryptoApi?.randomUUID;
   if (typeof randomUUID === 'function') {
-    return randomUUID.call(cryptoApi);
+    try {
+      return randomUUID.call(cryptoApi);
+    } catch {
+      // Keep the final byte-based fallback available in constrained runtimes.
+    }
   }
 
   const getRandomValues = cryptoApi?.getRandomValues?.bind(cryptoApi);

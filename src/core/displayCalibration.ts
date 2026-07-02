@@ -47,7 +47,7 @@ export function luminanceToLinearGray(luminanceCdM2: number, profile: Calibratio
 export function viewingDistanceReminder(viewingDistanceCm: number): string {
   const roundedCm = Math.max(10, Math.round(viewingDistanceCm / 10) * 10);
   const reach = roundedCm <= 40 ? "a short arm's length" : "an arm's length";
-  return `Hold your phone about ${roundedCm} cm away (${reach}) — the distance your calibration assumes.`;
+  return `Hold your phone about ${roundedCm} cm away (${reach}). This is the distance your calibration assumes.`;
 }
 
 export function conditionKey(

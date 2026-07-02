@@ -84,9 +84,12 @@ export default function PaywallScreen() {
               ))}
             </View>
 
-            <AppText color="muted" style={styles.safety} variant="micro">
-              Science-based visual training. Not a medical test or treatment.
-            </AppText>
+            <View style={styles.practiceNote}>
+              <View style={styles.practiceDot} />
+              <AppText color="muted" style={styles.practiceText} variant="caption">
+                Visual training practice only. No health assessment or care advice.
+              </AppText>
+            </View>
           </GlassSurface>
         </FadeIn>
 
@@ -157,8 +160,24 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingBottom: space.md,
   },
-  safety: {
-    lineHeight: 17,
+  practiceDot: {
+    backgroundColor: 'rgba(91,233,236,0.82)',
+    borderRadius: radius.pill,
+    height: 5,
+    marginTop: 7,
+    width: 5,
+  },
+  practiceNote: {
+    alignItems: 'flex-start',
+    borderTopColor: surface.hairline,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    flexDirection: 'row',
+    gap: space.sm,
+    paddingTop: space.md,
+  },
+  practiceText: {
+    flex: 1,
+    lineHeight: 18,
   },
   screen: {
     flex: 1,

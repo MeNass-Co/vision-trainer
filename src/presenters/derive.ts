@@ -142,7 +142,7 @@ export function derivePostSessionInsight(
       confidenceLabel: 'Provisional',
       measuredBandsLabel: bands,
       summary: `Measured ${bands}.`,
-      detail: `Complete ${sessionsUntilReliable} more session${sessionsUntilReliable === 1 ? '' : 's'} this week for a reliable starting point. This trains contrast sensitivity; it is not a medical test.`,
+      detail: `Complete ${sessionsUntilReliable} more session${sessionsUntilReliable === 1 ? '' : 's'} this week for a reliable starting point. This is a contrast training practice, not a health assessment.`,
       deltaLabel: 'Uncertain',
       deltaPercent: null,
       sessionsUntilReliable,

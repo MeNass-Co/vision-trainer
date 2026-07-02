@@ -155,7 +155,7 @@ export default function OnboardingScreen() {
                 />
                 {currentStep.id === 'reminders' ? (
                   <PressableScale onPress={advance} style={styles.secondaryChoice}>
-                    <AppText color="muted" variant="caption">
+                    <AppText color="secondary" variant="caption">
                       Not now
                     </AppText>
                   </PressableScale>
@@ -334,7 +334,7 @@ function GoalChoices({ selected, onSelect }: GoalChoicesProps) {
               <AppText color="primary" variant="caption">
                 {option.label}
               </AppText>
-              <AppText color="muted" variant="micro">
+              <AppText color={isSelected ? 'secondary' : 'muted'} style={styles.goalDetail} variant="caption">
                 {option.detail}
               </AppText>
             </View>
@@ -407,7 +407,7 @@ const styles = StyleSheet.create({
   },
   copy: {
     gap: space.base,
-    maxWidth: 340,
+    maxWidth: 348,
   },
   focusHero: {
     color: text.primary,
@@ -424,19 +424,23 @@ const styles = StyleSheet.create({
   },
   goalChoice: {
     alignItems: 'center',
-    backgroundColor: surface.raised,
-    borderColor: surface.hairline,
+    backgroundColor: 'rgba(14, 19, 22, 0.78)',
+    borderColor: 'rgba(167, 178, 180, 0.18)',
     borderRadius: radius.md,
     borderWidth: StyleSheet.hairlineWidth,
     flexDirection: 'row',
     gap: space.md,
     justifyContent: 'space-between',
+    minHeight: 56,
     paddingHorizontal: space.md,
     paddingVertical: space.sm,
   },
   goalChoiceSelected: {
-    backgroundColor: 'rgba(51, 210, 214, 0.12)',
-    borderColor: ACCENT_GLOW,
+    backgroundColor: 'rgba(51, 210, 214, 0.14)',
+    borderColor: 'rgba(91, 233, 236, 0.42)',
+  },
+  goalDetail: {
+    marginTop: 1,
   },
   goalDot: {
     backgroundColor: surface.hairline,
@@ -458,8 +462,9 @@ const styles = StyleSheet.create({
   hero: {
     flex: 1,
     justifyContent: 'flex-end',
-    gap: space.xl,
-    paddingVertical: space.xxl,
+    gap: space.lg,
+    paddingBottom: space.xl,
+    paddingTop: space.xl,
   },
   page: {
     flex: 1,
@@ -486,6 +491,11 @@ const styles = StyleSheet.create({
   },
   secondaryChoice: {
     alignItems: 'center',
-    paddingVertical: space.md,
+    alignSelf: 'center',
+    borderRadius: radius.pill,
+    minHeight: 44,
+    justifyContent: 'center',
+    paddingHorizontal: space.lg,
+    paddingVertical: space.sm,
   },
 });

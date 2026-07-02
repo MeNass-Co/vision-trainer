@@ -20,7 +20,7 @@ import {
 } from '@/services/brightness';
 import { useAppStore } from '@/store/useAppStore';
 import { haptics } from '@/theme/haptics';
-import { ACCENT, ACCENT_GLOW, radius, space, surface, text } from '@/theme/tokens';
+import { ACCENT, ACCENT_GLOW, radius, space, text } from '@/theme/tokens';
 import { useEffectiveReducedMotion } from '@/theme/useEffectiveReducedMotion';
 
 const BRIGHTNESS_MAX = 1;
@@ -178,7 +178,7 @@ export function CalibrationCard({ onComplete, confirmLabel = 'This feels right' 
           <AppText color="muted" variant="micro">
             Dim
           </AppText>
-          <AppText color="muted" tabular variant="micro">
+          <AppText color="secondary" style={styles.sliderValue} tabular variant="micro">
             {Math.round(brightness * 100)}%
           </AppText>
           <AppText color="muted" variant="micro">
@@ -187,7 +187,7 @@ export function CalibrationCard({ onComplete, confirmLabel = 'This feels right' 
         </View>
       </View>
 
-      <PrimaryButton label={confirmLabel} onPress={confirmBrightness} />
+      <PrimaryButton label={confirmLabel} onPress={confirmBrightness} style={styles.confirmButton} />
     </View>
   );
 }
@@ -195,13 +195,20 @@ export function CalibrationCard({ onComplete, confirmLabel = 'This feels right' 
 const styles = StyleSheet.create({
   calibration: {
     alignItems: 'center',
-    gap: space.xl,
+    gap: space.lg,
     justifyContent: 'flex-end',
-    minHeight: 520,
-    paddingBottom: space.lg,
+    minHeight: 500,
+    paddingBottom: space.md,
   },
   calibrationControls: {
+    backgroundColor: 'rgba(12, 20, 23, 0.58)',
+    borderColor: 'rgba(207, 250, 251, 0.12)',
+    borderRadius: radius.lg,
+    borderWidth: StyleSheet.hairlineWidth,
     gap: space.sm,
+    paddingBottom: space.md,
+    paddingHorizontal: space.base,
+    paddingTop: space.md,
     width: '100%',
   },
   calibrationCopy: {
@@ -215,11 +222,14 @@ const styles = StyleSheet.create({
   },
   calibrationReference: {
     alignItems: 'center',
-    gap: space.xl,
+    gap: space.lg,
     justifyContent: 'center',
   },
+  confirmButton: {
+    width: '100%',
+  },
   slider: {
-    height: 44,
+    height: 48,
     justifyContent: 'center',
     width: '100%',
   },
@@ -227,10 +237,14 @@ const styles = StyleSheet.create({
     backgroundColor: ACCENT,
     borderRadius: radius.pill,
     height: '100%',
+    shadowColor: ACCENT_GLOW,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.5,
+    shadowRadius: 8,
   },
   sliderKnob: {
-    backgroundColor: text.inverse,
-    borderColor: ACCENT_GLOW,
+    backgroundColor: text.primary,
+    borderColor: 'rgba(207, 250, 251, 0.44)',
     borderRadius: radius.pill,
     borderWidth: 1,
     height: SLIDER_KNOB_SIZE,
@@ -247,10 +261,13 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   sliderTrack: {
-    backgroundColor: surface.hairlineStrong,
+    backgroundColor: 'rgba(40, 54, 58, 0.82)',
     borderRadius: radius.pill,
-    height: 8,
+    height: 9,
     overflow: 'hidden',
     width: '100%',
+  },
+  sliderValue: {
+    letterSpacing: 1.2,
   },
 });
