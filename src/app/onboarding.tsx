@@ -1,6 +1,6 @@
 import { type Href, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet, View, useWindowDimensions } from 'react-native';
 import Animated, {
   cancelAnimation,
   Easing,
@@ -45,6 +45,9 @@ const GOAL_OPTIONS: { value: GoalType; label: string; detail: string }[] = [
 export default function OnboardingScreen() {
   const router = useRouter();
   const reduceMotion = useEffectiveReducedMotion();
+  const { width } = useWindowDimensions();
+  const viewportWidth = Platform.OS === 'web' && typeof globalThis.innerWidth === 'number' ? globalThis.innerWidth : width;
+  const webContentWidth = Platform.OS === 'web' ? Math.max(0, viewportWidth - space.lg * 2) : undefined;
   const [step, setStep] = useState(0);
   const currentStep = STEPS[step];
   const [selectedGoal, setSelectedGoal] = useState<GoalType>(() => {
@@ -152,6 +155,7 @@ export default function OnboardingScreen() {
                         ? handleStart
                         : advance
                   }
+                  style={webContentWidth === undefined ? undefined : { width: webContentWidth }}
                 />
                 {currentStep.id === 'reminders' ? (
                   <PressableScale onPress={advance} style={styles.secondaryChoice}>
@@ -169,7 +173,11 @@ export default function OnboardingScreen() {
             </FadeIn>
           </View>
         )}
-        <Footer onBack={() => setStep((current) => Math.max(current - 1, 0))} step={step} />
+        <Footer
+          contentWidth={webContentWidth}
+          onBack={() => setStep((current) => Math.max(current - 1, 0))}
+          step={step}
+        />
       </View>
     </Screen>
   );
@@ -347,14 +355,15 @@ function GoalChoices({ selected, onSelect }: GoalChoicesProps) {
 }
 
 type FooterProps = {
+  contentWidth?: number;
   onBack: () => void;
   step: number;
 };
 
-function Footer({ onBack, step }: FooterProps) {
+function Footer({ contentWidth, onBack, step }: FooterProps) {
   return (
     <View style={styles.footer}>
-      <ProgressBar step={step} />
+      <ProgressBar contentWidth={contentWidth} step={step} />
       <View style={styles.footerNav}>
         {step > 0 ? (
           <PressableScale hitSlop={space.sm} onPress={onBack} style={styles.backButton}>
@@ -371,10 +380,11 @@ function Footer({ onBack, step }: FooterProps) {
 }
 
 type ProgressBarProps = {
+  contentWidth?: number;
   step: number;
 };
 
-function ProgressBar({ step }: ProgressBarProps) {
+function ProgressBar({ contentWidth, step }: ProgressBarProps) {
   const fill = useSharedValue((step + 1) / STEPS.length);
 
   useEffect(() => {
@@ -387,7 +397,7 @@ function ProgressBar({ step }: ProgressBarProps) {
   }));
 
   return (
-    <View style={styles.progressTrack}>
+    <View style={[styles.progressTrack, contentWidth === undefined ? undefined : { width: contentWidth }]}>
       <Animated.View style={[styles.progressFill, fillStyle]} />
     </View>
   );
