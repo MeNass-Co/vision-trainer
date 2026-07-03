@@ -2,8 +2,8 @@ import { useRouter } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { AppText, Card, FadeIn, Screen, SheetCloseButton } from '@/components/ui';
-import { space } from '@/theme/tokens';
+import { AppText, Card, FadeIn, GaborMark, Screen, SheetCloseButton } from '@/components/ui';
+import { radius, space, surface } from '@/theme/tokens';
 
 const SECTIONS = [
   {
@@ -62,6 +62,24 @@ export default function ScienceScreen() {
               {section.eyebrow}
             </AppText>
             <AppText variant="heading">{section.title}</AppText>
+            {section.title === 'Two flashes, one pattern' ? (
+              <View style={styles.diagramRow}>
+                <View style={styles.diagramItem}>
+                  <View style={styles.diagramSquare}>
+                    <GaborMark quiet size={40} />
+                  </View>
+                  <AppText color="muted" style={styles.diagramLabel} uppercase variant="micro">
+                    Pattern
+                  </AppText>
+                </View>
+                <View style={styles.diagramItem}>
+                  <View style={styles.diagramSquare} />
+                  <AppText color="muted" style={styles.diagramLabel} uppercase variant="micro">
+                    Blank
+                  </AppText>
+                </View>
+              </View>
+            ) : null}
             <AppText color="secondary">{section.body}</AppText>
           </Card>
         </FadeIn>
@@ -73,6 +91,30 @@ export default function ScienceScreen() {
 const styles = StyleSheet.create({
   card: {
     gap: space.sm,
+  },
+  diagramItem: {
+    alignItems: 'center',
+    gap: space.xs,
+  },
+  diagramLabel: {
+    letterSpacing: 0.6,
+  },
+  diagramRow: {
+    alignSelf: 'center',
+    flexDirection: 'row',
+    gap: space.md,
+    paddingVertical: space.xs,
+  },
+  diagramSquare: {
+    alignItems: 'center',
+    backgroundColor: surface.raised,
+    borderColor: surface.hairline,
+    borderRadius: radius.md,
+    borderWidth: StyleSheet.hairlineWidth,
+    height: 64,
+    justifyContent: 'center',
+    overflow: 'hidden',
+    width: 64,
   },
   header: {
     gap: space.sm,

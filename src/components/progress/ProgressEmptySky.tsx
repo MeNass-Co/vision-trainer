@@ -1,6 +1,14 @@
 import { type Href, useRouter } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { LayoutChangeEvent, StyleSheet, View, useWindowDimensions } from 'react-native';
+import Animated, {
+  cancelAnimation,
+  Easing,
+  useAnimatedProps,
+  useSharedValue,
+  withRepeat,
+  withTiming,
+} from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Line, Path } from 'react-native-svg';
 
@@ -15,9 +23,18 @@ import {
   ACCENT_MUTED,
   ACCENT_SOFT,
   fontWeight,
+  motion,
   radius,
   space,
 } from '@/theme/tokens';
+
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
+// The apex point (index PEAK_INDEX) is "the first star waiting to be lit" —
+// the empty state's copy promise made visible. +2pt over the sibling dots'
+// r=2, plus a soft breathing halo underneath. Subtle: a promise, not a
+// celebration, so the breathe range stays narrow and is gated on reduceMotion.
+const PEAK_CORE_R = 5;
+const PEAK_HALO_R = 11;
 
 const STAR_POINTS = [
   { x: 18, y: 104 },
@@ -66,6 +83,27 @@ export function ProgressEmptySky({ reduceMotion }: ProgressEmptySkyProps) {
   const insets = useSafeAreaInsets();
   const { height: windowHeight } = useWindowDimensions();
   const [headerHeight, setHeaderHeight] = useState(0);
+  const breathe = useSharedValue(0);
+
+  useEffect(() => {
+    cancelAnimation(breathe);
+    if (reduceMotion) {
+      breathe.value = 0.5;
+      return;
+    }
+    breathe.value = 0;
+    breathe.value = withRepeat(
+      withTiming(1, { duration: motion.timing.breatheMs, easing: Easing.inOut(Easing.sin) }),
+      -1,
+      true,
+    );
+    return () => cancelAnimation(breathe);
+  }, [breathe, reduceMotion]);
+
+  const haloAnimatedProps = useAnimatedProps(() => ({
+    opacity: 0.45 + breathe.value * 0.35,
+    r: PEAK_HALO_R * (1 + breathe.value * 0.08),
+  }));
 
   const handleHeaderLayout = useCallback((event: LayoutChangeEvent) => {
     const next = Math.round(event.nativeEvent.layout.height);
@@ -128,7 +166,13 @@ export function ProgressEmptySky({ reduceMotion }: ProgressEmptySkyProps) {
               strokeOpacity={0.18}
               strokeWidth={1}
             />
-            <Circle cx={150} cy={30} fill={ACCENT_GLOW} r={9} />
+            <AnimatedCircle
+              animatedProps={haloAnimatedProps}
+              cx={150}
+              cy={30}
+              fill={ACCENT_GLOW}
+              r={PEAK_HALO_R}
+            />
             <Circle cx={150} cy={30} fill={ACCENT} fillOpacity={0.12} r={5} />
             {STAR_POINTS.map(({ x, y }, index) => (
               <Circle
@@ -137,7 +181,7 @@ export function ProgressEmptySky({ reduceMotion }: ProgressEmptySkyProps) {
                 cy={y}
                 fill={index === PEAK_INDEX ? ACCENT_CORE : ACCENT_SOFT}
                 fillOpacity={index === PEAK_INDEX ? 0.85 : 0.16}
-                r={index === PEAK_INDEX ? 3 : 2}
+                r={index === PEAK_INDEX ? PEAK_CORE_R : 2}
               />
             ))}
           </Svg>

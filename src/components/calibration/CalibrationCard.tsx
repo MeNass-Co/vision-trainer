@@ -10,7 +10,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
-import { AppText, GaborMark, PressableScale, SecondaryButton } from '@/components/ui';
+import { AppText, GaborMark, PressableScale, PrimaryButton } from '@/components/ui';
 import { buildDeviceCalibration } from '@/core/deviceCalibration';
 import { viewingDistanceReminder } from '@/core/displayCalibration';
 import {
@@ -219,7 +219,7 @@ export function CalibrationCard({ onComplete, confirmLabel = 'This feels right' 
         </View>
       </View>
 
-      <SecondaryButton label={confirmLabel} onPress={confirmBrightness} />
+      <PrimaryButton label={confirmLabel} onPress={confirmBrightness} style={styles.confirmButton} />
     </View>
   );
 }
@@ -256,6 +256,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: space.base,
     justifyContent: 'center',
+  },
+  confirmButton: {
+    width: '100%',
   },
   slider: {
     // spec.md rows 5+6: thumb (16pt) sits centered on the track (8pt) with 4pt
