@@ -12,7 +12,10 @@ export const surface = {
   overlay: '#141F22',
   warm: '#0C1417',
   hairline: '#1E2A2D',
-  hairlineStrong: '#28363A'
+  hairlineStrong: '#28363A',
+  // Token addendum (VALIDATION.md) — additive.
+  controlTrackOff: '#33383D',
+  sheet: '#1B2225'
 } as const;
 
 export const text = {
@@ -20,7 +23,11 @@ export const text = {
   secondary: '#A7B2B4',
   // muted: cool cyan-grey (moonlight, not firelight). ≈4.87:1 on surface.base #080A0D — clears WCAG AA 4.5:1.
   muted: '#6E827F',
-  inverse: '#08161A'
+  inverse: '#08161A',
+  // Token addendum (VALIDATION.md) — additive.
+  faint: '#2B3231',
+  tertiary: '#6B7477',
+  secondaryBright: '#C9D6D7'
 } as const;
 
 // SIGNATURE ACCENT - single living hue, run as a luminance LADDER, never one flat value.
@@ -43,7 +50,11 @@ export const accent = {
   hot: ACCENT_HOT,
   idle: ACCENT_GLOW,
   amber: '#6FE3E6',
-  ember: '#26C3C8'
+  ember: '#26C3C8',
+  // Token addendum (VALIDATION.md, law 3) — isoluminant CTA fill, horizontal 5-stop ramp.
+  ctaRamp: ['#A2FFD1', '#BAFFE9', '#BCFEF3', '#B0FDF9', '#A3F9FD'],
+  trackTint: 'rgba(51,210,214,0.15)',
+  onLight: '#0B6A6D'
 } as const;
 
 export const verdict = {
@@ -63,7 +74,12 @@ export const material = {
   blurIntensity: 40,
   blurTint: 'dark',
   radius: 22,
-  hairlineOnGlass: 'rgba(255,255,255,0.12)'
+  hairlineOnGlass: 'rgba(255,255,255,0.12)',
+  // Token addendum (VALIDATION.md) — additive.
+  hairlineOutline: 'rgba(255,255,255,0.34)',
+  fillChip: 'rgba(255,255,255,0.05)',
+  fillCard: 'rgba(255,255,255,0.07)',
+  pillOnGlass: 'rgba(255,255,255,0.10)'
 } as const;
 
 export const space = {
@@ -81,7 +97,12 @@ export const radius = {
   sm: 8,
   md: 10,
   lg: 14,
-  pill: 999
+  pill: 999,
+  // Token addendum (VALIDATION.md) — additive.
+  xs: 4,
+  xl: 25,
+  sheet: 36,
+  floatingBar: 27
 } as const;
 
 export const hairline = {
@@ -144,11 +165,42 @@ export const type = {
     fontSize: 11,
     lineHeight: 15,
     letterSpacing: 1.4
+  },
+  // Token addendum (VALIDATION.md) — additions, not replacements.
+  tabLabel: {
+    fontFamily: fontFamily.medium,
+    fontSize: 10,
+    lineHeight: 12,
+    letterSpacing: 0.2
+  },
+  metricValue: {
+    fontFamily: fontFamily.semibold,
+    fontSize: 24,
+    lineHeight: 28,
+    letterSpacing: -0.3,
+    fontVariant: ['tabular-nums'] as const
+  },
+  numeral: {
+    fontFamily: fontFamily.bold,
+    fontSize: 18,
+    lineHeight: 22,
+    letterSpacing: 0
   }
 } as const;
 
 export const tabularFigures = {
   fontVariant: ['tabular-nums'] as const
+} as const;
+
+// Token addendum (VALIDATION.md) — additive.
+export const icon = {
+  tab: 23
+} as const;
+
+export const sparkline = {
+  width: 26,
+  height: 30,
+  stroke: 2
 } as const;
 
 export const motion = {
@@ -201,5 +253,7 @@ export const tokens = {
   fontFamily,
   type,
   tabularFigures,
-  motion
+  motion,
+  icon,
+  sparkline
 } as const;

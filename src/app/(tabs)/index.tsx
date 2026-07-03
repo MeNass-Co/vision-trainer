@@ -164,6 +164,7 @@ function TodayContent({ data, reduceMotion, router }: TodayContentProps) {
             haptic="select"
             label={data.sessionDoneToday ? 'Optional practice' : 'Start session'}
             onPress={startSession}
+            style={styles.startCta}
           />
         </FadeIn>
       </View>
@@ -272,6 +273,11 @@ export const styles = StyleSheet.create({
   },
   sessionMeta: {
     gap: space.xs,
+  },
+  // CTA law (VALIDATION.md #1): 32pt total edge-to-button margin. Parent Screen
+  // already pads space.lg (24pt), so the CTA adds the remaining space.xl − space.lg.
+  startCta: {
+    marginHorizontal: space.xl - space.lg,
   },
   spacer: {
     alignItems: 'center',

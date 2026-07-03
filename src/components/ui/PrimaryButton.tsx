@@ -4,7 +4,7 @@ import { StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
 
 import { AppText } from './AppText';
 import { PressableScale, type PressableScaleProps } from './PressableScale';
-import { ACCENT, ACCENT_CORE, radius, space, surface } from '@/theme/tokens';
+import { ACCENT_CORE, accent, motion, radius, surface } from '@/theme/tokens';
 
 export type PrimaryButtonProps = {
   label: string;
@@ -17,8 +17,10 @@ export type PrimaryButtonProps = {
   children?: ReactNode;
 };
 
-// One committing action per screen = the solid cyan pill (Today, Progress, Onboarding).
-// Ghost = a softer secondary commit. The internal sheen gives the fill a faint top-light.
+// CTA law (VALIDATION.md #1): this component governs EVERY full-width CTA in the
+// app (Today, paywall, empty-state, onboarding, calibration, session). One committing
+// action per screen = the solid pill with the isoluminant cyan-mint ramp (law #3).
+// Ghost = a softer secondary commit, unchanged geometry/type, flat surface fill.
 export function PrimaryButton({
   label,
   onPress,
@@ -38,27 +40,24 @@ export function PrimaryButton({
       disabled={disabled}
       haptic={haptic}
       onPress={onPress}
-      scaleTo={0.96}
-      style={[styles.base, isSolid ? styles.solid : styles.ghost, style]}>
+      scaleTo={motion.pressScale}
+      style={[styles.base, isSolid ? styles.solid : styles.ghost, disabled && isSolid && styles.solidDisabledGlow, style]}>
       {isSolid ? (
-        <>
-          <LinearGradient
-            colors={[ACCENT_CORE, ACCENT]}
-            end={{ x: 0.5, y: 1 }}
-            pointerEvents="none"
-            start={{ x: 0.5, y: 0 }}
-            style={StyleSheet.absoluteFill}
-          />
-          <LinearGradient
-            colors={['rgba(255,255,255,0.16)', 'rgba(255,255,255,0)']}
-            end={{ x: 0.5, y: 1 }}
-            pointerEvents="none"
-            start={{ x: 0.5, y: 0 }}
-            style={styles.sheen}
-          />
-        </>
+        // Law #3: horizontal (90°) 5-stop isoluminant ramp, 0 vertical variance —
+        // no top sheen/highlight layered on top (the reference fill is flat on the y-axis).
+        <LinearGradient
+          colors={accent.ctaRamp}
+          end={{ x: 1, y: 0.5 }}
+          locations={[0, 0.25, 0.5, 0.75, 1]}
+          pointerEvents="none"
+          start={{ x: 0, y: 0.5 }}
+          style={[StyleSheet.absoluteFill, disabled && styles.disabledFill]}
+        />
       ) : null}
-      <AppText color={isSolid ? 'inverse' : 'primary'} variant="heading">
+      <AppText
+        color={isSolid ? 'inverse' : 'primary'}
+        style={disabled && isSolid ? styles.disabledLabel : undefined}
+        variant="heading">
         {label}
       </AppText>
       {children}
@@ -70,30 +69,33 @@ const styles = StyleSheet.create({
   base: {
     alignItems: 'center',
     borderRadius: radius.pill,
+    height: 48,
     justifyContent: 'center',
-    minHeight: 56,
     overflow: 'hidden',
-    paddingVertical: space.md,
   },
   solid: {
-    backgroundColor: ACCENT,
-    // iOS-only cyan glow (premium CTA signature). No Android `elevation` — it would
-    // ignore shadowColor and stamp a grey material box instead of this glow.
-    shadowColor: ACCENT,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.45,
-    shadowRadius: 18,
+    backgroundColor: accent.ctaRamp[accent.ctaRamp.length - 1],
+    // iOS-only cyan glow (premium CTA signature; unmeasurable from the reference PNG —
+    // spec row 10 flags no isolable local bloom, best-effort low ambient echo).
+    // No Android `elevation` — it would ignore shadowColor and stamp a grey box instead.
+    shadowColor: ACCENT_CORE,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.18,
+    shadowRadius: 28,
+  },
+  solidDisabledGlow: {
+    shadowOpacity: 0,
   },
   ghost: {
     backgroundColor: surface.raised,
     borderColor: surface.hairlineStrong,
     borderWidth: 1,
   },
-  sheen: {
-    height: '60%',
-    left: 0,
-    position: 'absolute',
-    right: 0,
-    top: 0,
+  // States law (spec rows 17-18): fill −90% opacity, label −60/65% opacity vs enabled.
+  disabledFill: {
+    opacity: 0.1,
+  },
+  disabledLabel: {
+    opacity: 0.37,
   },
 });
