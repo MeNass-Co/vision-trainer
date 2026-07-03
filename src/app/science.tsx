@@ -1,9 +1,9 @@
 import { useRouter } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
-import Svg, { Path } from 'react-native-svg';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { AppText, Card, FadeIn, PressableScale, Screen } from '@/components/ui';
-import { radius, space, surface, text } from '@/theme/tokens';
+import { AppText, Card, FadeIn, Screen, SheetCloseButton } from '@/components/ui';
+import { space } from '@/theme/tokens';
 
 const SECTIONS = [
   {
@@ -30,25 +30,22 @@ const SECTIONS = [
 
 export default function ScienceScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
+  // Screen (scroll) sets content top padding to `insets.top + space.xxl` — its
+  // shared header rhythm. The sheet's close chip must instead sit at `space.base`
+  // from the SHEET's own top edge (modal-sheet spec row 5), so pull it up locally
+  // by the delta and push the following header down by the same amount so the
+  // rest of the content doesn't visually jump into the status area.
+  const chipTopOffset = insets.top + space.xxl - space.base;
 
   return (
-    <Screen scroll style={styles.screen}>
-      <View style={styles.topBar}>
-        <PressableScale
-          accessibilityLabel="Close"
-          accessibilityRole="button"
-          hitSlop={12}
-          onPress={() => router.back()}
-          style={styles.close}>
-          <Svg height={14} width={14}>
-            <Path
-              d="M2 2L12 12M12 2L2 12"
-              stroke={text.muted}
-              strokeLinecap="round"
-              strokeWidth={1.4}
-            />
-          </Svg>
-        </PressableScale>
+    <Screen scroll sheet style={styles.screen}>
+      <View
+        style={[
+          styles.topBar,
+          { marginBottom: space.md + chipTopOffset, marginTop: -chipTopOffset },
+        ]}>
+        <SheetCloseButton onPress={() => router.back()} />
       </View>
       <FadeIn style={styles.header}>
         <AppText color="muted" uppercase variant="micro">
@@ -77,15 +74,6 @@ const styles = StyleSheet.create({
   card: {
     gap: space.sm,
   },
-  close: {
-    alignItems: 'center',
-    borderColor: surface.hairline,
-    borderRadius: radius.pill,
-    borderWidth: 1,
-    height: 32,
-    justifyContent: 'center',
-    width: 32,
-  },
   header: {
     gap: space.sm,
     marginBottom: space.lg,
@@ -101,6 +89,10 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    marginBottom: space.md,
+    // Screen's own horizontal padding is space.lg (24); the sheet's close chip
+    // sits at space.base (16) from the sheet edge (modal-sheet spec rows 5-6).
+    // Vertical marginTop/marginBottom are set inline (see chipTopOffset above) —
+    // they depend on the safe-area inset, which isn't known at StyleSheet.create time.
+    marginRight: space.base - space.lg,
   },
 });

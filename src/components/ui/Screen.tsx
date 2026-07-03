@@ -9,13 +9,18 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { space, surface } from '@/theme/tokens';
+import { radius, space, surface } from '@/theme/tokens';
 
 export type ScreenProps = {
   children: ReactNode;
   scroll?: boolean;
   warm?: boolean;
   padded?: boolean;
+  /**
+   * Renders as a native modal sheet (design/references/modal-sheet/spec.md):
+   * `surface.sheet` fill, `radius.sheet` top corners. Takes precedence over `warm`.
+   */
+  sheet?: boolean;
   /**
    * Full-bleed backdrop (e.g. the ambient gradient). Rendered as an absolutely
    * positioned sibling BEHIND the content — outside the safe-area padding and
@@ -30,13 +35,14 @@ export function Screen({
   children,
   scroll = false,
   warm = false,
+  sheet = false,
   padded = true,
   background,
   style,
 }: ScreenProps) {
   const insets = useSafeAreaInsets();
   const { height } = useWindowDimensions();
-  const backgroundColor = warm ? surface.warm : surface.base;
+  const backgroundColor = sheet ? surface.sheet : warm ? surface.warm : surface.base;
   const contentStyle = [
     styles.content,
     { paddingBottom: insets.bottom },
@@ -48,7 +54,7 @@ export function Screen({
   ];
 
   return (
-    <View style={[styles.background, { backgroundColor }]}>
+    <View style={[styles.background, sheet && styles.sheetCorners, { backgroundColor }]}>
       {!scroll && background ? (
         <View pointerEvents="none" style={styles.backgroundLayer}>
           {background}
@@ -78,6 +84,11 @@ export function Screen({
 const styles = StyleSheet.create({
   background: {
     flex: 1,
+  },
+  sheetCorners: {
+    borderTopLeftRadius: radius.sheet,
+    borderTopRightRadius: radius.sheet,
+    overflow: 'hidden',
   },
   backgroundLayer: {
     ...StyleSheet.absoluteFillObject,
