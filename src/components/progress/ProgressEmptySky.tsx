@@ -1,5 +1,7 @@
 import { type Href, useRouter } from 'expo-router';
-import { StyleSheet, View } from 'react-native';
+import { useCallback, useState } from 'react';
+import { LayoutChangeEvent, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Line, Path } from 'react-native-svg';
 
 import { CelestialGabor } from '@/components/home/CelestialGabor';
@@ -11,6 +13,7 @@ import {
   ACCENT_HOT,
   ACCENT_MUTED,
   ACCENT_SOFT,
+  fontFamily,
   radius,
   space,
 } from '@/theme/tokens';
@@ -30,25 +33,78 @@ const ARC_PATH = STAR_POINTS.map(({ x, y }, index) => `${index === 0 ? 'M' : 'L'
   ' ',
 );
 
+// empty-state spec (design/references/empty-state/spec.md) rows 1-2: the Shake
+// Shack reference's visual cluster sits at a 20.7% top-offset and spans 35.4%
+// of screen height. VALIDATION.md's empty-state verdict is "rhythm only" — our
+// own celestial visual (orb + dormant chart) replaces the illustration outright
+// (carve-out), so we honor the HEIGHT ratio (it governs how much vertical room
+// the visual is given before the text starts) and let width follow naturally:
+// the reference's tall-thin bag icon has no equivalent aspect in an orb+chart
+// composition, so forcing literal ~119pt width (row 3's estimate) would distort
+// our own visual's identity rather than transfer a rhythm.
+const VISUAL_TOP_RATIO = 0.207;
+const VISUAL_HEIGHT_RATIO = 0.354;
+const VISUAL_GAP = space.sm;
+const VISUAL_NATIVE_ORB = 300; // CelestialGabor intrinsic SIZE
+const VISUAL_NATIVE_ARC_W = 300;
+const VISUAL_NATIVE_ARC_H = 132;
+const VISUAL_NATIVE_TOTAL = VISUAL_NATIVE_ORB + VISUAL_GAP + VISUAL_NATIVE_ARC_H;
+
+// Row 22: text-block margins run ~50pt (space.xxl) each side vs the CTA's own
+// 32pt (CTA law) — a real structural asymmetry to preserve, not noise. Screen
+// already pads space.lg on both blocks, so each only adds its own remainder.
+const TEXT_BLOCK_EXTRA_MARGIN = space.xxl - space.lg; // 24pt -> 48pt total
+const CTA_EXTRA_MARGIN = space.xl - space.lg; // 8pt -> 32pt total, law 1
+
 export type ProgressEmptySkyProps = {
   reduceMotion?: boolean;
 };
 
 export function ProgressEmptySky({ reduceMotion }: ProgressEmptySkyProps) {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const { height: windowHeight } = useWindowDimensions();
+  const [headerHeight, setHeaderHeight] = useState(0);
+
+  const handleHeaderLayout = useCallback((event: LayoutChangeEvent) => {
+    const next = Math.round(event.nativeEvent.layout.height);
+    setHeaderHeight((previous) => (previous === next ? previous : next));
+  }, []);
+
+  // Row 1's offset is measured from the true device top; our header chip plus
+  // Screen's own safe-area/space.lg padding already consume part of that
+  // budget before this component's root even starts, so subtract it back out.
+  const consumedAboveScene = insets.top + space.lg + headerHeight;
+  const sceneHeight = windowHeight * VISUAL_HEIGHT_RATIO;
+  const sceneMarginTop = Math.max(
+    space.md,
+    windowHeight * VISUAL_TOP_RATIO - consumedAboveScene,
+  );
+  const visualScale = Math.min(1, Math.max(0.5, sceneHeight / VISUAL_NATIVE_TOTAL));
+  const orbSize = VISUAL_NATIVE_ORB * visualScale;
+  const arcWidth = VISUAL_NATIVE_ARC_W * visualScale;
+  const arcHeight = VISUAL_NATIVE_ARC_H * visualScale;
 
   return (
     <View style={styles.root}>
       <FadeIn>
-        <View style={styles.screenLabelPlate}>
+        <View onLayout={handleHeaderLayout} style={styles.screenLabelPlate}>
           <AppText color="accent" style={styles.screenLabel} variant="caption">
             Progress
           </AppText>
         </View>
       </FadeIn>
-      <View style={styles.scene}>
+      <View style={[styles.scene, { height: sceneHeight, marginTop: sceneMarginTop }]}>
         <FadeIn>
-          <View style={styles.orbScale}>
+          <View
+            style={[
+              styles.orbScale,
+              {
+                height: orbSize,
+                transform: [{ scale: orbSize / VISUAL_NATIVE_ORB }],
+                width: orbSize,
+              },
+            ]}>
             <CelestialGabor
               contrast={0.32}
               progress={0.08}
@@ -57,8 +113,8 @@ export function ProgressEmptySky({ reduceMotion }: ProgressEmptySkyProps) {
             />
           </View>
         </FadeIn>
-        <FadeIn delay={120} style={styles.arc}>
-          <Svg height={132} viewBox="0 0 300 132" width="100%">
+        <FadeIn delay={120}>
+          <Svg height={arcHeight} viewBox="0 0 300 132" width={arcWidth}>
             {/* dormant axis — the chart that will fill in */}
             <Line x1={12} y1={122} x2={288} y2={122} stroke={ACCENT_MUTED} strokeOpacity={0.14} strokeWidth={1} />
             {STAR_POINTS.map(({ x }) => (
@@ -88,45 +144,49 @@ export function ProgressEmptySky({ reduceMotion }: ProgressEmptySkyProps) {
           </Svg>
         </FadeIn>
       </View>
-      <FadeIn delay={180} style={styles.bottomBlock}>
-        <AppText color="primary" variant="hero">
-          {'Your sky\nis dark'}
-        </AppText>
-        <AppText color="secondary" variant="body">
-          Train once to light your first star.
-        </AppText>
-        <View style={styles.ctaWrap}>
-          <PrimaryButton
-            label="Start a session"
-            onPress={() => router.push('/session' as Href)}
-          />
-        </View>
+      <View style={styles.textBlock}>
+        <FadeIn delay={180}>
+          <AppText color="primary" style={styles.title} variant="title">
+            {'Your sky\nis dark'}
+          </AppText>
+        </FadeIn>
+        <FadeIn delay={200}>
+          <AppText color="secondary" style={styles.caption} variant="body">
+            Train once to light your first star.
+          </AppText>
+        </FadeIn>
+      </View>
+      <View style={styles.spacer} />
+      <FadeIn delay={220} style={styles.ctaWrap}>
+        <PrimaryButton
+          label="Start a session"
+          onPress={() => router.push('/session' as Href)}
+        />
       </FadeIn>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  arc: {
-    width: '100%',
-  },
-  bottomBlock: {
-    gap: space.md,
-    paddingBottom: space.xl,
-  },
+  // CTA law (VALIDATION.md #1) + Today/paywall's local-margin technique: Screen
+  // already pads space.lg (24pt); add the remaining space.xl - space.lg to
+  // reach the law's 32pt total. Row 7's bottom offset (safeAreaBottom + 16) is
+  // Screen's own insets.bottom padding (34pt) plus this paddingBottom (16pt) —
+  // NOT Shake Shack's 166.7pt dead zone, which VALIDATION explicitly voids.
   ctaWrap: {
-    marginTop: space.sm,
+    marginHorizontal: CTA_EXTRA_MARGIN,
+    paddingBottom: space.base,
+  },
+  orbScale: {
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   root: {
     flex: 1,
   },
-  orbScale: {
-    transform: [{ scale: 1.08 }],
-  },
   scene: {
     alignItems: 'center',
-    flex: 1,
-    gap: space.md,
+    gap: VISUAL_GAP,
     justifyContent: 'center',
   },
   screenLabel: {
@@ -145,5 +205,44 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     paddingHorizontal: space.sm,
     paddingVertical: space.xs,
+  },
+  // Row 21: caption->CTA is a MINIMUM of space.xl (32pt) — our CTA's own
+  // bottom offset (row 7, law 1) is anchored near the screen edge rather than
+  // Shake Shack's contiguous stack + 166.7pt dead zone, so on most devices
+  // this spacer absorbs far more than 32pt; it never shows less.
+  spacer: {
+    flexGrow: 1,
+    minHeight: space.xl,
+  },
+  // Row 18/17: caption ~ type.body size/line-height, weight bumped to medium
+  // (nearest to the reference's bold-for-a-caption stroke ratio).
+  caption: {
+    fontFamily: fontFamily.medium,
+    marginTop: -3,
+    textAlign: 'center',
+  },
+  // Row 22: text block (title + caption) inset ~50pt (space.xxl) each side —
+  // visibly more inset than the CTA's own 32pt margin; a real asymmetry.
+  textBlock: {
+    alignItems: 'center',
+    // row 20: target ink-to-ink gap ~10.3pt. RN's flex `gap` clamps at 0, and
+    // Inter's line-height leading alone already produces ~14.3pt between
+    // these two type sizes at gap:0 — the extra pull is a negative marginTop
+    // on the caption itself (calibrated against a live capture, same
+    // technique as index.tsx's dotSlot marginTop).
+    gap: 0,
+    marginHorizontal: TEXT_BLOCK_EXTRA_MARGIN,
+    marginTop: space.base, // row 19: visual->title gap
+  },
+  // Row 16: nearest token is type.title, but the reference runs a
+  // "display-size" title (~32.6pt / 38.7pt line rhythm) — sized up from the
+  // 28/34 token default rather than clamped to it, weight bumped to bold
+  // (the reference's stroke ratio is too heavy for semibold).
+  title: {
+    fontFamily: fontFamily.bold,
+    fontSize: 32.6,
+    letterSpacing: -0.4,
+    lineHeight: 38.7,
+    textAlign: 'center',
   },
 });
