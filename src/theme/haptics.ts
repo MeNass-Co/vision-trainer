@@ -16,6 +16,8 @@ export function setHapticsEnabled(value: boolean) {
 }
 
 export const haptics = {
+  // Token addendum (VALIDATION.md) — additive: motion.haptics.tick = 'light'.
+  tick: () => run(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)),
   select: () => run(() => Haptics.selectionAsync()),
   correct: () => run(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)),
   wrong: () => run(() => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning)),

@@ -2,10 +2,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
-  interpolateColor,
   runOnJS,
   useAnimatedStyle,
   useSharedValue,
+  withSpring,
   withTiming,
 } from 'react-native-reanimated';
 
@@ -19,13 +19,15 @@ import {
 } from '@/services/brightness';
 import { useAppStore } from '@/store/useAppStore';
 import { haptics } from '@/theme/haptics';
-import { ACCENT, ACCENT_GLOW, radius, space, text } from '@/theme/tokens';
+import { ACCENT, ACCENT_CORE, ACCENT_SOFT, motion, radius, space, surface, text } from '@/theme/tokens';
 import { useEffectiveReducedMotion } from '@/theme/useEffectiveReducedMotion';
 
 const BRIGHTNESS_MAX = 1;
 const BRIGHTNESS_MIN = 0.2;
 const BRIGHTNESS_RANGE = BRIGHTNESS_MAX - BRIGHTNESS_MIN;
-const SLIDER_KNOB_SIZE = 28;
+// slider spec.md row 5: thumb diameter 16.0pt (== space.base). row 1: track height 8.0pt (== space.sm).
+const SLIDER_KNOB_SIZE = space.base;
+const SLIDER_TRACK_HEIGHT = space.sm;
 
 export type CalibrationCardProps = {
   onComplete: () => void;
@@ -40,15 +42,24 @@ function brightnessToProgress(value: number) {
   return (clamp(value, BRIGHTNESS_MIN, BRIGHTNESS_MAX) - BRIGHTNESS_MIN) / BRIGHTNESS_RANGE;
 }
 
+function edgeForProgress(progressValue: number): 'min' | 'max' | null {
+  if (progressValue <= 0) return 'min';
+  if (progressValue >= 1) return 'max';
+  return null;
+}
+
 export function CalibrationCard({ onComplete, confirmLabel = 'This feels right' }: CalibrationCardProps) {
   const storedBrightness = useAppStore((state) => state.settings.displayBrightness);
   const [brightness, setBrightness] = useState(
     clamp(storedBrightness, BRIGHTNESS_MIN, BRIGHTNESS_MAX)
   );
   const [trackWidth, setTrackWidth] = useState(0);
-  const lastHapticStepRef = useRef(Math.round(brightness * 10));
+  // VALIDATION.md motion row: "haptic tick at 0%/100% only" — track which edge (if any)
+  // we last ticked at, so holding at an edge doesn't re-fire and leaving it re-arms.
+  const lastEdgeRef = useRef<'min' | 'max' | null>(edgeForProgress(brightnessToProgress(brightness)));
   const latestBrightnessRef = useRef(brightness);
   const progress = useSharedValue(brightnessToProgress(brightness));
+  const thumbScale = useSharedValue(1);
   const reduceMotion = useEffectiveReducedMotion();
   const distanceLine = useMemo(
     () => viewingDistanceReminder(buildDeviceCalibration().viewingDistanceCm),
@@ -69,7 +80,7 @@ export function CalibrationCard({ onComplete, confirmLabel = 'This feels right' 
       if (!active) return;
 
       latestBrightnessRef.current = initialBrightness;
-      lastHapticStepRef.current = Math.round(initialBrightness * 10);
+      lastEdgeRef.current = edgeForProgress(brightnessToProgress(initialBrightness));
       setBrightness(initialBrightness);
       progress.value = reduceMotion
         ? brightnessToProgress(initialBrightness)
@@ -94,16 +105,17 @@ export function CalibrationCard({ onComplete, confirmLabel = 'This feels right' 
 
   const commitBrightness = useCallback((nextBrightness: number) => {
     const calibratedBrightness = clamp(nextBrightness, BRIGHTNESS_MIN, BRIGHTNESS_MAX);
-    const hapticStep = Math.round(calibratedBrightness * 10);
+    const edge = edgeForProgress(brightnessToProgress(calibratedBrightness));
 
     latestBrightnessRef.current = calibratedBrightness;
     setBrightness(calibratedBrightness);
     void applySessionBrightness(calibratedBrightness);
 
-    if (hapticStep !== lastHapticStepRef.current) {
-      lastHapticStepRef.current = hapticStep;
-      haptics.select();
+    // Slider motion law (VALIDATION.md): haptic tick at 0%/100% only, once per arrival.
+    if (edge && edge !== lastEdgeRef.current) {
+      haptics.tick();
     }
+    lastEdgeRef.current = edge;
   }, []);
 
   const confirmBrightness = () => {
@@ -128,26 +140,41 @@ export function CalibrationCard({ onComplete, confirmLabel = 'This feels right' 
     };
     const pan = Gesture.Pan()
       .activeOffsetX([-4, 4])
+      .hitSlop({ top: 14, bottom: 14 })
       .onBegin((event) => {
+        // VALIDATION.md motion row: thumb scale 1.15 while grabbed, spring.input.
+        thumbScale.value = withSpring(1.15, motion.spring.input);
         updateFromX(event.x);
       })
       .onUpdate((event) => {
         updateFromX(event.x);
+      })
+      .onFinalize(() => {
+        thumbScale.value = withSpring(1, motion.spring.input);
       });
-    const tap = Gesture.Tap().onEnd((event) => {
-      updateFromX(event.x);
-    });
+    const tap = Gesture.Tap()
+      .hitSlop({ top: 14, bottom: 14 })
+      .onEnd((event) => {
+        updateFromX(event.x);
+      });
 
     return Gesture.Race(pan, tap);
-  }, [commitBrightness, progress, trackWidth]);
+  }, [commitBrightness, progress, thumbScale, trackWidth]);
 
-  const fillStyle = useAnimatedStyle(() => ({
-    width: `${progress.value * 100}%`,
-  }));
-  const knobStyle = useAnimatedStyle(() => ({
-    backgroundColor: interpolateColor(progress.value, [0, 1], [text.secondary, text.inverse]),
-    shadowOpacity: 0.3 + progress.value * 0.35,
-    transform: [{ translateX: progress.value * Math.max(trackWidth - SLIDER_KNOB_SIZE, 0) }],
+  // slider spec.md row 7 (quirk, kept verbatim): fill hard-stops one thumb-radius
+  // short of the thumb's CENTER — i.e. one thumb-radius short of the thumb's own
+  // leading edge, exposing a sliver of unfilled track before the thumb (not flush).
+  const fillAnimatedStyle = useAnimatedStyle(() => {
+    const travel = Math.max(trackWidth - SLIDER_KNOB_SIZE, 0);
+    const thumbLeadingEdge = progress.value * travel;
+    const fillWidth = Math.max(thumbLeadingEdge - SLIDER_KNOB_SIZE / 2, 0);
+    return { width: fillWidth };
+  });
+  const knobAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [
+      { translateX: progress.value * Math.max(trackWidth - SLIDER_KNOB_SIZE, 0) },
+      { scale: thumbScale.value },
+    ],
   }));
 
   return (
@@ -168,19 +195,23 @@ export function CalibrationCard({ onComplete, confirmLabel = 'This feels right' 
             onLayout={(event) => setTrackWidth(event.nativeEvent.layout.width)}
             style={styles.slider}>
             <View pointerEvents="none" style={styles.sliderTrack}>
-              <Animated.View style={[styles.sliderFill, fillStyle]} />
+              <Animated.View style={[styles.sliderFill, fillAnimatedStyle]}>
+                <View style={[styles.fillBand, styles.fillBandOrigin]} />
+                <View style={[styles.fillBand, styles.fillBandMid]} />
+                <View style={[styles.fillBand, styles.fillBandNearThumb]} />
+              </Animated.View>
             </View>
-            <Animated.View pointerEvents="none" style={[styles.sliderKnob, knobStyle]} />
+            <Animated.View pointerEvents="none" style={[styles.sliderKnob, knobAnimatedStyle]} />
           </View>
         </GestureDetector>
         <View style={styles.sliderLabels}>
-          <AppText color="muted" variant="micro">
+          <AppText color="secondary" uppercase variant="micro">
             Dim
           </AppText>
-          <AppText color="secondary" style={styles.sliderValue} tabular variant="micro">
+          <AppText color="primary" tabular variant="bodyStrong">
             {Math.round(brightness * 100)}%
           </AppText>
-          <AppText color="muted" variant="micro">
+          <AppText color="secondary" uppercase variant="micro">
             Bright
           </AppText>
         </View>
@@ -225,30 +256,47 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   slider: {
-    height: 48,
+    // spec.md rows 5+6: thumb (16pt) sits centered on the track (8pt) with 4pt
+    // overhang each side — the wrapper is exactly the thumb's own diameter tall;
+    // touch generosity comes from gesture hitSlop, not extra visual height.
+    height: SLIDER_KNOB_SIZE,
     justifyContent: 'center',
     width: '100%',
   },
+  // Fill container: width is animated (spec row 7 quirk); the 3 children below
+  // split that animated width into equal thirds — spec rows 8–11, a hard 3-band
+  // luminance ramp at constant hue, banded as fractions of the FILLED segment.
   sliderFill: {
-    backgroundColor: ACCENT,
-    borderRadius: radius.pill,
+    flexDirection: 'row',
     height: '100%',
-    shadowColor: ACCENT_GLOW,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.5,
-    shadowRadius: 8,
+  },
+  fillBand: {
+    flex: 1,
+    height: '100%',
+  },
+  // Origin (track start, 0–33% of the filled segment) — brightest.
+  fillBandOrigin: {
+    backgroundColor: ACCENT_CORE,
+  },
+  // Mid (33–67% of the filled segment).
+  fillBandMid: {
+    backgroundColor: ACCENT,
+  },
+  // Near-thumb (67–100% of the filled segment) — dimmest.
+  fillBandNearThumb: {
+    backgroundColor: ACCENT_SOFT,
   },
   sliderKnob: {
     backgroundColor: text.primary,
-    borderColor: 'rgba(207, 250, 251, 0.44)',
     borderRadius: radius.pill,
-    borderWidth: 1,
     height: SLIDER_KNOB_SIZE,
     left: 0,
     position: 'absolute',
-    shadowColor: ACCENT_GLOW,
-    shadowOffset: { width: 0, height: 0 },
-    shadowRadius: 12,
+    // spec.md rows 28–30: pure downward contact shadow, ~2.7pt blur, zero lateral spread.
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 0.3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 2.7,
     width: SLIDER_KNOB_SIZE,
   },
   sliderLabels: {
@@ -257,13 +305,11 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   sliderTrack: {
-    backgroundColor: 'rgba(40, 54, 58, 0.82)',
+    // spec.md row 13: nearest sibling token to the reference's near-neutral grey.
+    backgroundColor: surface.hairlineStrong,
     borderRadius: radius.pill,
-    height: 9,
+    height: SLIDER_TRACK_HEIGHT,
     overflow: 'hidden',
     width: '100%',
-  },
-  sliderValue: {
-    letterSpacing: 1.2,
   },
 });
