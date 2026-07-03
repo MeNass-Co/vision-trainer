@@ -1,13 +1,6 @@
 import { forwardRef } from 'react';
 import type { ReactNode } from 'react';
-import {
-  ScrollView,
-  StyleSheet,
-  View,
-  useWindowDimensions,
-  type StyleProp,
-  type ViewStyle,
-} from 'react-native';
+import { ScrollView, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { radius, space, surface } from '@/theme/tokens';
@@ -26,9 +19,11 @@ export type ScreenProps = {
   sheet?: boolean;
   /**
    * Full-bleed backdrop (e.g. the ambient gradient). Rendered as an absolutely
-   * positioned sibling BEHIND the content — outside the safe-area padding and
-   * outside the safe-area padding. Scroll screens mount it inside the scroll
-   * content so the sky travels with long pages instead of revealing flat gutters.
+   * positioned sibling BEHIND the ScrollView (or content, when not scrollable)
+   * — outside the safe-area padding, fixed to the screen's own bounds. It never
+   * scrolls with content: this is what keeps top/bottom rubber-band bounce
+   * seamless (the same fixed layer is already there, unmoving, so there is no
+   * edge where a scrolling backdrop would run out and reveal flat color).
    */
   background?: ReactNode;
   /**
@@ -62,7 +57,6 @@ export const Screen = forwardRef<ScrollView, ScreenProps>(function Screen(
   ref
 ) {
   const insets = useSafeAreaInsets();
-  const { height } = useWindowDimensions();
   const backgroundColor = sheet ? surface.sheet : warm ? surface.warm : surface.base;
   const contentStyle = [
     styles.content,
@@ -73,6 +67,10 @@ export const Screen = forwardRef<ScrollView, ScreenProps>(function Screen(
     // Every screen's header lands at the same Y, clear of the status bar / Dynamic Island.
     { paddingTop: insets.top + (scroll ? space.xxl : space.lg) },
   ];
+  // Content container itself stays transparent (not `backgroundColor`): the
+  // fixed `background` layer must show through the gutters between cards
+  // during normal scroll, same as before — only the ROOT view below carries
+  // the opaque base fill, which is what shows seamlessly during bounce.
   const scrollContentStyle = [
     styles.scrollContent,
     tabBarClearance && { paddingBottom: TAB_BAR_CLEARANCE },
@@ -80,7 +78,7 @@ export const Screen = forwardRef<ScrollView, ScreenProps>(function Screen(
 
   return (
     <View style={[styles.background, sheet && styles.sheetCorners, { backgroundColor }]}>
-      {!scroll && background ? (
+      {background ? (
         <View pointerEvents="none" style={styles.backgroundLayer}>
           {background}
         </View>
@@ -90,15 +88,9 @@ export const Screen = forwardRef<ScrollView, ScreenProps>(function Screen(
           contentContainerStyle={scrollContentStyle}
           keyboardShouldPersistTaps="handled"
           ref={ref}
-          showsVerticalScrollIndicator={false}>
-          <View style={[styles.scrollBackdrop, { minHeight: height }]}>
-            {background ? (
-              <View pointerEvents="none" style={styles.backgroundLayer}>
-                {background}
-              </View>
-            ) : null}
-            <View style={contentStyle}>{children}</View>
-          </View>
+          showsVerticalScrollIndicator={false}
+          style={styles.scrollView}>
+          <View style={contentStyle}>{children}</View>
         </ScrollView>
       ) : (
         <View style={contentStyle}>{children}</View>
@@ -125,11 +117,10 @@ const styles = StyleSheet.create({
   padded: {
     paddingHorizontal: space.lg,
   },
-  scrollBackdrop: {
-    flexGrow: 1,
-    overflow: 'hidden',
-  },
   scrollContent: {
     flexGrow: 1,
+  },
+  scrollView: {
+    flex: 1,
   },
 });

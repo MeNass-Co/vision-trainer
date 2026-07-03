@@ -42,11 +42,13 @@ export const METRIC_ICON_SIZE = 24;
 const ROW_HEIGHT = 60;
 const DELTA_ARROW = { width: 8, height: 5 };
 // Row 18: `proposed:metricBaseline` — de-tracked micro sibling, never finalized
-// as a token name in the addendum.
+// as a token name in the addendum. Owner override (nassim-fixes): 12/16 —
+// bumped 1pt off the original 11pt so the baseline still reads as a calm,
+// legible caption now that `type.metricValue` above it has come down to 20pt.
 const metricBaselineType = {
   fontWeight: fontWeight.medium,
-  fontSize: 11,
-  lineHeight: 14,
+  fontSize: 12,
+  lineHeight: 16,
   letterSpacing: 0,
 } as const;
 

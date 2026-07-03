@@ -5,23 +5,31 @@ import type { SFSymbol, SymbolWeight } from 'expo-symbols';
 import { SymbolView } from 'expo-symbols';
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Platform, StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
-import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSequence,
+  withSpring,
+} from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { icon, material, motion, radius, space, text, type as typo } from '@/theme/tokens';
+import { ACCENT_CORE, icon, material, motion, radius, space, text, type as typo } from '@/theme/tokens';
 
 import { PressableScale } from './PressableScale';
 
 // Aesthetic-law rebuild (native-revamp): real Liquid Glass, SF Symbols, Apple
 // Music-style stadium bar. Overrides the old hand-drawn-SVG / opaque-slab spec.
-// Icons + labels stay WHITE in both states — the only active/inactive signal
-// is the frosted pill, the filled-vs-outline glyph, and label opacity.
+// Owner override: the active icon (.fill glyph) + active label now tint
+// ACCENT_CORE — inactive stays white ~64% opacity. The frosted pill + the
+// filled-vs-outline glyph swap still both signal state; accent is a third,
+// stronger signal layered on top (no longer neutral-white-only).
 const GLYPH_COLOR = text.primary;
 
 // Geometry: floating stadium bar close to the home indicator. Radius = height/2
 // (true pill), derived from BAR_HEIGHT rather than a separate token so the two
-// can never drift out of sync.
-const BAR_HEIGHT = 64;
+// can never drift out of sync. Owner override: 64 -> 56pt — Apple Music's
+// floating bar is sleeker/less chunky than the original spec.
+const BAR_HEIGHT = 56;
 const BAR_RADIUS = BAR_HEIGHT / 2;
 const BAR_SIDE_MARGIN = space.lg; // 24pt
 const BAR_BOTTOM_GAP = 4; // safe-area bottom inset + 4pt
@@ -35,7 +43,13 @@ export const TAB_BAR_CLEARANCE = BAR_BOTTOM_GAP + BAR_HEIGHT + space.base;
 const PILL_INSET = space.xs; // 4pt inset on all sides
 const PILL_HEIGHT = BAR_HEIGHT - PILL_INSET * 2;
 const ICON_SIZE = icon.tab; // 23pt, within the 22-24pt law
-const ICON_LABEL_GAP = 4;
+// Tightened from 4 -> 3pt at the shorter 56pt bar height so icon+label+padding
+// never clip (56 - 8 inset = 48pt pill height available for icon+gap+label).
+const ICON_LABEL_GAP = 3;
+// Row 3 pill "grip" pulse (owner override): quick settle with a tiny
+// overshoot on tab change, Apple Music-style — scale dips to 0.92 then springs
+// back to 1 using the existing `motion.spring.press` timing.
+const PILL_PULSE_DOWN = 0.92;
 
 type TabIconProps = {
   focused: boolean;
@@ -71,7 +85,7 @@ function TabIcon({ focused, routeName }: TabIconProps) {
       resizeMode="scaleAspectFit"
       size={ICON_SIZE}
       style={styles.icon}
-      tintColor={GLYPH_COLOR}
+      tintColor={focused ? ACCENT_CORE : GLYPH_COLOR}
       type="monochrome"
       weight={focused ? (spec.activeWeight ?? 'regular') : 'regular'}
     />
@@ -96,8 +110,12 @@ function TabButton({ focused, label, onPress, routeName }: TabButtonProps) {
       style={styles.tabButton}>
       <TabIcon focused={focused} routeName={routeName} />
       {/* Plain RN Text (not AppText) so the exact spec type row (type.tabLabel)
-          applies without fighting AppText's Variant union. */}
-      <Text numberOfLines={1} style={[styles.label, { opacity: focused ? 1 : 0.64 }]}>
+          applies without fighting AppText's Variant union. Owner override:
+          active label tints ACCENT_CORE (full opacity); inactive stays white
+          ~64% — accent is no longer neutral-only. */}
+      <Text
+        numberOfLines={1}
+        style={[styles.label, { color: focused ? ACCENT_CORE : GLYPH_COLOR, opacity: focused ? 1 : 0.64 }]}>
         {label}
       </Text>
     </PressableScale>
@@ -137,6 +155,7 @@ export function CustomTabBar({ state, descriptors, navigation }: BottomTabBarPro
   const insets = useSafeAreaInsets();
   const [barWidth, setBarWidth] = useState(0);
   const translateX = useSharedValue(0);
+  const pillScale = useSharedValue(1);
   const hasMounted = useRef(false);
   const columnWidth = barWidth / state.routes.length;
   const liquidGlass = Platform.OS === 'ios' && isLiquidGlassAvailable() && isGlassEffectAPIAvailable();
@@ -152,13 +171,20 @@ export function CustomTabBar({ state, descriptors, navigation }: BottomTabBarPro
       translateX.value = target;
       hasMounted.current = true;
     } else {
-      translateX.value = withSpring(target, motion.spring.liquid);
+      // Apple Music-style quick settle: the pill slides with a subtle
+      // overshoot (`motion.spring.snap`) AND "grips" the new tab with a tiny
+      // scale pulse (1 -> 0.92 -> 1, `motion.spring.press` timing).
+      translateX.value = withSpring(target, motion.spring.snap);
+      pillScale.value = withSequence(
+        withSpring(PILL_PULSE_DOWN, motion.spring.press),
+        withSpring(1, motion.spring.press)
+      );
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.index, columnWidth]);
 
   const pillStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: translateX.value }],
+    transform: [{ translateX: translateX.value }, { scale: pillScale.value }],
   }));
 
   const renderTab = (route: RouteItem) => {

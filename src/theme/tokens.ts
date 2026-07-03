@@ -182,10 +182,14 @@ export const type = {
     lineHeight: 12,
     letterSpacing: 0.1
   },
+  // Owner override (nassim-fixes): 24/28 read oversized on the Progress rows
+  // (both numeric values like "6" and word-values like "Reliable") — dropped
+  // to 20/24 across the board, single-token change rather than splitting
+  // word-vs-number sizing.
   metricValue: {
     fontWeight: fontWeight.semibold,
-    fontSize: 24,
-    lineHeight: 28,
+    fontSize: 20,
+    lineHeight: 24,
     letterSpacing: 0,
     fontVariant: ['tabular-nums'] as const
   },

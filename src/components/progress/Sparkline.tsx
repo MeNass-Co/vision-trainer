@@ -108,18 +108,25 @@ const POINT_INSET = space.base;
 // Row 19 — value-label bottom → marker-top gap, measured from the ring's
 // OUTER edge (its true visual boundary), not the fill radius.
 const LABEL_GAP = space.xs;
-const LABEL_LINE_HEIGHT = typo.caption.lineHeight;
+// Owner override (nassim-fixes): day/value labels read big next to the WHOOP
+// reference (design/references/progress-chart/target.png) — both dropped off
+// `typo.caption` (13/18) as local literals rather than touching the shared
+// caption token used elsewhere in the app.
+const VALUE_LABEL_FONT_SIZE = 12;
+const VALUE_LABEL_LINE_HEIGHT = 16;
+const DAY_LABEL_FONT_SIZE = 11;
+const DAY_LABEL_LINE_HEIGHT = 14;
 const VALUE_LABEL_WIDTH = 44;
 // Top/bottom insets sized so the value label above the highest point and the
 // ring's own radius at the lowest point never clip inside the SVG canvas.
-const CHART_TOP = RING_OUTER_RADIUS + LABEL_GAP + LABEL_LINE_HEIGHT + 1; // 28
+const CHART_TOP = RING_OUTER_RADIUS + LABEL_GAP + VALUE_LABEL_LINE_HEIGHT + 1; // 24
 const CHART_BOTTOM = RING_OUTER_RADIUS + 4;
 // Row 22/23 — day-label internals + row 23's plot-floor→day-row gap. `11` has
 // no clean token sibling (between `space.sm`8/`space.md`12, spec's own call);
 // same precedent as metric-rows' locally-literal `ROW_HEIGHT`.
 const PLOT_TO_DAY_GAP = 11;
 const DAY_LABEL_WIDTH = 44;
-const DAY_LABEL_BLOCK_HEIGHT = LABEL_LINE_HEIGHT * 2 + space.xs;
+const DAY_LABEL_BLOCK_HEIGHT = DAY_LABEL_LINE_HEIGHT * 2 + space.xs;
 const LABEL_FADE_MS = 220;
 
 function createChartPoints(points: SparklinePoint[], width: number, height: number) {
@@ -311,7 +318,10 @@ export function Sparkline({ points, width, height }: SparklineProps) {
             key={`value-${point.day}-${point.date}-${index}`}
             style={[
               styles.valueLabel,
-              { left: point.x - VALUE_LABEL_WIDTH / 2, top: point.y - RING_OUTER_RADIUS - LABEL_GAP - LABEL_LINE_HEIGHT },
+              {
+                left: point.x - VALUE_LABEL_WIDTH / 2,
+                top: point.y - RING_OUTER_RADIUS - LABEL_GAP - VALUE_LABEL_LINE_HEIGHT,
+              },
             ]}>
             <Text style={styles.valueLabelText}>{point.value.toFixed(2)}</Text>
           </LabelFade>
@@ -362,9 +372,9 @@ const styles = StyleSheet.create({
   dayLabelLine: {
     color: text.secondary,
     fontWeight: typo.caption.fontWeight,
-    fontSize: typo.caption.fontSize,
+    fontSize: DAY_LABEL_FONT_SIZE,
     letterSpacing: typo.caption.letterSpacing,
-    lineHeight: LABEL_LINE_HEIGHT,
+    lineHeight: DAY_LABEL_LINE_HEIGHT,
     textAlign: 'center',
   },
   dayLabelRow: {
@@ -379,9 +389,9 @@ const styles = StyleSheet.create({
   valueLabelText: {
     color: ACCENT_CORE,
     fontWeight: fontWeight.bold,
-    fontSize: typo.caption.fontSize,
+    fontSize: VALUE_LABEL_FONT_SIZE,
     fontVariant: ['tabular-nums'],
     letterSpacing: typo.caption.letterSpacing,
-    lineHeight: LABEL_LINE_HEIGHT,
+    lineHeight: VALUE_LABEL_LINE_HEIGHT,
   },
 });
