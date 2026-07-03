@@ -12,7 +12,7 @@ import type { SFSymbol } from 'sf-symbols-typescript';
 
 import { AppText } from '@/components/ui';
 import { haptics } from '@/theme/haptics';
-import { accent, material, motion, radius, space, surface } from '@/theme/tokens';
+import { accent, material, motion, radius, space } from '@/theme/tokens';
 import { useEffectiveReducedMotion } from '@/theme/useEffectiveReducedMotion';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
@@ -115,8 +115,16 @@ export function Row({
   const rightStyle = useAnimatedStyle<ViewStyle>(() => ({
     transform: [{ translateX: followX.value }],
   }));
+  // GlassCard unification fix: this used to interpolate to opaque surface.card /
+  // surface.cardPressed hex fills, which painted a flat opaque rectangle INSIDE
+  // the GlassCard for every pressable row — killing the blur/tint for exactly
+  // the rows that have onPress (Display calibration, About's chevron rows)
+  // while non-pressable rows (toggles, Version) stayed glass by omission. Rest
+  // state is now fully transparent so the GlassCard glass always shows through;
+  // press feedback is a translucent white wash (material.pillOnGlass, same
+  // on-glass highlight token pills already use), not a real fill.
   const fillStyle = useAnimatedStyle(() => ({
-    backgroundColor: interpolateColor(pressed.value, [0, 1], [surface.card, surface.cardPressed]),
+    backgroundColor: interpolateColor(pressed.value, [0, 1], ['rgba(255,255,255,0)', material.pillOnGlass]),
   }));
 
   // spec rows 4-6: single-line rows = rowHeight.single (52); rows with a description are

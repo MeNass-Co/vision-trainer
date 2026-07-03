@@ -28,9 +28,11 @@ import { useEffectiveReducedMotion } from '@/theme/useEffectiveReducedMotion';
 
 // progress-chart spec (design/references/progress-chart/spec.md) — WHOOP trend
 // card anatomy (VALIDATION.md law 8). This renders the chart body only: the
-// icon+label+chevron title row and the flat `surface.card` card shell live in
-// progress.tsx's "Last 7 days" wiring, matching the metric-rows precedent of
-// keeping flat, non-glass cards out of the shared `Card` component.
+// icon+label+chevron title row and the card shell live in progress.tsx's
+// "Last 7 days" wiring. Stale note (glass-unification pass 2): that shell was
+// a flat opaque `surface.card` fill pre-ONE-material-pass; it now runs through
+// GlassCard (Tier 3 'content', see progress.tsx) like every other card — only
+// the SVG chart canvas itself (this file) stays a plain drawing surface.
 
 // Row 7 — title-row icon glyph, 18pt square (nearest standard scale to the
 // reference's nonstandard 23.3×14.7pt "heart+arrow" glyph, which is carved out
