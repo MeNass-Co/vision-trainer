@@ -13,7 +13,7 @@ import Animated, {
 import Svg, { Circle, Defs, LinearGradient, Line, RadialGradient, Rect, Stop } from 'react-native-svg';
 
 import { Bloom } from '@/components/ui';
-import { ACCENT, ACCENT_CORE, ACCENT_GLOW, ACCENT_MUTED, ACCENT_SOFT, motion, surface } from '@/theme/tokens';
+import { ACCENT, ACCENT_CORE, ACCENT_GLOW, ACCENT_MUTED, ACCENT_SOFT, accent, motion, surface } from '@/theme/tokens';
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
@@ -23,7 +23,9 @@ const BODY_R = 96;
 const GRAT_R = 106;
 const TICK = 4;
 const HALO_R = 116;
-const HALO_STROKE = 2;
+// Progress-ring law (VALIDATION.md #7): 3.0pt stroke (presence without bulk);
+// head marker diameter = 2x stroke, so its radius equals the stroke width.
+const HALO_STROKE = 3;
 const HALO_CIRC = 2 * Math.PI * HALO_R;
 
 // Sinusoidal cyan grating sampled as gradient stops (approximately 6 cycles, smooth).
@@ -66,6 +68,10 @@ export function CelestialGabor({
   const clamped = Math.max(0, Math.min(progress, 1));
   const clampedContrast = Math.max(0, Math.min(contrast, 1));
   const dash = clamped * HALO_CIRC;
+  // Head marker rides the leading (clockwise) edge of the arc, starting at 12 o'clock.
+  const markerAngle = (-90 + clamped * 360) * (Math.PI / 180);
+  const markerX = C + HALO_R * Math.cos(markerAngle);
+  const markerY = C + HALO_R * Math.sin(markerAngle);
 
   const breathe = useSharedValue(0);
   const resolve = useSharedValue(resolveOnMount && !reduceMotion ? 0.12 : 1);
@@ -216,7 +222,7 @@ export function CelestialGabor({
             cy={C}
             r={HALO_R}
             fill="none"
-            stroke={surface.hairline}
+            stroke={accent.trackTint}
             strokeWidth={HALO_STROKE}
           />
           <Circle
@@ -230,6 +236,8 @@ export function CelestialGabor({
             strokeWidth={HALO_STROKE}
             transform={`rotate(-90 ${C} ${C})`}
           />
+          {/* head marker — circle riding the progress arc's leading edge, diameter = 2x stroke */}
+          <Circle cx={markerX} cy={markerY} r={HALO_STROKE} fill={ACCENT_CORE} />
         </Svg>
       </Animated.View>
     </View>
