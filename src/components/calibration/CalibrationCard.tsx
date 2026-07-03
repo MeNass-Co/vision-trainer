@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   runOnJS,
@@ -19,7 +20,7 @@ import {
 } from '@/services/brightness';
 import { useAppStore } from '@/store/useAppStore';
 import { haptics } from '@/theme/haptics';
-import { ACCENT, ACCENT_CORE, ACCENT_SOFT, motion, radius, space, surface, text } from '@/theme/tokens';
+import { ACCENT, ACCENT_CORE, motion, radius, space, surface, text } from '@/theme/tokens';
 import { useEffectiveReducedMotion } from '@/theme/useEffectiveReducedMotion';
 
 const BRIGHTNESS_MAX = 1;
@@ -161,14 +162,12 @@ export function CalibrationCard({ onComplete, confirmLabel = 'This feels right' 
     return Gesture.Race(pan, tap);
   }, [commitBrightness, progress, thumbScale, trackWidth]);
 
-  // slider spec.md row 7 (quirk, kept verbatim): fill hard-stops one thumb-radius
-  // short of the thumb's CENTER — i.e. one thumb-radius short of the thumb's own
-  // leading edge, exposing a sliver of unfilled track before the thumb (not flush).
+  // Fill runs flush to the thumb's center — the junction always hides under the
+  // knob, so no sliver of unfilled track is ever exposed at any position.
   const fillAnimatedStyle = useAnimatedStyle(() => {
     const travel = Math.max(trackWidth - SLIDER_KNOB_SIZE, 0);
-    const thumbLeadingEdge = progress.value * travel;
-    const fillWidth = Math.max(thumbLeadingEdge - SLIDER_KNOB_SIZE / 2, 0);
-    return { width: fillWidth };
+    const thumbCenter = progress.value * travel + SLIDER_KNOB_SIZE / 2;
+    return { width: thumbCenter };
   });
   const knobAnimatedStyle = useAnimatedStyle(() => ({
     transform: [
@@ -196,9 +195,12 @@ export function CalibrationCard({ onComplete, confirmLabel = 'This feels right' 
             style={styles.slider}>
             <View pointerEvents="none" style={styles.sliderTrack}>
               <Animated.View style={[styles.sliderFill, fillAnimatedStyle]}>
-                <View style={[styles.fillBand, styles.fillBandOrigin]} />
-                <View style={[styles.fillBand, styles.fillBandMid]} />
-                <View style={[styles.fillBand, styles.fillBandNearThumb]} />
+                <LinearGradient
+                  colors={[ACCENT_CORE, ACCENT]}
+                  end={{ x: 1, y: 0.5 }}
+                  start={{ x: 0, y: 0.5 }}
+                  style={styles.fillGradient}
+                />
               </Animated.View>
             </View>
             <Animated.View pointerEvents="none" style={[styles.sliderKnob, knobAnimatedStyle]} />
@@ -264,27 +266,14 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   // Fill container: width is animated (spec row 7 quirk); the 3 children below
-  // split that animated width into equal thirds — spec rows 8–11, a hard 3-band
-  // luminance ramp at constant hue, banded as fractions of the FILLED segment.
   sliderFill: {
-    flexDirection: 'row',
     height: '100%',
+    overflow: 'hidden',
   },
-  fillBand: {
-    flex: 1,
+  // Smooth luminance ramp — bright at the origin, our accent at the thumb.
+  fillGradient: {
     height: '100%',
-  },
-  // Origin (track start, 0–33% of the filled segment) — brightest.
-  fillBandOrigin: {
-    backgroundColor: ACCENT_CORE,
-  },
-  // Mid (33–67% of the filled segment).
-  fillBandMid: {
-    backgroundColor: ACCENT,
-  },
-  // Near-thumb (67–100% of the filled segment) — dimmest.
-  fillBandNearThumb: {
-    backgroundColor: ACCENT_SOFT,
+    width: '100%',
   },
   sliderKnob: {
     backgroundColor: text.primary,
