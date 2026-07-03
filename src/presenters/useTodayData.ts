@@ -6,6 +6,7 @@ import { useAppStore } from '@/store/useAppStore';
 import { now } from '@/utils/clock';
 
 import { deriveTodayView } from './derive';
+import { humanBandLabel } from './reliability';
 import type { Loadable, TodayView } from './types';
 
 export function useTodayData(): Loadable<TodayView> {
@@ -34,15 +35,14 @@ export function useTodayData(): Loadable<TodayView> {
 
     return {
       ...view,
-      nextTargetLabel: `${formatCpd(nextTrainingBlock.condition.spatialFrequencyCpd)} cpd · 4 min`,
+      // Human label, not the raw cpd number — Progress screen keeps cpd for its
+      // per-contributor breakdown; Today's "Next" line reuses humanBandLabel's
+      // band mapping so a newcomer reads "Broad shapes", not "1.5 cpd".
+      nextTargetLabel: `${humanBandLabel(nextTrainingBlock.condition.spatialFrequencyCpd)} · 4 min`,
     };
     // refreshKey is an intentional extra dependency: it busts the memo when the
     // screen regains focus so "today" boundaries recompute against a fresh now().
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [refreshKey, sessions, settings.visionGoal, thresholds]);
   return { data, isLoading: !hydrated };
-}
-
-function formatCpd(cpd: number): string {
-  return Number.isInteger(cpd) ? String(cpd) : cpd.toFixed(1);
 }

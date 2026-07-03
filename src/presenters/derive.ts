@@ -212,7 +212,10 @@ export function deriveTodayView(
     todayIndex: index,
     weekDays,
     weekDates: dates,
-    nextTargetLabel: recent ? `${formatCpd(recent.spatialFrequencyCpd)} cpd · 4 min` : '6 cpd · 4 min',
+    // Human band label, not raw cpd — useTodayData overrides this with the
+    // next guided-protocol block's band when available; this is the fallback
+    // for when no next block resolves, kept in the same human vocabulary.
+    nextTargetLabel: recent ? `${humanBandLabel(recent.spatialFrequencyCpd)} · 4 min` : `${humanBandLabel(6)} · 4 min`,
     verdict: measurementConfidence.canDriveTrend ? verdictFromPercent(improvementPercent(usable)) : 'holding',
     measurementConfidence,
   };

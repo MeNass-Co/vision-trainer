@@ -25,12 +25,12 @@ const DAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'] as const;
 // week-strip law (VALIDATION.md #10): today = 35pt filled white circle w/ dark
 // text; state-cell box height = circle diameter so a plain digit and the
 // circle share one flexbox-centered axis (spec row 8) with no pixel math.
-// Dot re-measured at the Fable lock: the reference dot is a HOLLOW RING —
-// outer Ø 21px/7.0pt, stroke 3px/1.0pt on all four sides, center = pure
-// background (target.png days 8 & 11, PIL scanlines) — not a filled disc.
+// Orchestrator ruling (competitive benchmark, today wave): completed days
+// render as a FILLED Ø 7pt disc in accent.core, not the Fable-lock hollow
+// ring — legibility-at-a-glance beats the earlier measured hairline. The
+// hollow ring is reserved for a future "scheduled" state, not in use today.
 const TODAY_CIRCLE_DIAMETER = 35;
 const DOT_DIAMETER = 7;
-const DOT_STROKE = 1;
 
 type WeekRowProps = {
   activeIndex?: number;
@@ -142,6 +142,12 @@ function TodayContent({ data, reduceMotion, router }: TodayContentProps) {
   const navigatingRef = useRef(false);
   const discContrast =
     data.contrastSensitivity > 0 ? Math.min(1, 0.5 + data.contrastSensitivity * 0.22) : 0.32;
+  // Arc semantics (competitive benchmark, today wave): the arc and the week
+  // strip must tell the SAME story — fraction of this week's 7 days completed,
+  // not a coarse done/streak/half-filled guess. 0.08 floor keeps the head
+  // marker visible in the true zero-state (no days completed yet this week).
+  const completedThisWeek = data.weekDays.filter(Boolean).length;
+  const weekProgress = Math.max(completedThisWeek / 7, 0.08);
 
   useFocusEffect(
     useCallback(() => {
@@ -177,7 +183,7 @@ function TodayContent({ data, reduceMotion, router }: TodayContentProps) {
           <View style={styles.orbScale}>
             <CelestialGabor
               contrast={discContrast}
-              progress={data.sessionDoneToday ? 1 : data.streakDays === 0 ? 0.08 : 0.5}
+              progress={weekProgress}
               reduceMotion={reduceMotion}
               resolveOnMount
             />
@@ -261,13 +267,13 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     flex: 1,
   },
-  // week-strip Fable-lock re-measure: HOLLOW RING, outer Ø 7.0pt, 1.0pt stroke,
-  // transparent center; accent.core (the row's one "live" signal, hue-identical
+  // Filled Ø 7pt disc, accent.core (the row's one "live" signal, hue-identical
   // to the completed-digit tint — spec rows 15/16, color mapping unchanged).
+  // Was a hollow ring at the Fable lock; today-wave ruling swaps to a filled
+  // disc for legibility-at-a-glance — hollow stays reserved for "scheduled".
   dot: {
-    borderColor: accent.core,
+    backgroundColor: accent.core,
     borderRadius: DOT_DIAMETER / 2,
-    borderWidth: DOT_STROKE,
     height: DOT_DIAMETER,
     width: DOT_DIAMETER,
   },
