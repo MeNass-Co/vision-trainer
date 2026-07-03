@@ -32,7 +32,8 @@ function RowBody({ label, description, right, chevron, rightStyle }: RowBodyProp
   return (
     <>
       <View style={styles.copy}>
-        <AppText variant="bodyStrong">{label}</AppText>
+        {/* spec row 33: row title ~17pt/22 lineHeight, Regular (link/destructive-style weight — the identity-row-only Medium doesn't apply to our plain rows) */}
+        <AppText style={styles.title}>{label}</AppText>
         {description ? (
           <AppText color="muted" variant="caption">
             {description}
@@ -59,9 +60,13 @@ export function Row({ label, description, right, onPress, accessibilityLabel, ch
     backgroundColor: interpolateColor(pressed.value, [0, 1], [surface.card, surface.cardPressed]),
   }));
 
+  // spec rows 4-6: single-line rows = rowHeight.single (52); rows with a description are
+  // treated as the two-line row = rowHeight.double (73, best-effort per spec note on row 6/44).
+  const rowHeightStyle = description ? styles.rowDouble : styles.rowSingle;
+
   if (!onPress) {
     return (
-      <View style={styles.row}>
+      <View style={[styles.row, rowHeightStyle]}>
         <RowBody description={description} label={label} right={right} />
       </View>
     );
@@ -85,7 +90,7 @@ export function Row({ label, description, right, onPress, accessibilityLabel, ch
           followX.value = reduceMotion ? 0 : withSpring(0, motion.spring.press);
         }
       }}
-      style={[styles.row, fillStyle]}>
+      style={[styles.row, rowHeightStyle, fillStyle]}>
       <RowBody
         chevron={chevron}
         description={description}
@@ -102,9 +107,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flexDirection: 'row',
     gap: space.md,
-    minHeight: 56,
+    // spec rows 7-9: leading/trailing padding ~16-17.3pt -> space.base (16), exact-enough per spec tolerance
     paddingHorizontal: space.base,
-    paddingVertical: 14,
+    paddingVertical: space.sm,
+  },
+  rowSingle: {
+    minHeight: 52,
+  },
+  rowDouble: {
+    minHeight: 73,
   },
   copy: {
     flex: 1,
@@ -112,5 +123,9 @@ const styles = StyleSheet.create({
   },
   right: {
     flexShrink: 0,
+  },
+  title: {
+    fontSize: 17,
+    lineHeight: 22,
   },
 });

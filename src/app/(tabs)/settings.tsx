@@ -152,7 +152,7 @@ export default function SettingsScreen() {
           <Row
             label="Version"
             right={
-              <AppText color="muted" variant="caption">
+              <AppText color="muted" style={styles.rowValue}>
                 v{appVersion} ({buildNumber}) · {gitSha}
               </AppText>
             }
@@ -198,15 +198,18 @@ export default function SettingsScreen() {
 }
 
 function Chevron() {
+  // spec rows 15-16, 23: ink bbox target 6.7x11.7pt, ~2pt stroke, color text.muted.
+  // Path coords are pulled in from the raw target bbox because round caps/joins on a
+  // 2pt stroke inflate the visible ink bbox beyond the path's own centerline extent.
   return (
     <Svg height={16} width={16}>
       <Path
-        d="M6 3.5L10.5 8L6 12.5"
+        d="M5.85 2.8L10.85 8L5.85 13.2"
         fill="none"
-        stroke={text.secondary}
+        stroke={text.muted}
         strokeLinecap="round"
         strokeLinejoin="round"
-        strokeWidth={1.5}
+        strokeWidth={2}
       />
     </Svg>
   );
@@ -221,8 +224,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: space.base,
     paddingVertical: space.md,
   },
+  rowValue: {
+    // spec row 34: value/chevron trailing text shares row-title type size (17/22)
+    fontSize: 17,
+    lineHeight: 22,
+  },
   screen: {
+    // spec row 2: screen edge -> card edge = space.base (16), overriding Screen's default 24pt `padded` inset
     paddingBottom: space.lg,
+    paddingHorizontal: space.base,
   },
   settingsTitle: {
     fontSize: 34,

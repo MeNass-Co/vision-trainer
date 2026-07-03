@@ -1,8 +1,8 @@
 import { Children, Fragment, type ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 
-import { AppText, GlassSurface, Hairline } from '@/components/ui';
-import { radius, space } from '@/theme/tokens';
+import { AppText, Hairline } from '@/components/ui';
+import { fontFamily, hairline, radius, space, surface } from '@/theme/tokens';
 
 export type SectionProps = {
   title: string;
@@ -15,19 +15,20 @@ export function Section({ title, children, footer }: SectionProps) {
 
   return (
     <View style={styles.section}>
-      <AppText color="muted" style={styles.title} uppercase variant="micro">
+      <AppText color="secondary" style={styles.title}>
         {title}
       </AppText>
-      <GlassSurface radius={radius.lg} style={styles.group}>
+      <View style={styles.group}>
         {rows.map((row, index) => (
           <Fragment key={index}>
-            {index > 0 ? <Hairline style={styles.hairline} /> : null}
+            {/* spec rows 12-14: 1pt separator (hairline.px1, not native hairlineWidth), inset symmetric, flush with row text edge */}
+            {index > 0 ? <Hairline inset={space.base} style={styles.hairline} /> : null}
             {row}
           </Fragment>
         ))}
-      </GlassSurface>
+      </View>
       {footer ? (
-        <AppText color="muted" style={styles.footer} variant="caption">
+        <AppText color="secondary" style={styles.footer} variant="caption">
           {footer}
         </AppText>
       ) : null}
@@ -37,19 +38,29 @@ export function Section({ title, children, footer }: SectionProps) {
 
 const styles = StyleSheet.create({
   footer: {
-    paddingHorizontal: space.base,
+    // spec row 35: caption weight reads Regular in reference; caption token is Medium — flagged minor mismatch, accepted
   },
   group: {
-    borderRadius: radius.lg,
+    // settings-group spec rows 1, 20, 30: opaque flat card, radius.xl (25) fixed regardless of height, no blur/border
+    backgroundColor: surface.card,
+    borderRadius: radius.xl,
+    overflow: 'hidden',
   },
   hairline: {
-    marginLeft: space.base,
+    // spec row 12: separator thickness = hairline.px1 (1pt) — overrides Hairline's default native StyleSheet.hairlineWidth
+    height: hairline.px1,
   },
   section: {
+    // spec rows 37-38: label->card and card->caption gap = 10 (space.labelGap, no token — nearest space.sm=8/space.md=12)
     gap: 10,
-    marginBottom: 26,
+    // spec row 36: section-to-section gap = space.section = 34 (nearest existing token space.xl = 32)
+    marginBottom: 34,
   },
   title: {
-    letterSpacing: 1.8,
+    // spec row 32: section-cap label — sentence case (NOT uppercase/tracked), bold ~18pt
+    fontFamily: fontFamily.bold,
+    fontSize: 18,
+    lineHeight: 23,
+    letterSpacing: -0.2,
   },
 });
