@@ -1,3 +1,4 @@
+import { forwardRef } from 'react';
 import type { ReactNode } from 'react';
 import {
   ScrollView,
@@ -31,15 +32,14 @@ export type ScreenProps = {
   style?: StyleProp<ViewStyle>;
 };
 
-export function Screen({
-  children,
-  scroll = false,
-  warm = false,
-  sheet = false,
-  padded = true,
-  background,
-  style,
-}: ScreenProps) {
+// Forwarded ref exposes the underlying `ScrollView` (when `scroll` is true) —
+// sanctioned capture tooling only: lets a __DEV__-guarded screen imperatively
+// `scrollTo` a card into frame for the reference-match screenshot rig (same
+// doctrine as the seeded Progress DB). Not used by any production UI path.
+export const Screen = forwardRef<ScrollView, ScreenProps>(function Screen(
+  { children, scroll = false, warm = false, sheet = false, padded = true, background, style },
+  ref
+) {
   const insets = useSafeAreaInsets();
   const { height } = useWindowDimensions();
   const backgroundColor = sheet ? surface.sheet : warm ? surface.warm : surface.base;
@@ -64,6 +64,7 @@ export function Screen({
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
+          ref={ref}
           showsVerticalScrollIndicator={false}>
           <View style={[styles.scrollBackdrop, { minHeight: height }]}>
             {background ? (
@@ -79,7 +80,7 @@ export function Screen({
       )}
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   background: {

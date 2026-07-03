@@ -22,7 +22,8 @@ export type TodayView = {
   measurementConfidence: MeasurementConfidenceView;
 };
 
-export type SparkPoint = { day: string; value: number };
+// `date` = calendar day-of-month (progress-chart spec rows 21/41-42's two-line day label).
+export type SparkPoint = { day: string; date: number; value: number };
 export type CsfPoint = { spatialFrequency: number; sensitivity: number };
 export type CsfReferenceCurve = { label: string; points: CsfPoint[] };
 

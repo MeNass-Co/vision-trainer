@@ -1,5 +1,6 @@
-import { useCallback, useState } from 'react';
-import { LayoutChangeEvent, Platform, StyleSheet, View } from 'react-native';
+import { useLocalSearchParams } from 'expo-router';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { LayoutChangeEvent, Platform, ScrollView, StyleSheet, View } from 'react-native';
 
 import { AmbientGradient } from '@/components/home/AmbientGradient';
 import { ContributorRows } from '@/components/progress/ContributorRows';
@@ -7,15 +8,15 @@ import { CountUpNumber } from '@/components/progress/CountUpNumber';
 import { CsfGraph } from '@/components/progress/CsfGraph';
 import { LayersIcon, MetricRow, ShieldCheckIcon, TargetIcon, verdictFromRatio } from '@/components/progress/MetricRow';
 import { ProgressEmptySky } from '@/components/progress/ProgressEmptySky';
-import { Sparkline } from '@/components/progress/Sparkline';
+import { CHART_TITLE_ICON_SIZE, ChevronIcon, Sparkline, TrendIcon } from '@/components/progress/Sparkline';
 import { VerdictBand } from '@/components/progress/VerdictBand';
-import { AppText, Bloom, Card, ContextChip, FadeIn, Screen, Shimmer } from '@/components/ui';
+import { AppText, Bloom, ContextChip, Card, FadeIn, Screen, Shimmer } from '@/components/ui';
 import { useProgressData } from '@/presenters';
 import { haptics } from '@/theme/haptics';
 import { data as tokenData, motion, radius, space, surface } from '@/theme/tokens';
 import { useEffectiveReducedMotion } from '@/theme/useEffectiveReducedMotion';
 
-const SPARKLINE_HEIGHT = 112;
+const SPARKLINE_HEIGHT = 130;
 const CSF_GRAPH_HEIGHT = 220;
 
 export default function ProgressScreen() {
@@ -36,11 +37,25 @@ export default function ProgressScreen() {
   }, []);
   const isStaticMotion = reduceMotion || Platform.OS === 'web';
   const strongest = strongestContributor(data);
+  // Sanctioned capture tooling (same doctrine as the seeded Progress DB): a
+  // __DEV__-only `?scrollTo=` deeplink param lets the reference-match
+  // screenshot rig (scripts/shoot-sim.sh) bring below-the-fold cards into
+  // frame without a tap/scroll harness. No production path reads this param.
+  const scrollRef = useRef<ScrollView>(null);
+  const { scrollTo } = useLocalSearchParams<{ scrollTo?: string }>();
+
+  useEffect(() => {
+    if (!__DEV__ || scrollTo === undefined) return;
+    const y = Number(scrollTo);
+    if (!Number.isFinite(y)) return;
+    scrollRef.current?.scrollTo({ y, animated: false });
+  }, [scrollTo]);
 
   return (
     <Screen
-      scroll={!isEmpty}
       background={<AmbientGradient constellation reduceMotion={reduceMotion} />}
+      ref={scrollRef}
+      scroll={!isEmpty}
       style={styles.screen}>
       {isLoading ? (
         <LoadingProgress />
@@ -122,11 +137,22 @@ export default function ProgressScreen() {
               value={strongest ? strongest.label : 'Captured'}
             />
           </View>
+          {/* progress-chart spec (VALIDATION.md law 8) — WHOOP trend card: flat
+              opaque `surface.card` fill (row 38, no blur/glass — pulled out of
+              the shared glass `Card` the way metric-rows already is), title
+              row = icon + caps `type.micro` label + chevron (rows 7-10), the
+              current-day highlight column (row 24) is deliberately omitted. */}
           <FadeIn delay={120}>
-            <Card style={styles.card}>
-              <AppText color="secondary" variant="caption">
-                Last 7 days
-              </AppText>
+            <View style={styles.trendCard}>
+              <View style={styles.trendCardTitleRow}>
+                <View style={styles.trendCardTitleLeading}>
+                  <TrendIcon />
+                  <AppText color="primary" style={styles.trendCardTitleText} uppercase variant="micro">
+                    Last 7 days
+                  </AppText>
+                </View>
+                <ChevronIcon />
+              </View>
               {data.sparkline.length === 0 ? (
                 <View style={styles.emptyTrend}>
                   <AppText color="secondary" variant="caption">
@@ -146,7 +172,7 @@ export default function ProgressScreen() {
                   ) : null}
                 </View>
               )}
-            </Card>
+            </View>
           </FadeIn>
           <FadeIn delay={180}>
             <Card style={styles.card}>
@@ -272,6 +298,32 @@ const styles = StyleSheet.create({
     backgroundColor: surface.hairline,
     height: StyleSheet.hairlineWidth,
     width: '70%',
+  },
+  // progress-chart rows 25/38 — flat opaque card, no blur (deliberately not the
+  // shared glass `Card`, same precedent as the metric-rows flat sections above).
+  trendCard: {
+    backgroundColor: surface.card,
+    borderRadius: radius.md,
+    paddingBottom: space.base,
+    paddingHorizontal: space.base,
+    paddingTop: space.cardTop,
+  },
+  // Row 11: plot-rect top inset is title-row-height-driven, not flat padding —
+  // this is that "gap" as a literal (no clean token sibling, same precedent as
+  // `PLOT_TO_DAY_GAP` inside Sparkline.tsx).
+  trendCardTitleLeading: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: space.base,
+  },
+  trendCardTitleRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: space.lg,
+  },
+  trendCardTitleText: {
+    flexShrink: 1,
   },
   // screen-header law 6 (gap ramp transfer): chip→title ≈20pt total (spec row 29).
   // `styles.screen.gap` (space.md=12) already separates this block from the chip

@@ -90,7 +90,11 @@ export const space = {
   lg: 24,
   xl: 32,
   xxl: 48,
-  xxxl: 64
+  xxxl: 64,
+  // progress-chart spec row 4 (card top padding, 20.3pt measured) — sits between
+  // base/lg with no exact sibling; promoted to a named token per the "tokens,
+  // never magic numbers" rule.
+  cardTop: 20
 } as const;
 
 export const radius = {

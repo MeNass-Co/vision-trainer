@@ -255,8 +255,8 @@ describe('presenter derivation', () => {
       },
     });
     expect(progressView.sparkline).toEqual([
-      { day: 'Fri', value: 1.4 },
-      { day: 'Sat', value: 1.4 },
+      { day: 'Fri', date: 29, value: 1.4 },
+      { day: 'Sat', date: 30, value: 1.4 },
     ]);
   });
 
@@ -279,8 +279,8 @@ describe('presenter derivation', () => {
     const progressView = deriveProgressView(sessions, thresholds, fixedNow);
 
     expect(progressView.sparkline).toEqual([
-      { day: 'Mon', value: 1.4 },
-      { day: 'Sun', value: 1.4 },
+      { day: 'Mon', date: 25, value: 1.4 },
+      { day: 'Sun', date: 31, value: 1.4 },
     ]);
   });
 });

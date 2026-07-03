@@ -87,3 +87,8 @@ export function localDayKeyFromIso(iso: string): string {
 export function weekdayShortFromIso(iso: string): string {
   return WEEKDAY_SHORT[new Date(iso).getDay()];
 }
+
+/** Calendar day-of-month (1-31), local time — progress-chart's two-line day label (spec row 21). */
+export function dateOfMonthFromIso(iso: string): number {
+  return new Date(iso).getDate();
+}

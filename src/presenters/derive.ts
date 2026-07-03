@@ -1,7 +1,7 @@
 import { buildBeforeAfterCsf, buildLatestCsf, improvementPercent } from '@/progress/csf';
 import { populationNormContrast } from '@/progress/norms';
 import type { SessionLog, ThresholdEstimate } from '@/types';
-import { computeStreak, localDayKey, localDayKeyFromIso, todayIndex, weekCompletion, weekDates, weekdayShortFromIso } from '@/utils/clock';
+import { computeStreak, dateOfMonthFromIso, localDayKey, localDayKeyFromIso, todayIndex, weekCompletion, weekDates, weekdayShortFromIso } from '@/utils/clock';
 
 import {
   deriveMeasurementConfidence,
@@ -274,6 +274,7 @@ export function deriveProgressView(
     .filter((entry) => entry.points.length > 0)
     .map((entry) => ({
       day: weekdayShortFromIso(entry.session.startedAt),
+      date: dateOfMonthFromIso(entry.session.startedAt),
       value: round(
         Math.log10(Math.max(peakSensitivity(entry.points.map((t) => ({ sensitivity: 1 / t.thresholdContrast }))), 1)),
         2
