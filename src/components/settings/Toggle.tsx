@@ -9,7 +9,7 @@ import Animated, {
 
 import { PressableScale } from '@/components/ui';
 import { haptics } from '@/theme/haptics';
-import { ACCENT, ACCENT_GLOW, motion, radius, surface, text } from '@/theme/tokens';
+import { ACCENT, motion, radius, surface } from '@/theme/tokens';
 import { useEffectiveReducedMotion } from '@/theme/useEffectiveReducedMotion';
 
 export type ToggleProps = {
@@ -19,11 +19,14 @@ export type ToggleProps = {
   value: boolean;
 };
 
+// Stock UISwitch geometry (toggle/spec.md) — track is the invariant every reference converges on.
 const TRACK_WIDTH = 51;
 const TRACK_HEIGHT = 31;
-const KNOB_SIZE = 25;
-const KNOB_INSET = 3;
+const KNOB_SIZE = 27;
+const KNOB_INSET = 2;
 const KNOB_TRAVEL = TRACK_WIDTH - KNOB_SIZE - KNOB_INSET * 2;
+// Thumb is flat white in both states, unchanged from stock (spec row 9) — not a themed token.
+const KNOB_FILL = '#FFFFFF';
 
 export function Toggle({ accessibilityLabel, disabled = false, onChange, value }: ToggleProps) {
   const progress = useSharedValue(value ? 1 : 0);
@@ -35,15 +38,10 @@ export function Toggle({ accessibilityLabel, disabled = false, onChange, value }
   }, [progress, reduceMotion, value]);
 
   const trackStyle = useAnimatedStyle(() => ({
-    backgroundColor: interpolateColor(progress.value, [0, 1], [surface.hairlineStrong, ACCENT]),
+    backgroundColor: interpolateColor(progress.value, [0, 1], [surface.controlTrackOff, ACCENT]),
   }));
   const knobStyle = useAnimatedStyle(() => ({
-    backgroundColor: interpolateColor(progress.value, [0, 1], [text.secondary, text.inverse]),
     transform: [{ translateX: progress.value * KNOB_TRAVEL }],
-    shadowColor: ACCENT_GLOW,
-    shadowOpacity: progress.value,
-    shadowRadius: 6 * progress.value,
-    shadowOffset: { width: 0, height: 0 },
   }));
   const handleChange = () => {
     const nextValue = !value;
@@ -73,8 +71,14 @@ export function Toggle({ accessibilityLabel, disabled = false, onChange, value }
 
 const styles = StyleSheet.create({
   knob: {
+    backgroundColor: KNOB_FILL,
     borderRadius: radius.pill,
     height: KNOB_SIZE,
+    // Thumb shadow (spec row 17): black 6% opacity, ~2pt blur, offset (0, +1) downward.
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 2,
     width: KNOB_SIZE,
   },
   track: {
