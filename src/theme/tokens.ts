@@ -165,15 +165,15 @@ export const type = {
   },
   caption: {
     fontWeight: fontWeight.medium,
-    fontSize: 13,
-    lineHeight: 18,
+    fontSize: 12,
+    lineHeight: 16,
     letterSpacing: 0
   },
   micro: {
     fontWeight: fontWeight.semibold,
-    fontSize: 11,
-    lineHeight: 15,
-    letterSpacing: 1.4
+    fontSize: 10,
+    lineHeight: 14,
+    letterSpacing: 1.3
   },
   // Token addendum (VALIDATION.md) — additions, not replacements.
   tabLabel: {
