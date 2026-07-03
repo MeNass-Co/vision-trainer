@@ -12,6 +12,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { radius, space, surface } from '@/theme/tokens';
 
+import { TAB_BAR_CLEARANCE } from './CustomTabBar';
+
 export type ScreenProps = {
   children: ReactNode;
   scroll?: boolean;
@@ -29,6 +31,16 @@ export type ScreenProps = {
    * content so the sky travels with long pages instead of revealing flat gutters.
    */
   background?: ReactNode;
+  /**
+   * Reserves `TAB_BAR_CLEARANCE` of extra bottom space on the ScrollView's
+   * `contentContainerStyle` so the last row/card scrolls clear of the floating
+   * glass tab bar. Only meaningful when `scroll` is true. Defaults to `false`
+   * — route-safe: modal sheets (science, calibration) and the paywall have no
+   * tab bar underneath them and must never opt in, so every screen that
+   * doesn't explicitly pass this prop keeps byte-identical layout. Only the
+   * scrollable tab screens (Settings, Progress) pass `true`.
+   */
+  tabBarClearance?: boolean;
   style?: StyleProp<ViewStyle>;
 };
 
@@ -37,7 +49,16 @@ export type ScreenProps = {
 // `scrollTo` a card into frame for the reference-match screenshot rig (same
 // doctrine as the seeded Progress DB). Not used by any production UI path.
 export const Screen = forwardRef<ScrollView, ScreenProps>(function Screen(
-  { children, scroll = false, warm = false, sheet = false, padded = true, background, style },
+  {
+    children,
+    scroll = false,
+    warm = false,
+    sheet = false,
+    padded = true,
+    background,
+    tabBarClearance = false,
+    style,
+  },
   ref
 ) {
   const insets = useSafeAreaInsets();
@@ -52,6 +73,10 @@ export const Screen = forwardRef<ScrollView, ScreenProps>(function Screen(
     // Every screen's header lands at the same Y, clear of the status bar / Dynamic Island.
     { paddingTop: insets.top + (scroll ? space.xxl : space.lg) },
   ];
+  const scrollContentStyle = [
+    styles.scrollContent,
+    tabBarClearance && { paddingBottom: TAB_BAR_CLEARANCE },
+  ];
 
   return (
     <View style={[styles.background, sheet && styles.sheetCorners, { backgroundColor }]}>
@@ -62,7 +87,7 @@ export const Screen = forwardRef<ScrollView, ScreenProps>(function Screen(
       ) : null}
       {scroll ? (
         <ScrollView
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={scrollContentStyle}
           keyboardShouldPersistTaps="handled"
           ref={ref}
           showsVerticalScrollIndicator={false}>

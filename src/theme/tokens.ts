@@ -52,7 +52,7 @@ export const accent = {
   amber: '#6FE3E6',
   ember: '#26C3C8',
   // Token addendum (VALIDATION.md, law 3) — isoluminant CTA fill, horizontal 5-stop ramp.
-  ctaRamp: ['#A2FFD1', '#BAFFE9', '#BCFEF3', '#B0FDF9', '#A3F9FD'],
+  ctaRamp: ['#A7F6E4', '#98F3EC', '#8BEFF2', '#79ECF4', '#6FE9F6'],
   trackTint: 'rgba(51,210,214,0.15)',
   onLight: '#0B6A6D'
 } as const;

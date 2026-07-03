@@ -56,6 +56,7 @@ export default function ProgressScreen() {
       background={<AmbientGradient constellation reduceMotion={reduceMotion} />}
       ref={scrollRef}
       scroll={!isEmpty}
+      tabBarClearance={!isEmpty}
       style={styles.screen}>
       {isLoading ? (
         <LoadingProgress />

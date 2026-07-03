@@ -68,6 +68,7 @@ export default function SettingsScreen() {
   return (
     <Screen
       scroll
+      tabBarClearance
       warm
       background={<AmbientGradient constellation reduceMotion={reduceMotion} />}
       style={styles.screen}>
