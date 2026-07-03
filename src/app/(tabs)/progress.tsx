@@ -1,10 +1,11 @@
 import { useCallback, useState } from 'react';
-import { LayoutChangeEvent, StyleSheet, View } from 'react-native';
+import { LayoutChangeEvent, Platform, StyleSheet, View } from 'react-native';
 
 import { AmbientGradient } from '@/components/home/AmbientGradient';
 import { ContributorRows } from '@/components/progress/ContributorRows';
 import { CountUpNumber } from '@/components/progress/CountUpNumber';
 import { CsfGraph } from '@/components/progress/CsfGraph';
+import { LayersIcon, MetricRow, ShieldCheckIcon, TargetIcon, verdictFromRatio } from '@/components/progress/MetricRow';
 import { ProgressEmptySky } from '@/components/progress/ProgressEmptySky';
 import { Sparkline } from '@/components/progress/Sparkline';
 import { VerdictBand } from '@/components/progress/VerdictBand';
@@ -33,6 +34,8 @@ export default function ProgressScreen() {
     const next = Math.round(event.nativeEvent.layout.width);
     setCsfGraphWidth((previous) => (previous === next ? previous : next));
   }, []);
+  const isStaticMotion = reduceMotion || Platform.OS === 'web';
+  const strongest = strongestContributor(data);
 
   return (
     <Screen
@@ -78,34 +81,47 @@ export default function ProgressScreen() {
               <AppText color="primary" variant="body">
                 {visionProfileSummary(data)}
               </AppText>
-              <View style={styles.insightGrid}>
-                <View style={styles.insightRow}>
-                  <AppText color="muted" variant="micro">
-                    Reading confidence
-                  </AppText>
-                  <AppText color="secondary" tabular variant="caption">
-                    {data.measurementConfidence.label}
-                  </AppText>
-                </View>
-                <View style={styles.insightRow}>
-                  <AppText color="muted" variant="micro">
-                    Bands measured
-                  </AppText>
-                  <AppText color="secondary" tabular variant="caption">
-                    {data.csf.length}
-                  </AppText>
-                </View>
-                <View style={styles.insightRow}>
-                  <AppText color="muted" variant="micro">
-                    Strongest band
-                  </AppText>
-                  <AppText color="secondary" tabular variant="caption">
-                    {strongestBandLabel(data)}
-                  </AppText>
-                </View>
-              </View>
             </Card>
           </FadeIn>
+          {/* metric-rows spec: discrete flat cards (row 15, no blur/glass) flush
+              to the screen margin (row 1) — pulled out of the "Vision profile"
+              glass Card above so these three rows aren't double-materialed
+              inside another card; the narrative header/summary stays in the
+              Card where it already reads naturally. */}
+          <View style={styles.metricRowsSection}>
+            <MetricRow
+              baseline={`${data.measurementConfidence.baselineStep}/${data.measurementConfidence.baselineTarget} sessions`}
+              delay={100}
+              icon={<ShieldCheckIcon />}
+              isStatic={isStaticMotion}
+              label="Reading confidence"
+              value={confidenceValueLabel(data)}
+            />
+            <MetricRow
+              decimals={0}
+              delay={100 + motion.timing.staggerMs}
+              icon={<LayersIcon />}
+              isStatic={isStaticMotion}
+              label="Bands measured"
+              value={data.csf.length}
+            />
+            <MetricRow
+              baseline={strongest ? strongest.sensitivity.toFixed(1) : undefined}
+              delay={100 + motion.timing.staggerMs * 2}
+              delta={
+                strongest
+                  ? {
+                      direction: strongest.sensitivity >= strongest.norm ? 'up' : 'down',
+                      verdict: verdictFromRatio(strongest.sensitivity, strongest.norm),
+                    }
+                  : undefined
+              }
+              icon={<TargetIcon />}
+              isStatic={isStaticMotion}
+              label="Strongest band"
+              value={strongest ? strongest.label : 'Captured'}
+            />
+          </View>
           <FadeIn delay={120}>
             <Card style={styles.card}>
               <AppText color="secondary" variant="caption">
@@ -156,13 +172,15 @@ export default function ProgressScreen() {
               </View>
             </Card>
           </FadeIn>
-          <FadeIn delay={240}>
-            <Card style={styles.card}>
-              <AppText color="secondary" variant="caption">
-                By spatial frequency
-              </AppText>
-              <ContributorRows rows={data.contributors} />
-            </Card>
+          <FadeIn delay={240} style={styles.metricRowsSection}>
+            {/* metric-rows spec: discrete flat cards (row 15, no blur/glass)
+                flush to the screen margin (row 1) — this section deliberately
+                is NOT wrapped in the glass `Card` the other sections use, so
+                the rows below aren't double-materialed inside another card. */}
+            <AppText color="secondary" variant="caption">
+              By spatial frequency
+            </AppText>
+            <ContributorRows rows={data.contributors} />
           </FadeIn>
         </>
       )}
@@ -194,18 +212,26 @@ function LoadingProgress() {
   );
 }
 
-function strongestBandLabel(data: NonNullable<ReturnType<typeof useProgressData>['data']>): string {
-  if (data.contributors.length === 0) return 'Captured';
+type ProgressViewData = NonNullable<ReturnType<typeof useProgressData>['data']>;
 
-  const strongest = data.contributors.reduce(
+function strongestContributor(data: ProgressViewData): ProgressViewData['contributors'][number] | null {
+  if (data.contributors.length === 0) return null;
+
+  return data.contributors.reduce(
     (best, candidate) => (candidate.sensitivity > best.sensitivity ? candidate : best),
     data.contributors[0]
   );
-
-  return `${strongest.bandLabel} · ${strongest.label} · ${strongest.sensitivity.toFixed(1)}`;
 }
 
-function visionProfileSummary(data: NonNullable<ReturnType<typeof useProgressData>['data']>): string {
+// metric-rows row 12 wants a short, numeral-ish value; the full confidence
+// sentence (`measurementConfidence.label`) lives as the muted baseline instead.
+function confidenceValueLabel(data: ProgressViewData): string {
+  if (data.measurementConfidence.tier === 'reliable') return 'Reliable';
+  if (data.measurementConfidence.tier === 'needs-retest') return 'Retest';
+  return 'Building';
+}
+
+function visionProfileSummary(data: ProgressViewData): string {
   if (data.contributors.length === 0) {
     return 'Baseline captured. Future sessions will turn this into a trend.';
   }
@@ -265,21 +291,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     width: 260,
   },
-  insightGrid: {
-    gap: space.sm,
-  },
-  insightRow: {
-    alignItems: 'center',
-    borderTopColor: surface.hairline,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingTop: space.sm,
-  },
   loadingHero: {
     alignItems: 'center',
     gap: space.sm,
     paddingVertical: space.xxl,
+  },
+  metricRowsSection: {
+    gap: space.md,
   },
   screen: {
     gap: space.md,
