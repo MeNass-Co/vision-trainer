@@ -456,7 +456,7 @@ const styles = StyleSheet.create({
   },
   focusHero: {
     color: text.primary,
-    fontFamily: type.hero.fontFamily,
+    fontWeight: type.hero.fontWeight,
     fontSize: type.hero.fontSize,
     lineHeight: type.hero.lineHeight,
   },

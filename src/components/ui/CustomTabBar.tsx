@@ -262,7 +262,7 @@ const styles = StyleSheet.create({
   },
   label: {
     color: GLYPH_COLOR,
-    fontFamily: typo.tabLabel.fontFamily,
+    fontWeight: typo.tabLabel.fontWeight,
     fontSize: typo.tabLabel.fontSize,
     letterSpacing: typo.tabLabel.letterSpacing,
     lineHeight: typo.tabLabel.lineHeight,

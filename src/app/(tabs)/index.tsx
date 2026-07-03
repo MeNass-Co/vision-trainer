@@ -316,7 +316,7 @@ export const styles = StyleSheet.create({
   // week-strip spec row 21: type.numeral (18pt bold), no dedicated color here —
   // color is assigned per-state at the call site (accent.core / text.faint / text.primary).
   numeral: {
-    fontFamily: typo.numeral.fontFamily,
+    fontWeight: typo.numeral.fontWeight,
     fontSize: typo.numeral.fontSize,
     letterSpacing: typo.numeral.letterSpacing,
     lineHeight: typo.numeral.lineHeight,
@@ -345,7 +345,7 @@ export const styles = StyleSheet.create({
   },
   todayDigit: {
     color: textTokens.inverse,
-    fontFamily: typo.numeral.fontFamily,
+    fontWeight: typo.numeral.fontWeight,
     fontSize: typo.numeral.fontSize,
     letterSpacing: typo.numeral.letterSpacing,
     lineHeight: typo.numeral.lineHeight,

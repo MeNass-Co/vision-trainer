@@ -347,7 +347,7 @@ const styles = StyleSheet.create({
   },
   accuracyNumber: {
     color: text.primary,
-    fontFamily: typeScale.display.fontFamily,
+    fontWeight: typeScale.display.fontWeight,
     fontSize: 68,
     fontVariant: [...tabularFigures.fontVariant],
     height: 82,
@@ -413,7 +413,7 @@ const styles = StyleSheet.create({
   },
   percent: {
     color: text.primary,
-    fontFamily: typeScale.title.fontFamily,
+    fontWeight: typeScale.title.fontWeight,
     fontSize: 32,
     lineHeight: 44,
     marginLeft: 8,
@@ -432,7 +432,7 @@ const styles = StyleSheet.create({
   },
   streakNumber: {
     color: text.secondary,
-    fontFamily: typeScale.title.fontFamily,
+    fontWeight: typeScale.title.fontWeight,
     fontSize: 34,
     fontVariant: [...tabularFigures.fontVariant],
     height: 40,

@@ -70,12 +70,20 @@ describe('design tokens', () => {
     expect(hexChroma(ACCENT)).toBeGreaterThan(40);
   });
 
-  it('provides a sane Inter type scale', () => {
+  it('provides a sane iOS-native (SF Pro) type scale', () => {
     expect(type.display.fontSize).toBeGreaterThan(type.title.fontSize);
     expect(type.title.fontSize).toBeGreaterThan(type.body.fontSize);
 
+    const VALID_WEIGHTS = new Set(['400', '500', '600', '700']);
+
     for (const preset of Object.values(type)) {
-      expect(preset.fontFamily.startsWith('Inter-')).toBe(true);
+      // Every preset must carry a real RN fontWeight (this is what makes RN
+      // resolve to the iOS system font, SF Pro, with correct optical sizing).
+      expect(VALID_WEIGHTS.has(preset.fontWeight)).toBe(true);
+      // No preset may reintroduce a custom font-family string — omitting
+      // `fontFamily` entirely is what keeps native SF Pro instead of falling
+      // back to a web/Android-reading typeface like Inter.
+      expect(preset).not.toHaveProperty('fontFamily');
     }
   });
 });

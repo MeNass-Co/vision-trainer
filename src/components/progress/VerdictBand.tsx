@@ -1,7 +1,7 @@
 import { StyleSheet, View } from 'react-native';
 
 import { AppText } from '@/components/ui';
-import { ACCENT, fontFamily, space, text, type as typo, verdict as verdictColors } from '@/theme/tokens';
+import { ACCENT, fontWeight, space, text, type as typo, verdict as verdictColors } from '@/theme/tokens';
 
 import { formatDelta, formatVerdictWord, type Verdict } from './verdictFormatting';
 
@@ -42,7 +42,7 @@ const styles = StyleSheet.create({
     ...typo.bodyStrong,
     // spec row 6: type.bodyStrong with weight override → bold.
     color: text.primary,
-    fontFamily: fontFamily.bold,
+    fontWeight: fontWeight.bold,
     // spec row 16: verdict-word bottom → caption top ≈23pt (nearest token
     // space.lg=24). Raw marginTop of 24 overshoots the *visual* gap because
     // RN line-height leading adds space beyond the glyph edges on both
@@ -68,7 +68,7 @@ const styles = StyleSheet.create({
     ...typo.caption,
     // spec row 9: type.caption with weight override → regular (matches reference).
     color: text.tertiary,
-    fontFamily: fontFamily.regular,
+    fontWeight: fontWeight.regular,
     // "+" has generous inherent left-bearing; without this the space.xs gap
     // (row 17) reads ~1.7pt wider than spec. Calibrated against a native capture.
     marginLeft: -2,
@@ -93,7 +93,7 @@ const styles = StyleSheet.create({
     ...typo.caption,
     // spec row 3: type.caption with weight override → bold, tracking untouched
     // (already 0, matches the reference's tight/normal kerning — row 4).
-    fontFamily: fontFamily.bold,
+    fontWeight: fontWeight.bold,
     textAlign: 'center',
   },
 });

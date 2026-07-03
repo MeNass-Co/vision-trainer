@@ -114,78 +114,83 @@ export const hairline = {
   px1: 1
 } as const;
 
-export const fontFamily = {
-  regular: 'Inter-Regular',
-  medium: 'Inter-Medium',
-  semibold: 'Inter-SemiBold',
-  bold: 'Inter-Bold'
+// SF Pro (the iOS system font) is picked up automatically by React Native on
+// iOS whenever a Text style OMITS `fontFamily` and specifies `fontWeight`
+// instead — RN then also auto-selects the correct optical size (SF Pro Text
+// under 20pt, SF Pro Display at/above 20pt). Do not reintroduce a fontFamily
+// string here; that is what forces the web/Android-reading Inter fallback.
+export const fontWeight = {
+  regular: '400',
+  medium: '500',
+  semibold: '600',
+  bold: '700'
 } as const;
 
 export const type = {
   hero: {
-    fontFamily: fontFamily.bold,
+    fontWeight: fontWeight.bold,
     fontSize: 47,
     lineHeight: 47,
-    letterSpacing: -1.9
+    letterSpacing: -0.5
   },
   display: {
-    fontFamily: fontFamily.semibold,
+    fontWeight: fontWeight.semibold,
     fontSize: 88,
     lineHeight: 88,
-    letterSpacing: -2.6
+    letterSpacing: -1.0
   },
   title: {
-    fontFamily: fontFamily.semibold,
+    fontWeight: fontWeight.semibold,
     fontSize: 28,
     lineHeight: 34,
-    letterSpacing: -0.4
+    letterSpacing: 0
   },
   heading: {
-    fontFamily: fontFamily.medium,
+    fontWeight: fontWeight.medium,
     fontSize: 20,
     lineHeight: 26,
-    letterSpacing: -0.2
+    letterSpacing: 0
   },
   body: {
-    fontFamily: fontFamily.regular,
+    fontWeight: fontWeight.regular,
     fontSize: 15,
     lineHeight: 24,
     letterSpacing: 0
   },
   bodyStrong: {
-    fontFamily: fontFamily.medium,
+    fontWeight: fontWeight.medium,
     fontSize: 15,
     lineHeight: 24,
     letterSpacing: 0
   },
   caption: {
-    fontFamily: fontFamily.medium,
+    fontWeight: fontWeight.medium,
     fontSize: 13,
     lineHeight: 18,
     letterSpacing: 0
   },
   micro: {
-    fontFamily: fontFamily.semibold,
+    fontWeight: fontWeight.semibold,
     fontSize: 11,
     lineHeight: 15,
     letterSpacing: 1.4
   },
   // Token addendum (VALIDATION.md) — additions, not replacements.
   tabLabel: {
-    fontFamily: fontFamily.medium,
+    fontWeight: fontWeight.medium,
     fontSize: 10,
     lineHeight: 12,
-    letterSpacing: 0.2
+    letterSpacing: 0.1
   },
   metricValue: {
-    fontFamily: fontFamily.semibold,
+    fontWeight: fontWeight.semibold,
     fontSize: 24,
     lineHeight: 28,
-    letterSpacing: -0.3,
+    letterSpacing: 0,
     fontVariant: ['tabular-nums'] as const
   },
   numeral: {
-    fontFamily: fontFamily.bold,
+    fontWeight: fontWeight.bold,
     fontSize: 18,
     lineHeight: 22,
     letterSpacing: 0
@@ -254,7 +259,7 @@ export const tokens = {
   space,
   radius,
   hairline,
-  fontFamily,
+  fontWeight,
   type,
   tabularFigures,
   motion,

@@ -2,7 +2,7 @@ import { Children, Fragment, type ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { AppText, Hairline } from '@/components/ui';
-import { fontFamily, hairline, radius, space, surface } from '@/theme/tokens';
+import { fontWeight, hairline, radius, space, surface } from '@/theme/tokens';
 
 export type SectionProps = {
   title: string;
@@ -58,9 +58,9 @@ const styles = StyleSheet.create({
   },
   title: {
     // spec row 32: section-cap label — sentence case (NOT uppercase/tracked), bold ~18pt
-    fontFamily: fontFamily.bold,
+    fontWeight: fontWeight.bold,
     fontSize: 18,
     lineHeight: 23,
-    letterSpacing: -0.2,
+    letterSpacing: 0,
   },
 });

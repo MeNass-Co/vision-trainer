@@ -16,7 +16,7 @@ import {
   ACCENT_CORE,
   ACCENT_SOFT,
   data,
-  fontFamily,
+  fontWeight,
   motion,
   space,
   surface,
@@ -357,11 +357,11 @@ const styles = StyleSheet.create({
   },
   dayLabelCurrent: {
     color: text.primary,
-    fontFamily: fontFamily.bold,
+    fontWeight: fontWeight.bold,
   },
   dayLabelLine: {
     color: text.secondary,
-    fontFamily: typo.caption.fontFamily,
+    fontWeight: typo.caption.fontWeight,
     fontSize: typo.caption.fontSize,
     letterSpacing: typo.caption.letterSpacing,
     lineHeight: LABEL_LINE_HEIGHT,
@@ -378,7 +378,7 @@ const styles = StyleSheet.create({
   },
   valueLabelText: {
     color: ACCENT_CORE,
-    fontFamily: fontFamily.bold,
+    fontWeight: fontWeight.bold,
     fontSize: typo.caption.fontSize,
     fontVariant: ['tabular-nums'],
     letterSpacing: typo.caption.letterSpacing,

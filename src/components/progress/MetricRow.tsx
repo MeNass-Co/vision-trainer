@@ -10,7 +10,7 @@ import Svg, { Circle, Path } from 'react-native-svg';
 
 import { FadeIn } from '@/components/ui';
 import { easings } from '@/theme/motion';
-import { fontFamily, motion, radius, space, surface, text, type as typo, verdict } from '@/theme/tokens';
+import { fontWeight, motion, radius, space, surface, text, type as typo, verdict } from '@/theme/tokens';
 
 // metric-rows — WHOOP sleep-statistics rows (design/references/metric-rows/spec.md).
 // Shared discrete-card primitive: leading icon + caps label, big value right with
@@ -44,7 +44,7 @@ const DELTA_ARROW = { width: 8, height: 5 };
 // Row 18: `proposed:metricBaseline` — de-tracked micro sibling, never finalized
 // as a token name in the addendum.
 const metricBaselineType = {
-  fontFamily: fontFamily.medium,
+  fontWeight: fontWeight.medium,
   fontSize: 11,
   lineHeight: 14,
   letterSpacing: 0,
@@ -243,7 +243,7 @@ const styles = StyleSheet.create({
   // blast radius; same precedent as CustomTabBar's tab label).
   baseline: {
     color: text.secondary,
-    fontFamily: metricBaselineType.fontFamily,
+    fontWeight: metricBaselineType.fontWeight,
     fontSize: metricBaselineType.fontSize,
     letterSpacing: metricBaselineType.letterSpacing,
     lineHeight: metricBaselineType.lineHeight,
@@ -262,7 +262,7 @@ const styles = StyleSheet.create({
   label: {
     color: text.primary,
     flexShrink: 1,
-    fontFamily: typo.micro.fontFamily,
+    fontWeight: typo.micro.fontWeight,
     fontSize: typo.micro.fontSize,
     letterSpacing: typo.micro.letterSpacing,
     lineHeight: typo.micro.lineHeight,
@@ -300,7 +300,7 @@ const styles = StyleSheet.create({
   },
   value: {
     color: text.primary,
-    fontFamily: typo.metricValue.fontFamily,
+    fontWeight: typo.metricValue.fontWeight,
     fontSize: typo.metricValue.fontSize,
     fontVariant: [...typo.metricValue.fontVariant],
     letterSpacing: typo.metricValue.letterSpacing,

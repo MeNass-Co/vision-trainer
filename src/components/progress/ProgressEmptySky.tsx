@@ -13,7 +13,7 @@ import {
   ACCENT_HOT,
   ACCENT_MUTED,
   ACCENT_SOFT,
-  fontFamily,
+  fontWeight,
   radius,
   space,
 } from '@/theme/tokens';
@@ -217,7 +217,7 @@ const styles = StyleSheet.create({
   // Row 18/17: caption ~ type.body size/line-height, weight bumped to medium
   // (nearest to the reference's bold-for-a-caption stroke ratio).
   caption: {
-    fontFamily: fontFamily.medium,
+    fontWeight: fontWeight.medium,
     marginTop: -3,
     textAlign: 'center',
   },
@@ -239,9 +239,9 @@ const styles = StyleSheet.create({
   // 28/34 token default rather than clamped to it, weight bumped to bold
   // (the reference's stroke ratio is too heavy for semibold).
   title: {
-    fontFamily: fontFamily.bold,
+    fontWeight: fontWeight.bold,
     fontSize: 32.6,
-    letterSpacing: -0.4,
+    letterSpacing: 0,
     lineHeight: 38.7,
     textAlign: 'center',
   },

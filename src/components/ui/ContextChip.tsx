@@ -1,6 +1,6 @@
 import { StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 
-import { fontFamily, hairline, material, radius, space, surface, text, type as typo } from '@/theme/tokens';
+import { fontWeight, hairline, material, radius, space, surface, text, type as typo } from '@/theme/tokens';
 
 export type ContextChipProps = {
   label: string;
@@ -40,7 +40,7 @@ const styles = StyleSheet.create({
   label: {
     ...typo.micro,
     color: text.primary,
-    fontFamily: fontFamily.bold,
+    fontWeight: fontWeight.bold,
     letterSpacing: 0.5,
   },
 });

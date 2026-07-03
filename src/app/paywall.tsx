@@ -6,7 +6,7 @@ import Svg, { Path } from 'react-native-svg';
 import { AmbientGradient } from '@/components/home/AmbientGradient';
 import { AppText, FadeIn, GaborMark, PrimaryButton, Screen, SecondaryButton } from '@/components/ui';
 import { useAppStore } from '@/store/useAppStore';
-import { accent, fontFamily, hairline, radius, space } from '@/theme/tokens';
+import { accent, fontWeight, hairline, radius, space } from '@/theme/tokens';
 import { useEffectiveReducedMotion } from '@/theme/useEffectiveReducedMotion';
 
 const BENEFITS = [
@@ -190,7 +190,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: space.md,
   },
   filledChipText: {
-    fontFamily: fontFamily.bold,
+    fontWeight: fontWeight.bold,
     letterSpacing: 0.8,
   },
   gabor: {
