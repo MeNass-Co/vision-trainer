@@ -8,6 +8,12 @@ import { material, radius, text } from '@/theme/tokens';
 // modal-sheet spec (design/references/modal-sheet/spec.md): rows 4-8, 20, 22.
 const CHIP_SIZE = 44;
 const ICON_SIZE = 17;
+// Chrome-family rim consistency (CustomTabBar's `styles.bar`/`styles.pill`,
+// scaled down): a flat, uniform 1pt border — same brightness all the way
+// around the circle — not a directional top-only highlight. Owner correction
+// (round 2): the first pass's top-left gradient read as a light source; a
+// real UIGlassEffect rim is symmetric.
+const RIM_COLOR = 'rgba(255,255,255,0.16)';
 
 export type SheetCloseButtonProps = {
   onPress: () => void;
@@ -54,7 +60,9 @@ export function SheetCloseButton({ onPress }: SheetCloseButtonProps) {
 const styles = StyleSheet.create({
   chip: {
     alignItems: 'center',
+    borderColor: RIM_COLOR,
     borderRadius: radius.pill,
+    borderWidth: 1,
     height: CHIP_SIZE,
     justifyContent: 'center',
     overflow: 'hidden',

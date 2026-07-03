@@ -4,12 +4,13 @@ import { GlassView, isGlassEffectAPIAvailable, isLiquidGlassAvailable } from 'ex
 import type { SFSymbol, SymbolWeight } from 'expo-symbols';
 import { SymbolView } from 'expo-symbols';
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
-import { Platform, StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
+import { Platform, StyleSheet, Text, View, type LayoutChangeEvent, type ViewStyle } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withSequence,
   withSpring,
+  type AnimatedStyle,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -50,6 +51,16 @@ const ICON_LABEL_GAP = 3;
 // overshoot on tab change, Apple Music-style — scale dips to 0.92 then springs
 // back to 1 using the existing `motion.spring.press` timing.
 const PILL_PULSE_DOWN = 0.92;
+
+// Liquid Glass rim (owner correction, round 2): the first pass's top-left
+// specular read as a directional light source — not what real UIGlassEffect
+// bars do. The native material sits over a real system tab bar's own rim,
+// which is a UNIFORM perimeter highlight — identical brightness on every
+// edge, no light source implied. So the hand-drawn layer is now just a flat
+// 1pt border, same color on all four sides. Nothing directional survives:
+// no gradient, no drift, no corner-anchored fade.
+const RIM_COLOR = 'rgba(255,255,255,0.16)';
+const PILL_RIM_COLOR = 'rgba(255,255,255,0.18)';
 
 type TabIconProps = {
   focused: boolean;
@@ -127,14 +138,22 @@ type BarMaterialProps = {
   liquidGlass: boolean;
 };
 
-// Real Liquid Glass on iOS 26 (GlassView, "regular" style — refracts the
-// starfield behind it, no manual tint/overlay layers riding on top). Falls
-// back to a plain BlurView on platforms where the Liquid Glass API isn't
-// available; that fallback is not the target render and is kept minimal.
+// Real Liquid Glass on iOS 26 (GlassView). Owner correction (round 2): ship
+// the most SYSTEM configuration, not the most vivid one — 'regular' is the
+// API's own default and matches what a real UITabBar's glass material uses
+// (Apple reserves 'clear' for controls floating over rich media, e.g. a
+// now-playing artwork, not standard chrome). isInteractive stays — that's a
+// genuine native behavior (the material reacts under touch), not a directional
+// lighting choice. No tintColor override: default appearance only. The only
+// hand-drawn addition is a flat, uniform 1pt rim (see `styles.bar.borderWidth`)
+// standing in for the perimeter highlight a dark static scene hides — same
+// color on all four edges, nothing directional. Falls back to a plain
+// BlurView on platforms where Liquid Glass isn't available; that fallback is
+// not the target render and is kept minimal.
 function BarMaterial({ children, liquidGlass }: BarMaterialProps) {
   if (liquidGlass) {
     return (
-      <GlassView colorScheme="dark" glassEffectStyle="regular" style={styles.bar}>
+      <GlassView colorScheme="dark" glassEffectStyle="regular" isInteractive style={styles.bar}>
         {children}
       </GlassView>
     );
@@ -148,6 +167,30 @@ function BarMaterial({ children, liquidGlass }: BarMaterialProps) {
       tint="dark">
       {children}
     </BlurView>
+  );
+}
+
+type ActivePillProps = {
+  liquidGlass: boolean;
+  style: AnimatedStyle<ViewStyle>;
+  width: number;
+};
+
+// Owner override (d), corrected round 2: the active pill stays glass-on-glass
+// — a second, tighter GlassView riding on the bar's own material — but its
+// rim is now the same uniform, symmetric 1pt border as the bar (see
+// `styles.pill.borderWidth`), not a directional top-only gradient. No
+// tintColor override on the nested GlassView either — default 'regular'
+// glass, same "most system" choice as the bar.
+function ActivePill({ liquidGlass, style, width }: ActivePillProps) {
+  return (
+    <Animated.View style={[styles.pill, style, { width }]}>
+      {liquidGlass ? (
+        <GlassView colorScheme="dark" glassEffectStyle="regular" isInteractive style={styles.pillGlass} />
+      ) : (
+        <View style={styles.pillFallbackFill} />
+      )}
+    </Animated.View>
   );
 }
 
@@ -217,13 +260,14 @@ export function CustomTabBar({ state, descriptors, navigation }: BottomTabBarPro
     <View style={[styles.outer, { paddingBottom: insets.bottom + BAR_BOTTOM_GAP }]}>
       <View style={styles.barShadow}>
         <BarMaterial liquidGlass={liquidGlass}>
-          {/* Hairline kept to a whisper — a single top edge, not a boxed outline,
-              so the pill still reads as glass rather than a bordered card. */}
-          <View pointerEvents="none" style={styles.hairlineTop} />
+          {/* The uniform rim lives on the bar's own style (borderWidth/borderColor
+              below) — symmetric on all edges, no overlay needed. */}
           <View onLayout={handleLayout} style={styles.primaryRow}>
             {barWidth > 0 ? (
-              <Animated.View
-                style={[styles.pill, pillStyle, { width: columnWidth - PILL_INSET * 2 }]}
+              <ActivePill
+                liquidGlass={liquidGlass}
+                style={pillStyle}
+                width={columnWidth - PILL_INSET * 2}
               />
             ) : null}
             {state.routes.map((route) => renderTab(route))}
@@ -237,7 +281,13 @@ export function CustomTabBar({ state, descriptors, navigation }: BottomTabBarPro
 const styles = StyleSheet.create({
   bar: {
     backgroundColor: 'transparent',
+    // Uniform perimeter rim (owner correction, round 2): a flat 1pt border,
+    // same color on all four edges — identical brightness top/bottom/left/
+    // right, exactly what a real UIGlassEffect rim looks like. No gradient,
+    // no light source implied.
+    borderColor: RIM_COLOR,
     borderRadius: BAR_RADIUS,
+    borderWidth: 1,
     height: BAR_HEIGHT,
     overflow: 'hidden',
     width: '100%',
@@ -249,14 +299,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.22,
     shadowRadius: 20,
     width: '100%',
-  },
-  hairlineTop: {
-    backgroundColor: material.hairlineOnGlass,
-    height: StyleSheet.hairlineWidth,
-    left: 0,
-    position: 'absolute',
-    right: 0,
-    top: 0,
   },
   icon: {
     height: ICON_SIZE,
@@ -280,12 +322,29 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   pill: {
-    backgroundColor: material.pillOnGlass,
+    // Same uniform-rim treatment as the bar (see `styles.bar`): a flat 1pt
+    // border, identical on all four edges — the "raised glass lozenge" reads
+    // through the nested material + this symmetric edge, not a directional
+    // highlight.
+    borderColor: PILL_RIM_COLOR,
     borderRadius: radius.pill,
+    borderWidth: 1,
     height: PILL_HEIGHT,
     left: PILL_INSET,
+    overflow: 'hidden',
     position: 'absolute',
     top: PILL_INSET,
+  },
+  pillFallbackFill: {
+    backgroundColor: material.pillOnGlass,
+    height: '100%',
+    position: 'absolute',
+    width: '100%',
+  },
+  pillGlass: {
+    height: '100%',
+    position: 'absolute',
+    width: '100%',
   },
   primaryRow: {
     alignItems: 'center',
