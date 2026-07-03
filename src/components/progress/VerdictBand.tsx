@@ -1,7 +1,7 @@
 import { StyleSheet, View } from 'react-native';
 
 import { AppText } from '@/components/ui';
-import { ACCENT, fontWeight, space, text, type as typo, verdict as verdictColors } from '@/theme/tokens';
+import { ACCENT, fontWeight, text, type as typo, verdict as verdictColors } from '@/theme/tokens';
 
 import { formatDelta, formatVerdictWord, type Verdict } from './verdictFormatting';
 
@@ -17,21 +17,19 @@ export type VerdictBandProps = {
 // verdict-band spec (Oura lockup, design/references/verdict-band/spec.md):
 // score (rendered by the caller) → named verdict word → supporting caption,
 // centered, all text-only (no card/glass material — spec's MATERIAL section
-// has zero rows). The delta chip is demoted to the Eight Sleep dot+word
-// secondary treatment: a 4pt state-colored dot + tertiary-grey value, no pill.
+// has zero rows). Three tiers, not four: the delta is merged into the
+// verdict line itself ("Improving · +0.18" — verdict word + middot + delta
+// value, all in the verdict color at the verdict-word style) rather than a
+// separate dot+word tier underneath; "Reliable reading" stays the third tier.
 export function VerdictBand({ verdict, delta, caption, captionTone = 'default' }: VerdictBandProps) {
   const verdictColor = verdictColors[verdict];
 
   return (
     <View style={styles.lockup}>
-      <AppText style={[styles.verdictWord, { color: verdictColor }]}>{formatVerdictWord(verdict)}</AppText>
+      <AppText style={[styles.verdictWord, { color: verdictColor }]} tabular>
+        {formatVerdictWord(verdict)} · {formatDelta(delta)}
+      </AppText>
       <AppText style={[styles.caption, captionTone === 'accent' && styles.captionAccent]}>{caption}</AppText>
-      <View style={styles.deltaChip}>
-        <View style={[styles.dot, { backgroundColor: verdictColor }]} />
-        <AppText style={styles.deltaWord} tabular>
-          {formatDelta(delta)}
-        </AppText>
-      </View>
     </View>
   );
 }
@@ -54,29 +52,6 @@ const styles = StyleSheet.create({
   },
   captionAccent: {
     color: ACCENT,
-  },
-  deltaChip: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: space.xs, // spec row 17: delta-chip word ↔ dot gap (nearest token space.xs).
-    // caption → delta-chip position isn't a spec row (the chip is an addition
-    // borrowed only for its own dot+word anatomy, not placed by either
-    // reference) — space.sm keeps it reading as a footnote beneath the lockup.
-    marginTop: space.sm,
-  },
-  deltaWord: {
-    ...typo.caption,
-    // spec row 9: type.caption with weight override → regular (matches reference).
-    color: text.tertiary,
-    fontWeight: fontWeight.regular,
-    // "+" has generous inherent left-bearing; without this the space.xs gap
-    // (row 17) reads ~1.7pt wider than spec. Calibrated against a native capture.
-    marginLeft: -2,
-  },
-  dot: {
-    borderRadius: 2, // spec row 12: 4pt diameter, circular.
-    height: 4,
-    width: 4,
   },
   lockup: {
     alignItems: 'center',

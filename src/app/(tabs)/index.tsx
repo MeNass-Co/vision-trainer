@@ -207,9 +207,11 @@ function TodayContent({ data, reduceMotion, router }: TodayContentProps) {
                 {`Next · ${data.nextTargetLabel}`}
               </AppText>
             )}
-            <AppText color={data.measurementConfidence.tier === 'needs-retest' ? 'accent' : 'muted'} variant="micro">
-              {data.measurementConfidence.label}
-            </AppText>
+            {data.measurementConfidence.tier === 'needs-retest' ? (
+              <AppText color="accent" variant="micro">
+                {data.measurementConfidence.label}
+              </AppText>
+            ) : null}
           </View>
         </FadeIn>
         <FadeIn delay={80}>

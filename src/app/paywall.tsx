@@ -4,7 +4,7 @@ import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 
 import { AmbientGradient } from '@/components/home/AmbientGradient';
-import { AppText, FadeIn, GaborMark, PrimaryButton, Screen, SecondaryButton } from '@/components/ui';
+import { AppText, FadeIn, PrimaryButton, Screen, SecondaryButton } from '@/components/ui';
 import { useAppStore } from '@/store/useAppStore';
 import { accent, fontWeight, hairline, radius, space } from '@/theme/tokens';
 import { useEffectiveReducedMotion } from '@/theme/useEffectiveReducedMotion';
@@ -39,9 +39,14 @@ function FilledChip({ label, style }: { label: string; style?: StyleProp<ViewSty
 
 // spec row 3: checkmark glyph bbox 14.0x9.7pt — plain stroke glyph, no circular
 // backing chip (the reference's checks sit directly on the flat background).
+// Anchored to the FIRST line of a (possibly wrapped) feature row: featureRow
+// is flex-start (not center, which would center on the whole wrapped-text
+// block height), and this glyph's own marginTop nudges its optical center to
+// the first line's cap-height center rather than the row's top edge.
+// Calibrated against a native capture of the two-line "Progress graphs…" row.
 function CheckGlyph() {
   return (
-    <Svg height={CHECK_HEIGHT} width={CHECK_WIDTH} viewBox="0 0 14 10">
+    <Svg height={CHECK_HEIGHT} style={styles.checkGlyph} width={CHECK_WIDTH} viewBox="0 0 14 10">
       <Path
         d="M1.4 5.3L5.2 9L12.6 1"
         fill="none"
@@ -84,15 +89,13 @@ export default function PaywallScreen() {
   return (
     <Screen scroll padded background={<AmbientGradient constellation reduceMotion={reduceMotion} />}>
       <View style={styles.screen}>
-        {/* Our illustrative content, centered (Fable-lock approved deviation);
-            everything below follows the reference's LEFT-aligned column and its
+        {/* Everything below follows the reference's LEFT-aligned column and its
             stack order: headline block → checkmark features → plan card → CTA
             pair → legal caption (Fable-lock ruling: layout order is
-            bit-identical territory, not a carve-out). */}
-        <FadeIn duration={360} style={styles.hero}>
-          <GaborMark quiet size={80} style={styles.gabor} />
-        </FadeIn>
-
+            bit-identical territory, not a carve-out). The decorative orb that
+            used to open this stack is gone — Screen's shared top inset
+            (insets.top + space.xxl, identical to Settings' title offset)
+            now gives the EARLY ACCESS chip its own breathing room. */}
         <FadeIn duration={360} style={styles.headerBlock}>
           <FilledChip label="Early access" />
           <AppText style={styles.title} variant="title">
@@ -123,7 +126,7 @@ export default function PaywallScreen() {
             <AppText color="secondary" style={styles.planPrice} variant="caption">
               Early builds. No payment today.
             </AppText>
-            <AppText color="muted" style={styles.planBilled} variant="micro">
+            <AppText color="muted" style={styles.planBilled} variant="caption">
               Built for practice, not promises. Readings only track this routine.
             </AppText>
           </View>
@@ -132,7 +135,7 @@ export default function PaywallScreen() {
         <FadeIn delay={140} style={styles.actions}>
           <PrimaryButton label="Start training" onPress={startTraining} />
           <SecondaryButton label="Maybe later" onPress={maybeLater} />
-          <AppText color="secondary" style={styles.legalCaption} variant="micro">
+          <AppText color="muted" style={styles.legalCaption} variant="caption">
             Free while in Early Access. No subscription is active.
           </AppText>
         </FadeIn>
@@ -156,8 +159,11 @@ const styles = StyleSheet.create({
     // now directionally 1:1, no longer an adapted reversal.
     marginTop: space.lg,
   },
+  // flex-start (not center): center would anchor the glyph to the whole
+  // wrapped-text block's height on a 2-line row. Anchoring to the first line
+  // is done by CheckGlyph's own marginTop (see checkGlyph below).
   featureRow: {
-    alignItems: 'center',
+    alignItems: 'flex-start',
     flexDirection: 'row',
     // spec row 5: checkmark→text gap measured 10.7pt; nearest token space.md(12) Δ+1.3.
     gap: space.md,
@@ -193,8 +199,14 @@ const styles = StyleSheet.create({
     fontWeight: fontWeight.bold,
     letterSpacing: 0.8,
   },
-  gabor: {
-    marginBottom: -space.sm,
+  // Body text is 15pt/24pt line-height (SF Pro cap-height ≈15*0.71≈10.7pt,
+  // near-identical to this glyph's own 10pt bbox). Centering the glyph on the
+  // full 24pt first-line box lands almost exactly on the cap-height center
+  // (the descender-side leading below the cap outweighs the ascender-side
+  // leading above it by roughly the same margin this token adds) —
+  // calibrated against a native capture of the wrapped second row.
+  checkGlyph: {
+    marginTop: 7,
   },
   // Spec row 31: left content margin 32pt for the badge/headline/caption column.
   // Screen pads space.lg(24); this block adds the remaining 8pt — same local-
@@ -205,12 +217,11 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     marginHorizontal: space.xl - space.lg,
   },
-  hero: {
-    alignItems: 'center',
-  },
   // spec row 38: CTA-bottom → legal-caption-top ≈17pt. The `actions` gap
   // (space.md=12, shared with the primary→secondary law #2 rhythm) covers part
   // of it; this literal remainder tops it up to the measured 17pt.
+  // Sentence-case regular caption grammar (Mimo's quiet captions), not
+  // tracked caps: caps belong on the FREE badge / EARLY ACCESS chip only.
   legalCaption: {
     marginTop: 5,
     textAlign: 'center',
@@ -240,6 +251,8 @@ const styles = StyleSheet.create({
   // spec row 42 measured 26.3pt; compressed to 16 to keep the card on-screen
   // alongside our extra pre-card blocks (VALIDATION's addendum does not carry
   // a `cardPriceGap` token, so this stays a literal, commented value).
+  // Sentence-case regular caption grammar (Mimo's quiet captions), not
+  // tracked caps: caps belong on the FREE badge / EARLY ACCESS chip only.
   planBilled: {
     marginTop: 16,
   },
