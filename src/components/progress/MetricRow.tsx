@@ -38,7 +38,10 @@ export type MetricRowProps = {
 // Rows 3/6/7/18 — VALIDATION.md's token addendum voids `rowHeight.*` /
 // `avatarSize.*` as tokens ("inline in spec, no token needed"), so these are
 // local literals, not global tokens.
-export const METRIC_ICON_SIZE = 24;
+// Beauty-audit fix: leading icon dropped 2pt (24→22) so the value stays the
+// only bright/large thing in the row (caps label + icon both step down to
+// `text.muted`, see `styles.label` and each icon's `stroke` below).
+export const METRIC_ICON_SIZE = 22;
 const ROW_HEIGHT = 60;
 const DELTA_ARROW = { width: 8, height: 5 };
 // Row 18: `proposed:metricBaseline` — de-tracked micro sibling, never finalized
@@ -166,16 +169,18 @@ export function MetricRow({
   );
 }
 
-// Rows 6/10 — a small family of neutral `text.secondary`-stroke glyphs (24x24
+// Rows 6/10 — a small family of neutral `text.muted`-stroke glyphs (24x24
 // viewBox, 1.6 stroke), sharing this app's own rounded-line visual language
 // (echoing the tab bar's icon set) rather than literal WHOOP stopwatch/moon
-// icons, since none of our metrics are literally sleep timers.
+// icons, since none of our metrics are literally sleep timers. Beauty-audit
+// fix: dropped from `text.secondary` so the value is the only bright thing
+// in the row.
 export function WaveIcon() {
   return (
     <Svg
       fill="none"
       height={METRIC_ICON_SIZE}
-      stroke={text.secondary}
+      stroke={text.muted}
       strokeLinecap="round"
       strokeLinejoin="round"
       strokeWidth={1.6}
@@ -191,7 +196,7 @@ export function ShieldCheckIcon() {
     <Svg
       fill="none"
       height={METRIC_ICON_SIZE}
-      stroke={text.secondary}
+      stroke={text.muted}
       strokeLinecap="round"
       strokeLinejoin="round"
       strokeWidth={1.6}
@@ -208,7 +213,7 @@ export function LayersIcon() {
     <Svg
       fill="none"
       height={METRIC_ICON_SIZE}
-      stroke={text.secondary}
+      stroke={text.muted}
       strokeLinecap="round"
       strokeLinejoin="round"
       strokeWidth={1.6}
@@ -226,7 +231,7 @@ export function TargetIcon() {
     <Svg
       fill="none"
       height={METRIC_ICON_SIZE}
-      stroke={text.secondary}
+      stroke={text.muted}
       strokeLinecap="round"
       strokeLinejoin="round"
       strokeWidth={1.6}
@@ -234,7 +239,7 @@ export function TargetIcon() {
       width={METRIC_ICON_SIZE}>
       <Circle cx={12} cy={12} r={8.5} />
       <Circle cx={12} cy={12} r={4} />
-      <Circle cx={12} cy={12} fill={text.secondary} r={1.2} stroke="none" />
+      <Circle cx={12} cy={12} fill={text.muted} r={1.2} stroke="none" />
     </Svg>
   );
 }
@@ -262,7 +267,9 @@ const styles = StyleSheet.create({
     width: METRIC_ICON_SIZE,
   },
   label: {
-    color: text.primary,
+    // Beauty-audit fix: caps label dropped from `text.primary` to `text.muted`
+    // so the value (still `text.primary`) is the only bright thing per row.
+    color: text.muted,
     flexShrink: 1,
     fontWeight: typo.micro.fontWeight,
     fontSize: typo.micro.fontSize,

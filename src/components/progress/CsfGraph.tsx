@@ -16,7 +16,7 @@ import Svg, { Circle, Defs, Line, LinearGradient, Path, Stop } from 'react-nativ
 import { TrajectoryPointLight } from '@/components/progress/TrajectoryPointLight';
 import { AppText } from '@/components/ui';
 import { haptics } from '@/theme/haptics';
-import { ACCENT, ACCENT_CORE, ACCENT_GLOW, ACCENT_HOT, motion, radius, surface } from '@/theme/tokens';
+import { ACCENT, ACCENT_CORE, ACCENT_SOFT, data, motion, radius, surface } from '@/theme/tokens';
 import { useEffectiveReducedMotion } from '@/theme/useEffectiveReducedMotion';
 
 export type CsfGraphProps = {
@@ -42,6 +42,12 @@ const CHART_INSET = 8;
 const SELECTED_DOT_SIZE = 12;
 const EMPTY_REFERENCES: NonNullable<CsfGraphProps['references']> = [];
 const REFERENCE_DOT_SIZE = 3;
+// Plain ring marker (WHOOP discipline, matching Sparkline.tsx rows 15-17):
+// 10pt outer Ø, 2pt stroke, dark hole. Radius set to (outer - stroke) / 2 so
+// the stroke's outward half-width lands on the 10pt outer boundary.
+const RING_OUTER_D = 10;
+const RING_STROKE = 2;
+const RING_RADIUS = (RING_OUTER_D - RING_STROKE) / 2;
 
 function clamp(value: number, minimum: number, maximum: number) {
   return Math.min(Math.max(value, minimum), maximum);
@@ -260,7 +266,9 @@ export function CsfGraph({ points, width, height, references = EMPTY_REFERENCES 
           })}
           {referenceCurves.map((reference) => {
             const referencePath = createPath(reference.chartPoints);
-            const stroke = reference.label === 'Target' ? ACCENT_CORE : surface.hairlineStrong;
+            // law 8 restraint: both comparison curves (Norm/Target) read as
+            // the same neutral hairline — no accent hue on a non-live series.
+            const stroke = surface.hairlineStrong;
 
             return (
               <Fragment key={reference.label}>
@@ -269,11 +277,11 @@ export function CsfGraph({ points, width, height, references = EMPTY_REFERENCES 
                     d={referencePath}
                     fill="none"
                     stroke={stroke}
-                    strokeDasharray="4 4"
-                    strokeOpacity={reference.label === 'Target' ? 0.74 : 0.88}
+                    strokeDasharray="3 3"
+                    strokeOpacity={0.85}
                     strokeLinecap="round"
                     strokeLinejoin="round"
-                    strokeWidth={1.2}
+                    strokeWidth={1}
                   />
                 ) : null}
                 {reference.chartPoints.map((point) => (
@@ -282,7 +290,7 @@ export function CsfGraph({ points, width, height, references = EMPTY_REFERENCES 
                     cy={point.y}
                     fill={stroke}
                     key={`${reference.label}-${point.spatialFrequency}`}
-                    opacity={0.74}
+                    opacity={0.85}
                     r={REFERENCE_DOT_SIZE}
                   />
                 ))}
@@ -311,90 +319,49 @@ export function CsfGraph({ points, width, height, references = EMPTY_REFERENCES 
           ) : null}
           <Defs>
             <LinearGradient gradientUnits="userSpaceOnUse" id="csfArea" x1={0} x2={0} y1={CHART_TOP} y2={baselineY}>
-              <Stop offset="0" stopColor={ACCENT} stopOpacity={0.18} />
-              <Stop offset="1" stopColor={ACCENT} stopOpacity={0.02} />
+              <Stop offset="0" stopColor={ACCENT_SOFT} stopOpacity={0.16} />
+              <Stop offset="1" stopColor={ACCENT_SOFT} stopOpacity={0} />
             </LinearGradient>
           </Defs>
           {areaPath ? <Path d={areaPath} fill="url(#csfArea)" stroke="none" /> : null}
           {path ? (
-            <>
-              {isStatic ? (
-                <Path
-                  d={path}
-                  fill="none"
-                  opacity={0.72}
-                  stroke={ACCENT_GLOW}
-                  strokeDashoffset={0}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={11}
-                />
-              ) : (
-                <AnimatedPath
-                  animatedProps={animatedProps}
-                  d={path}
-                  fill="none"
-                  opacity={0.72}
-                  stroke={ACCENT_GLOW}
-                  strokeDasharray={pathLength}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={11}
-                />
-              )}
-              {isStatic ? (
-                <Path
-                  d={path}
-                  fill="none"
-                  stroke={ACCENT}
-                  strokeDashoffset={0}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={3.4}
-                />
-              ) : (
-                <AnimatedPath
-                  animatedProps={animatedProps}
-                  d={path}
-                  fill="none"
-                  stroke={ACCENT}
-                  strokeDasharray={pathLength}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={3.4}
-                />
-              )}
-            </>
+            isStatic ? (
+              <Path
+                d={path}
+                fill="none"
+                stroke={ACCENT_SOFT}
+                strokeDashoffset={0}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+              />
+            ) : (
+              <AnimatedPath
+                animatedProps={animatedProps}
+                d={path}
+                fill="none"
+                stroke={ACCENT_SOFT}
+                strokeDasharray={pathLength}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+              />
+            )
           ) : null}
-          {/* Constellation: each measured frequency is a lit star, brightness rising
-              with sensitivity so the peak burns hottest — the empty sky, bloomed. */}
-          {chartPoints.map((point) => {
-            const span = baselineY - CHART_TOP || 1;
-            const b = clamp(1 - (point.y - CHART_TOP) / span, 0, 1);
-            const coreColor = b > 0.85 ? ACCENT_HOT : b > 0.4 ? ACCENT_CORE : ACCENT;
-
-            return (
-              <Fragment key={point.spatialFrequency}>
-                <Circle
-                  cx={point.x}
-                  cy={point.y}
-                  fill={ACCENT_GLOW}
-                  opacity={0.22 + b * 0.32}
-                  r={5 + b * 9}
-                />
-                <Circle
-                  cx={point.x}
-                  cy={point.y}
-                  fill={coreColor}
-                  opacity={0.55 + b * 0.45}
-                  r={2.3 + b * 1.8}
-                />
-                {b > 0.85 ? (
-                  <Circle cx={point.x} cy={point.y} fill={ACCENT_HOT} opacity={0.95} r={1.1} />
-                ) : null}
-              </Fragment>
-            );
-          })}
+          {/* Plain ring marker on every point (matching Sparkline.tsx rows
+              15-17) — the TrajectoryPointLight glow below is the single
+              signature glow, layered on top of the latest point only. */}
+          {chartPoints.map((point) => (
+            <Circle
+              cx={point.x}
+              cy={point.y}
+              fill={data.canvas}
+              key={point.spatialFrequency}
+              r={RING_RADIUS}
+              stroke={ACCENT_CORE}
+              strokeWidth={RING_STROKE}
+            />
+          ))}
           {chartPoints.length > 0 ? (
             <TrajectoryPointLight
               coreR={3.5}
@@ -406,17 +373,26 @@ export function CsfGraph({ points, width, height, references = EMPTY_REFERENCES 
           ) : null}
         </Svg>
         {referenceCurves.map((reference) => {
-          const lastPoint = reference.chartPoints.at(-1);
-          if (!lastPoint) return null;
           const isTarget = reference.label === 'Target';
+          // Beauty-audit fix: a left-anchored label ("Norm") must read its y
+          // from that curve's OWN leftmost point, not the rightmost one — the
+          // previous code anchored both labels to `lastPoint`, which put
+          // "Norm" (pinned to the left edge) at whatever height the curve
+          // happened to be on the far right, colliding with the live data
+          // line at some seeded data shapes. Anchor each label to the point
+          // nearest its own horizontal edge.
+          const anchorPoint = isTarget
+            ? reference.chartPoints.at(-1)
+            : reference.chartPoints[0];
+          if (!anchorPoint) return null;
           const labelOffset = isTarget ? -34 : -20;
           const horizontalStyle = isTarget ? styles.referenceLabelRight : styles.referenceLabelLeft;
 
           return (
             <AppText
-              color={isTarget ? 'accent' : 'muted'}
+              color="muted"
               key={reference.label}
-              style={[styles.referenceLabel, horizontalStyle, { top: Math.max(0, lastPoint.y + labelOffset) }]}
+              style={[styles.referenceLabel, horizontalStyle, { top: Math.max(0, anchorPoint.y + labelOffset) }]}
               variant="micro">
               {reference.label}
             </AppText>

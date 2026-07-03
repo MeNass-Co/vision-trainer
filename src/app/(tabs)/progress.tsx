@@ -13,7 +13,7 @@ import { VerdictBand } from '@/components/progress/VerdictBand';
 import { AppText, Bloom, ContextChip, Card, FadeIn, Screen, Shimmer } from '@/components/ui';
 import { useProgressData } from '@/presenters';
 import { haptics } from '@/theme/haptics';
-import { data as tokenData, motion, radius, space, surface } from '@/theme/tokens';
+import { data as tokenData, fontWeight, motion, radius, space, surface } from '@/theme/tokens';
 import { useEffectiveReducedMotion } from '@/theme/useEffectiveReducedMotion';
 
 const SPARKLINE_HEIGHT = 130;
@@ -91,7 +91,10 @@ export default function ProgressScreen() {
           </FadeIn>
           <FadeIn delay={90}>
             <Card style={styles.card}>
-              <AppText color="secondary" variant="caption">
+              {/* One section-header grammar app-wide: matches Settings'
+                  `Section.tsx` title exactly (sentence case, 18/23 bold,
+                  text.secondary) — not the 13pt `caption` variant. */}
+              <AppText color="secondary" style={styles.sectionHeader}>
                 Vision profile
               </AppText>
               <AppText color="primary" variant="body">
@@ -204,7 +207,7 @@ export default function ProgressScreen() {
                 flush to the screen margin (row 1) — this section deliberately
                 is NOT wrapped in the glass `Card` the other sections use, so
                 the rows below aren't double-materialed inside another card. */}
-            <AppText color="secondary" variant="caption">
+            <AppText color="secondary" style={styles.sectionHeader}>
               By spatial frequency
             </AppText>
             <ContributorRows rows={data.contributors} />
@@ -358,5 +361,13 @@ const styles = StyleSheet.create({
   },
   screenLabelPlate: {
     alignSelf: 'flex-start',
+  },
+  // Matches Settings' `Section.tsx` title style exactly (spec row 32: sentence
+  // case, bold ~18pt) — one section-header grammar app-wide.
+  sectionHeader: {
+    fontWeight: fontWeight.bold,
+    fontSize: 18,
+    lineHeight: 23,
+    letterSpacing: 0,
   },
 });
