@@ -1,64 +1,80 @@
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { BlurView } from 'expo-blur';
-import { GlassView, isGlassEffectAPIAvailable, isLiquidGlassAvailable } from 'expo-glass-effect';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Platform, StyleSheet, View } from 'react-native';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Platform, StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
+import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Line, Path } from 'react-native-svg';
 
-import { ACCENT_CORE, material, space, surface } from '@/theme/tokens';
+import { hairline, icon, material, motion, radius, space, surface, text, type as typo } from '@/theme/tokens';
 
-import { AppText } from './AppText';
 import { PressableScale } from './PressableScale';
 
-const BAR_HEIGHT = 50;
-const BAR_RADIUS = BAR_HEIGHT / 2;
-const ACTION_SIZE = 50;
-const OUTER_INSET = 22;
+// Law 5 (VALIDATION.md): icons + labels are WHITE in BOTH states — the only
+// active/inactive distinction is the frosted pill + filled-vs-outline glyph swap.
+// No cyan on the tab bar.
+const GLYPH_COLOR = text.primary;
+
+// Spec rows 1/3-4/6: 61pt fixed bar height, ~60pt symmetric screen-edge margins
+// (no existing token this large — between space.xxl=48 and space.xxxl=64), radius
+// via the dedicated radius.floatingBar token.
+const BAR_HEIGHT = 61;
+const BAR_MARGIN = 60;
+// Spec rows 10/34: pill inset from bar edge on all sides = space.xs (4pt).
+const PILL_INSET = space.xs;
+const PILL_HEIGHT = BAR_HEIGHT - PILL_INSET * 2;
+// Spec rows 15/35: icon-to-label gap ~6.7pt avg, proposed token never finalized
+// in the VALIDATION.md addendum — used as a literal per that precedent (space.2xs).
+const ICON_LABEL_GAP = 6;
 
 type TabIconProps = {
-  color: string;
   focused: boolean;
   routeName: string;
 };
 
 type RouteItem = BottomTabBarProps['state']['routes'][number];
 
-function TabIcon({ color, focused, routeName }: TabIconProps) {
+// Glyphs are drawn to FILL the 24-unit viewBox (drawn extent ≈21-22 units incl.
+// stroke → ≈20-21pt visible in the 23pt box), matching the reference's chunky
+// ~90% optical fill. Stroke 2.4 units → ≈2.3pt displayed — inactive ≠ thin.
+function TabIcon({ focused, routeName }: TabIconProps) {
+  const dotFill = focused ? GLYPH_COLOR : 'none';
+
   const content = (() => {
     switch (routeName) {
       case 'progress':
         return (
           <>
-            <Path d="M3.5 16.8 C 7.4 16.8, 9.2 9, 12.8 9 S 17.5 5.3, 20.5 4.5" />
-            <Circle cx={3.5} cy={16.8} r={1.25} />
-            <Circle cx={20.5} cy={4.5} r={1.25} />
+            <Path d="M4 19 C 7.7 19, 9.4 10.1, 12.75 10.1 S 17.2 5.9, 20 5" fill="none" />
+            <Circle cx={4} cy={19} fill={dotFill} r={2.4} />
+            <Circle cx={20} cy={5} fill={dotFill} r={2.4} />
           </>
         );
       case 'settings':
         return (
           <>
-            <Line x1={4.2} x2={19.8} y1={7} y2={7} />
-            <Circle cx={15.8} cy={7} r={1.85} />
-            <Line x1={4.2} x2={19.8} y1={12} y2={12} />
-            <Circle cx={8.9} cy={12} r={1.85} />
-            <Line x1={4.2} x2={19.8} y1={17} y2={17} />
-            <Circle cx={13.9} cy={17} r={1.85} />
+            <Line x1={2.8} x2={21.2} y1={5} y2={5} />
+            <Circle cx={16.5} cy={5} fill={dotFill} r={2.6} />
+            <Line x1={2.8} x2={21.2} y1={12} y2={12} />
+            <Circle cx={8.3} cy={12} fill={dotFill} r={2.6} />
+            <Line x1={2.8} x2={21.2} y1={19} y2={19} />
+            <Circle cx={14.2} cy={19} fill={dotFill} r={2.6} />
           </>
         );
       case 'index':
       default:
         return focused ? (
           <Path
-            d="M4.7 11.2 12 4.8l7.3 6.4v8.1h-5v-4.7H9.7v4.7h-5z"
-            fill={color}
+            d="M1.4 10.84 12 1.56l10.6 9.28v11.75h-7.25v-6.82H8.67v6.82H1.4z"
+            fill={GLYPH_COLOR}
             stroke="none"
           />
         ) : (
           <>
-            <Path d="M5 11.5 12 5.2l7 6.3" />
-            <Path d="M7.2 10.5v8.1h9.6v-8.1" />
-            <Path d="M10.2 18.6v-4.7h3.6v4.7" />
+            <Path d="M2.06 11.33 12 2.39l9.94 8.94" fill="none" />
+            <Path d="M5.18 9.91v11.5h13.64v-11.5" fill="none" />
+            <Path d="M9.44 21.41v-6.67h5.11v6.67" fill="none" />
           </>
         );
     }
@@ -67,29 +83,26 @@ function TabIcon({ color, focused, routeName }: TabIconProps) {
   return (
     <Svg
       fill="none"
-      height={22}
-      stroke={color}
+      height={icon.tab}
+      stroke={GLYPH_COLOR}
       strokeLinecap="round"
       strokeLinejoin="round"
-      strokeWidth={1.85}
+      strokeWidth={2.4}
       viewBox="0 0 24 24"
-      width={22}>
+      width={icon.tab}>
       {content}
     </Svg>
   );
 }
 
 type TabButtonProps = {
-  compact?: boolean;
   focused: boolean;
   label: string;
   onPress: () => void;
   routeName: string;
 };
 
-function TabButton({ compact = false, focused, label, onPress, routeName }: TabButtonProps) {
-  const color = focused ? ACCENT_CORE : 'rgba(210,249,250,0.70)';
-
+function TabButton({ focused, label, onPress, routeName }: TabButtonProps) {
   return (
     <PressableScale
       accessibilityLabel={label}
@@ -97,45 +110,46 @@ function TabButton({ compact = false, focused, label, onPress, routeName }: TabB
       accessibilityState={{ selected: focused }}
       haptic="selection"
       onPress={onPress}
-      scaleTo={1}
-      style={compact ? styles.actionButton : styles.tabButton}>
-      {focused ? (
-        <LinearGradient
-          colors={[
-            'rgba(91,233,236,0.32)',
-            'rgba(207,250,251,0.18)',
-            'rgba(91,233,236,0.09)',
-          ]}
-          end={{ x: 1, y: 1 }}
-          pointerEvents="none"
-          start={{ x: 0, y: 0 }}
-          style={compact ? styles.actionActiveFill : styles.activeFill}
-        />
-      ) : null}
-      <LinearGradient
-        colors={['rgba(167,247,249,0.20)', 'rgba(167,247,249,0.06)', 'rgba(167,247,249,0)']}
-        end={{ x: 0.5, y: 1 }}
-        pointerEvents="none"
-        start={{ x: 0.5, y: 0 }}
-        style={compact ? styles.actionSheen : styles.tabSheen}
-      />
-      <TabIcon color={color} focused={focused} routeName={routeName} />
-      {compact ? null : (
-        <AppText numberOfLines={1} style={[styles.label, { color }]} variant="micro">
-          {label}
-        </AppText>
-      )}
+      style={styles.tabButton}>
+      <TabIcon focused={focused} routeName={routeName} />
+      {/* Plain RN Text (not AppText) so the exact spec type row (type.tabLabel)
+          applies without fighting AppText's Variant union — AppText is a shared
+          file out of this element's blast radius. */}
+      <Text numberOfLines={1} style={styles.label}>
+        {label}
+      </Text>
     </PressableScale>
   );
 }
 
 export function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
-  const liquidGlass =
-    Platform.OS === 'ios' && isLiquidGlassAvailable() && isGlassEffectAPIAvailable();
-  const primaryRoutes = state.routes;
+  const [barWidth, setBarWidth] = useState(0);
+  const translateX = useSharedValue(0);
+  const hasMounted = useRef(false);
+  const columnWidth = barWidth / state.routes.length;
 
-  const renderTab = (route: RouteItem, compact = false) => {
+  const handleLayout = useCallback((event: LayoutChangeEvent) => {
+    setBarWidth(event.nativeEvent.layout.width);
+  }, []);
+
+  useEffect(() => {
+    if (columnWidth <= 0) return;
+    const target = state.index * columnWidth;
+    if (!hasMounted.current) {
+      translateX.value = target;
+      hasMounted.current = true;
+    } else {
+      translateX.value = withSpring(target, motion.spring.liquid);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.index, columnWidth]);
+
+  const pillStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: translateX.value }],
+  }));
+
+  const renderTab = (route: RouteItem) => {
     const index = state.routes.findIndex((item) => item.key === route.key);
     const focused = state.index === index;
     const label = descriptors[route.key].options.title ?? route.name;
@@ -152,7 +166,6 @@ export function CustomTabBar({ state, descriptors, navigation }: BottomTabBarPro
 
     return (
       <TabButton
-        compact={compact}
         focused={focused}
         key={route.key}
         label={label}
@@ -162,111 +175,64 @@ export function CustomTabBar({ state, descriptors, navigation }: BottomTabBarPro
     );
   };
 
-  const primaryContent = (
-    <View style={styles.primaryRow}>{primaryRoutes.map((route) => renderTab(route))}</View>
-  );
   return (
     <View style={[styles.outer, { paddingBottom: insets.bottom + space.sm }]}>
+      {/* Neutral dark scrim behind the floating bar so it reads over any content —
+          no accent hue, unrelated to the bar's own material. */}
       <LinearGradient
         colors={['rgba(5,8,10,0)', 'rgba(5,8,10,0.34)', surface.base]}
         pointerEvents="none"
         style={styles.bottomField}
       />
-      <View style={styles.musicRow}>
-        <View style={styles.primaryShadow}>
-          {liquidGlass ? (
-            <GlassView
-              colorScheme="light"
-              glassEffectStyle={{ style: 'regular', animate: true, animationDuration: 0.2 }}
-              style={styles.primaryBar}
-              tintColor="rgba(187,249,250,0.26)">
-              <LinearGradient
-                colors={[
-                  'rgba(255,255,255,0.30)',
-                  'rgba(207,250,251,0.16)',
-                  'rgba(91,233,236,0.06)',
+      <View style={styles.barShadow}>
+        <BlurView
+          experimentalBlurMethod={Platform.OS === 'android' ? 'dimezisBlurView' : undefined}
+          intensity={Platform.OS === 'ios' ? 55 : 62}
+          style={styles.bar}
+          tint="dark">
+          <View style={styles.barTint} />
+          {/* Hairline drawn as overlays, not borderWidth — a border would eat into
+              the content box and throw off the pill's symmetric top/bottom inset. */}
+          <View style={styles.hairlineTop} />
+          <View style={styles.hairlineBottom} />
+          <View onLayout={handleLayout} style={styles.primaryRow}>
+            {barWidth > 0 ? (
+              <Animated.View
+                style={[
+                  styles.pill,
+                  pillStyle,
+                  { width: columnWidth - PILL_INSET * 2 },
                 ]}
-                pointerEvents="none"
-                style={styles.barSheen}
               />
-              {primaryContent}
-            </GlassView>
-          ) : (
-            <BlurView
-              experimentalBlurMethod={Platform.OS === 'android' ? 'dimezisBlurView' : undefined}
-              intensity={Platform.OS === 'ios' ? Math.max(material.blurIntensity, 76) : 62}
-              style={styles.primaryBar}
-              tint="light">
-              <LinearGradient
-                colors={[
-                  'rgba(255,255,255,0.30)',
-                  'rgba(207,250,251,0.16)',
-                  'rgba(91,233,236,0.06)',
-                ]}
-                pointerEvents="none"
-                style={styles.barSheen}
-              />
-              {primaryContent}
-            </BlurView>
-          )}
-        </View>
-
+            ) : null}
+            {state.routes.map((route) => renderTab(route))}
+          </View>
+        </BlurView>
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  actionActiveFill: {
-    borderRadius: 19,
-    height: 38,
-    left: 6,
-    position: 'absolute',
-    top: 6,
-    width: 38,
-  },
-  actionButton: {
-    alignItems: 'center',
-    borderRadius: ACTION_SIZE / 2,
-    height: ACTION_SIZE,
-    justifyContent: 'center',
+  bar: {
+    borderRadius: radius.floatingBar,
+    height: BAR_HEIGHT,
     overflow: 'hidden',
-    width: ACTION_SIZE,
+    width: '100%',
   },
-  actionGlass: {
-    backgroundColor: 'rgba(207,250,251,0.20)',
-    borderRadius: ACTION_SIZE / 2,
-    height: ACTION_SIZE,
-    overflow: 'hidden',
-    width: ACTION_SIZE,
-  },
-  actionShadow: {
-    borderRadius: ACTION_SIZE / 2,
+  barShadow: {
+    borderRadius: radius.floatingBar,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.13,
+    shadowOpacity: 0.12,
     shadowRadius: 16,
+    width: '100%',
   },
-  actionSheen: {
-    borderRadius: ACTION_SIZE / 2,
-    height: 20,
-    left: 4,
-    position: 'absolute',
-    right: 4,
-    top: 3,
-  },
-  activeFill: {
-    borderRadius: 19,
-    height: 38,
-    left: '50%',
-    marginLeft: -29,
-    position: 'absolute',
-    top: 6,
-    width: 58,
-  },
-  barSheen: {
-    height: 22,
+  barTint: {
+    backgroundColor: surface.overlay,
+    bottom: 0,
     left: 0,
+    opacity: 0.45,
     position: 'absolute',
     right: 0,
     top: 0,
@@ -278,64 +244,56 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: 0,
   },
-  label: {
-    fontSize: 9,
-    letterSpacing: 0,
-    lineHeight: 11,
+  hairlineBottom: {
+    backgroundColor: material.hairlineOnGlass,
+    bottom: 0,
+    height: hairline.px1,
+    left: 0,
+    position: 'absolute',
+    right: 0,
   },
-  musicRow: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: 7,
-    justifyContent: 'center',
-    width: '100%',
+  hairlineTop: {
+    backgroundColor: material.hairlineOnGlass,
+    height: hairline.px1,
+    left: 0,
+    position: 'absolute',
+    right: 0,
+    top: 0,
+  },
+  label: {
+    color: GLYPH_COLOR,
+    fontFamily: typo.tabLabel.fontFamily,
+    fontSize: typo.tabLabel.fontSize,
+    letterSpacing: typo.tabLabel.letterSpacing,
+    lineHeight: typo.tabLabel.lineHeight,
   },
   outer: {
     alignItems: 'center',
     backgroundColor: 'transparent',
-    paddingHorizontal: OUTER_INSET,
+    paddingHorizontal: BAR_MARGIN,
     paddingTop: space.sm,
     position: 'relative',
     width: '100%',
   },
-  primaryBar: {
-    backgroundColor: 'rgba(207,250,251,0.18)',
-    borderRadius: BAR_RADIUS,
-    height: BAR_HEIGHT,
-    overflow: 'hidden',
-    width: '100%',
+  pill: {
+    backgroundColor: material.pillOnGlass,
+    borderRadius: radius.pill,
+    height: PILL_HEIGHT,
+    left: PILL_INSET,
+    position: 'absolute',
+    top: PILL_INSET,
   },
   primaryRow: {
     alignItems: 'center',
     flexDirection: 'row',
     height: '100%',
-    paddingHorizontal: 4,
     width: '100%',
-  },
-  primaryShadow: {
-    borderRadius: BAR_RADIUS,
-    flex: 1,
-    maxWidth: 264,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.12,
-    shadowRadius: 16,
   },
   tabButton: {
     alignItems: 'center',
-    borderRadius: 25,
     flex: 1,
-    gap: 1,
-    height: BAR_HEIGHT - 7,
+    gap: ICON_LABEL_GAP,
+    height: '100%',
     justifyContent: 'center',
-    overflow: 'hidden',
-  },
-  tabSheen: {
-    borderRadius: 25,
-    height: 18,
-    left: 4,
-    position: 'absolute',
-    right: 4,
-    top: 2,
   },
 });
