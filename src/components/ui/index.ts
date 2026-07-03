@@ -10,4 +10,5 @@ export * from './Hairline';
 export * from './PressableScale';
 export * from './PrimaryButton';
 export * from './Screen';
+export * from './SecondaryButton';
 export * from './Shimmer';

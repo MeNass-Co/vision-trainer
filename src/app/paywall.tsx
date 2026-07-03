@@ -3,7 +3,7 @@ import { useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { AmbientGradient } from '@/components/home/AmbientGradient';
-import { AppText, FadeIn, GaborMark, GlassSurface, PressableScale, PrimaryButton, Screen } from '@/components/ui';
+import { AppText, FadeIn, GaborMark, GlassSurface, PrimaryButton, Screen, SecondaryButton } from '@/components/ui';
 import { useAppStore } from '@/store/useAppStore';
 import { material, radius, space, surface } from '@/theme/tokens';
 import { useEffectiveReducedMotion } from '@/theme/useEffectiveReducedMotion';
@@ -59,11 +59,7 @@ export default function PaywallScreen() {
 
         <FadeIn delay={80} style={styles.actions}>
           <PrimaryButton label="Start training" onPress={startTraining} />
-          <PressableScale accessibilityRole="button" onPress={maybeLater} style={styles.secondaryAction}>
-            <AppText color="primary" variant="caption">
-              Maybe later
-            </AppText>
-          </PressableScale>
+          <SecondaryButton label="Maybe later" onPress={maybeLater} />
           <AppText color="secondary" style={styles.earlyAccessNote} variant="caption">
             Free while in Early Access. No subscription is active.
           </AppText>
@@ -118,7 +114,7 @@ export default function PaywallScreen() {
 
 const styles = StyleSheet.create({
   actions: {
-    gap: 11,
+    gap: space.md,
   },
   benefitRule: {
     backgroundColor: surface.hairline,
@@ -226,16 +222,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     minHeight: 700,
     paddingBottom: space.xl,
-  },
-  secondaryAction: {
-    alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.075)',
-    borderColor: 'rgba(255,255,255,0.13)',
-    borderRadius: radius.pill,
-    borderWidth: StyleSheet.hairlineWidth,
-    minHeight: 48,
-    justifyContent: 'center',
-    paddingVertical: space.md,
   },
   subtitle: {
     lineHeight: 24,

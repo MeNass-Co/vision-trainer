@@ -9,7 +9,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
-import { AppText, GaborMark, GlassSurface, PressableScale } from '@/components/ui';
+import { AppText, GaborMark, PressableScale, SecondaryButton } from '@/components/ui';
 import { buildDeviceCalibration } from '@/core/deviceCalibration';
 import { viewingDistanceReminder } from '@/core/displayCalibration';
 import {
@@ -186,19 +186,7 @@ export function CalibrationCard({ onComplete, confirmLabel = 'This feels right' 
         </View>
       </View>
 
-      <PressableScale
-        accessibilityLabel={confirmLabel}
-        accessibilityRole="button"
-        haptic="select"
-        onPress={confirmBrightness}
-        scaleTo={0.97}
-        style={styles.confirmButton}>
-        <GlassSurface interactive radius={radius.pill} style={styles.confirmGlass}>
-          <AppText color="primary" style={styles.confirmText} variant="heading">
-            {confirmLabel}
-          </AppText>
-        </GlassSurface>
-      </PressableScale>
+      <SecondaryButton label={confirmLabel} onPress={confirmBrightness} />
     </View>
   );
 }
@@ -235,20 +223,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: space.base,
     justifyContent: 'center',
-  },
-  confirmButton: {
-    width: '100%',
-  },
-  confirmGlass: {
-    alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    borderColor: 'rgba(255,255,255,0.22)',
-    justifyContent: 'center',
-    minHeight: 56,
-    width: '100%',
-  },
-  confirmText: {
-    letterSpacing: 0,
   },
   slider: {
     height: 48,
