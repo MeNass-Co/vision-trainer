@@ -3,12 +3,10 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { LayoutChangeEvent, Platform, ScrollView, StyleSheet, View } from 'react-native';
 
 import { AmbientGradient } from '@/components/home/AmbientGradient';
-import { ContributorRows } from '@/components/progress/ContributorRows';
 import { CountUpNumber } from '@/components/progress/CountUpNumber';
 import { CsfGraph } from '@/components/progress/CsfGraph';
-import { LayersIcon, MetricRow, ShieldCheckIcon, TargetIcon, verdictFromRatio } from '@/components/progress/MetricRow';
 import { ProgressEmptySky } from '@/components/progress/ProgressEmptySky';
-import { CHART_TITLE_ICON_SIZE, ChevronIcon, Sparkline, TrendIcon } from '@/components/progress/Sparkline';
+import { ChevronIcon, Sparkline, TrendIcon } from '@/components/progress/Sparkline';
 import { VerdictBand } from '@/components/progress/VerdictBand';
 import { AppText, Bloom, ContextChip, Card, FadeIn, Screen, Shimmer } from '@/components/ui';
 import { useProgressData } from '@/presenters';
@@ -35,8 +33,6 @@ export default function ProgressScreen() {
     const next = Math.round(event.nativeEvent.layout.width);
     setCsfGraphWidth((previous) => (previous === next ? previous : next));
   }, []);
-  const isStaticMotion = reduceMotion || Platform.OS === 'web';
-  const strongest = strongestContributor(data);
   // Sanctioned capture tooling (same doctrine as the seeded Progress DB): a
   // __DEV__-only `?scrollTo=` deeplink param lets the reference-match
   // screenshot rig (scripts/shoot-sim.sh) bring below-the-fold cards into
@@ -110,45 +106,6 @@ export default function ProgressScreen() {
               </AppText>
             </Card>
           </FadeIn>
-          {/* metric-rows spec: discrete flat cards (row 15, no blur/glass) flush
-              to the screen margin (row 1) — pulled out of the "Vision profile"
-              glass Card above so these three rows aren't double-materialed
-              inside another card; the narrative header/summary stays in the
-              Card where it already reads naturally. */}
-          <View style={styles.metricRowsSection}>
-            <MetricRow
-              baseline={`${data.measurementConfidence.baselineStep}/${data.measurementConfidence.baselineTarget} sessions`}
-              delay={100}
-              icon={<ShieldCheckIcon />}
-              isStatic={isStaticMotion}
-              label="Reading confidence"
-              value={confidenceValueLabel(data)}
-            />
-            <MetricRow
-              decimals={0}
-              delay={100 + motion.timing.staggerMs}
-              icon={<LayersIcon />}
-              isStatic={isStaticMotion}
-              label="Bands measured"
-              value={data.csf.length}
-            />
-            <MetricRow
-              baseline={strongest ? strongest.sensitivity.toFixed(1) : undefined}
-              delay={100 + motion.timing.staggerMs * 2}
-              delta={
-                strongest
-                  ? {
-                      direction: strongest.sensitivity >= strongest.norm ? 'up' : 'down',
-                      verdict: verdictFromRatio(strongest.sensitivity, strongest.norm),
-                    }
-                  : undefined
-              }
-              icon={<TargetIcon />}
-              isStatic={isStaticMotion}
-              label="Strongest band"
-              value={strongest ? strongest.label : 'Captured'}
-            />
-          </View>
           {/* progress-chart spec (VALIDATION.md law 8) — WHOOP trend card: flat
               opaque `surface.card` fill (row 38, no blur/glass — pulled out of
               the shared glass `Card` the way metric-rows already is), title
@@ -190,7 +147,7 @@ export default function ProgressScreen() {
             <Card style={styles.card}>
               <View style={styles.cardHeading}>
                 <AppText color="secondary" variant="caption">
-                  Contrast sensitivity estimate
+                  By spatial frequency
                 </AppText>
                 <AppText color="muted" variant="micro">
                   Drag to inspect
@@ -209,16 +166,6 @@ export default function ProgressScreen() {
                 ) : null}
               </View>
             </Card>
-          </FadeIn>
-          <FadeIn delay={240} style={styles.metricRowsSection}>
-            {/* metric-rows spec: discrete flat cards (row 15, no blur/glass)
-                flush to the screen margin (row 1) — this section deliberately
-                is NOT wrapped in the glass `Card` the other sections use, so
-                the rows below aren't double-materialed inside another card. */}
-            <AppText color="secondary" style={styles.sectionHeader}>
-              By spatial frequency
-            </AppText>
-            <ContributorRows rows={data.contributors} />
           </FadeIn>
         </>
       )}
@@ -252,23 +199,8 @@ function LoadingProgress() {
 
 type ProgressViewData = NonNullable<ReturnType<typeof useProgressData>['data']>;
 
-function strongestContributor(data: ProgressViewData): ProgressViewData['contributors'][number] | null {
-  if (data.contributors.length === 0) return null;
-
-  return data.contributors.reduce(
-    (best, candidate) => (candidate.sensitivity > best.sensitivity ? candidate : best),
-    data.contributors[0]
-  );
-}
-
 // metric-rows row 12 wants a short, numeral-ish value; the full confidence
 // sentence (`measurementConfidence.label`) lives as the muted baseline instead.
-function confidenceValueLabel(data: ProgressViewData): string {
-  if (data.measurementConfidence.tier === 'reliable') return 'Reliable';
-  if (data.measurementConfidence.tier === 'needs-retest') return 'Retest';
-  return 'Building';
-}
-
 // Taste-iteration-3 (vision-profile noise kill): the metric rows below this
 // card already carry "Reading confidence" / "Bands measured" / "Strongest
 // band" — this line is not allowed to restate them. One sentence of genuine
@@ -364,9 +296,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: space.sm,
     paddingVertical: space.xxl,
-  },
-  metricRowsSection: {
-    gap: space.md,
   },
   screen: {
     gap: space.md,
