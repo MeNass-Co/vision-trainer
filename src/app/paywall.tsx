@@ -6,7 +6,7 @@ import Svg, { Path } from 'react-native-svg';
 import { AmbientGradient } from '@/components/home/AmbientGradient';
 import { AppText, FadeIn, PrimaryButton, Screen, SecondaryButton } from '@/components/ui';
 import { useAppStore } from '@/store/useAppStore';
-import { accent, fontWeight, hairline, radius, space } from '@/theme/tokens';
+import { accent, fontWeight, hairline, material, radius, space } from '@/theme/tokens';
 import { useEffectiveReducedMotion } from '@/theme/useEffectiveReducedMotion';
 
 const BENEFITS = [
@@ -31,6 +31,26 @@ function FilledChip({ label, style }: { label: string; style?: StyleProp<ViewSty
   return (
     <View style={[styles.filledChip, style]}>
       <AppText color="inverse" style={styles.filledChipText} uppercase variant="caption">
+        {label}
+      </AppText>
+    </View>
+  );
+}
+
+/**
+ * One-accent-voice fix: EARLY ACCESS was a second `FilledChip` (accent fill)
+ * competing with the FREE badge, the plan card's accent border, and the
+ * accent CTA below — three accent moments becomes four and nothing reads as
+ * the one live element. This borrows ContextChip's quiet editorial
+ * language (transparent, `text.secondary`, caps micro) but keeps a real chip
+ * box — 1px `material.hairlineOutline` border, `radius.xs` — since this sits
+ * as a standalone eyebrow, not inline beside a caption the way ContextChip's
+ * boxless text does elsewhere.
+ */
+function OutlineChip({ label, style }: { label: string; style?: StyleProp<ViewStyle> }) {
+  return (
+    <View style={[styles.outlineChip, style]}>
+      <AppText color="secondary" style={styles.outlineChipText} uppercase variant="micro">
         {label}
       </AppText>
     </View>
@@ -97,7 +117,7 @@ export default function PaywallScreen() {
             (insets.top + space.xxl, identical to Settings' title offset)
             now gives the EARLY ACCESS chip its own breathing room. */}
         <FadeIn duration={360} style={styles.headerBlock}>
-          <FilledChip label="Early access" />
+          <OutlineChip label="Early access" />
           <AppText style={styles.title} variant="title">
             Free while we finish the instrument.
           </AppText>
@@ -199,6 +219,21 @@ const styles = StyleSheet.create({
     fontWeight: fontWeight.bold,
     letterSpacing: 0.8,
   },
+  // One-accent-voice fix: transparent fill, hairline outline, quiet ink —
+  // never competes with the FREE badge's accent fill or the CTA below.
+  outlineChip: {
+    alignItems: 'center',
+    borderColor: material.hairlineOutline,
+    borderRadius: radius.xs,
+    borderWidth: hairline.px1,
+    height: 20,
+    justifyContent: 'center',
+    paddingHorizontal: space.sm,
+  },
+  outlineChipText: {
+    fontWeight: fontWeight.semibold,
+    letterSpacing: 0.8,
+  },
   // Body text is 15pt/24pt line-height (SF Pro cap-height ≈15*0.71≈10.7pt,
   // near-identical to this glyph's own 10pt bbox). Centering the glyph on the
   // full 24pt first-line box lands almost exactly on the cap-height center
@@ -232,7 +267,7 @@ const styles = StyleSheet.create({
   // single card ships with).
   plan: {
     borderColor: accent.core,
-    borderRadius: radius.md,
+    borderRadius: radius.lg,
     borderWidth: hairline.px1,
     // spec row 40 measured 21pt; compressed to 16 (still clears the
     // overlapping badge chip) so the card's three rows fit on-screen.
@@ -242,8 +277,11 @@ const styles = StyleSheet.create({
   },
   // spec row 2 bbox, positioned per the reference's badge anatomy: straddling
   // the card's top border, inset from the left edge — not inline beside a title.
+  // left inset bumped from space.md(12) to space.base(16) — with the card's
+  // corner now at radius.lg(14) (was radius.md/10), a 12pt inset sat inside
+  // the rounded corner's cut and the badge's bottom-left tip would clip.
   planBadge: {
-    left: space.md,
+    left: space.base,
     position: 'absolute',
     top: -10,
     zIndex: 1,

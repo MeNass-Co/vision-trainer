@@ -291,7 +291,8 @@ const styles = StyleSheet.create({
     // top/bottom insets instead of centering the two-line block as a unit.
     alignItems: 'stretch',
     backgroundColor: surface.card,
-    borderRadius: radius.md,
+    // radius-harmony fix: content cards unify at radius.lg(14) (was radius.md/10).
+    borderRadius: radius.lg,
     flexDirection: 'row',
     height: ROW_HEIGHT,
     // Row 19: icon left inset — closest token to the 14.0pt measurement.

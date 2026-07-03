@@ -13,7 +13,7 @@ import { VerdictBand } from '@/components/progress/VerdictBand';
 import { AppText, Bloom, ContextChip, Card, FadeIn, Screen, Shimmer } from '@/components/ui';
 import { useProgressData } from '@/presenters';
 import { haptics } from '@/theme/haptics';
-import { data as tokenData, fontWeight, motion, radius, space, surface } from '@/theme/tokens';
+import { accent, data as tokenData, fontWeight, motion, radius, space, surface } from '@/theme/tokens';
 import { useEffectiveReducedMotion } from '@/theme/useEffectiveReducedMotion';
 
 const SPARKLINE_HEIGHT = 130;
@@ -74,7 +74,15 @@ export default function ProgressScreen() {
             <View
               accessibilityLabel={data.headlineAcuity.toFixed(2)}
               style={styles.heroNumber}>
-              <Bloom color={tokenData.heroGlow} opacity={0.7} rx="62%" ry="48%" />
+              {/* Beauty-audit fix: a genuine centered "body of light" halo directly
+                  behind the hero digits (3-stop glow temperature: near-white core →
+                  heroGlowStrong mid-tone → transparent edge), sized to fully resolve
+                  inside heroNumber's box so it never clips the SVG canvas edge. The
+                  hot core sits mostly occluded behind the opaque glyphs themselves —
+                  only its feathered spill reads, which is what makes the number look
+                  lit from within instead of by the app-wide ambient sun bleeding in
+                  from the top-left (see psycho-fixes-progress.png). */}
+              <Bloom color={tokenData.heroGlowStrong} core={accent.hot} opacity={0.65} rx="65%" ry="90%" />
               <CountUpNumber
                 durationMs={motion.timing.countUpProgressMs}
                 from={data.previousAcuity}
@@ -307,7 +315,8 @@ const styles = StyleSheet.create({
   // shared glass `Card`, same precedent as the metric-rows flat sections above).
   trendCard: {
     backgroundColor: surface.card,
-    borderRadius: radius.md,
+    // radius-harmony fix: content cards unify at radius.lg(14) (was radius.md/10).
+    borderRadius: radius.lg,
     paddingBottom: space.base,
     paddingHorizontal: space.base,
     paddingTop: space.cardTop,

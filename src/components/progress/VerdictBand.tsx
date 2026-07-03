@@ -35,12 +35,12 @@ export function VerdictBand({ verdict, delta, caption, captionTone = 'default' }
 }
 
 const styles = StyleSheet.create({
-  // spec row 8: caption color measured as text.primary (near-exact match).
+  // Taste override of spec rows 6+8: the caption is meta-information, not the
+  // verdict — it must recede so the colored verdict line above stays dominant.
   caption: {
     ...typo.bodyStrong,
-    // spec row 6: type.bodyStrong with weight override → bold.
-    color: text.primary,
-    fontWeight: fontWeight.bold,
+    color: text.secondary,
+    fontWeight: fontWeight.medium,
     // spec row 16: verdict-word bottom → caption top ≈23pt (nearest token
     // space.lg=24). Raw marginTop of 24 overshoots the *visual* gap because
     // RN line-height leading adds space beyond the glyph edges on both
