@@ -79,7 +79,17 @@ export const material = {
   hairlineOutline: 'rgba(255,255,255,0.34)',
   fillChip: 'rgba(255,255,255,0.05)',
   fillCard: 'rgba(255,255,255,0.07)',
-  pillOnGlass: 'rgba(255,255,255,0.10)'
+  pillOnGlass: 'rgba(255,255,255,0.10)',
+  // ONE-material pass (native-revamp, Phase 4 final wave): every card/pill
+  // becomes real Liquid Glass (GlassCard, CustomTabBar's GlassView pattern)
+  // with a shared cyan-tinged hairline and a THREE-TIER tint hierarchy — same
+  // hue family, graded transparency, never forked per-card:
+  //   Tier 1 · chrome  — tab bar + SheetCloseButton chip (bespoke, no token; barely tinted).
+  //   Tier 2 · surface — settings section cards, calibration slider card (glassSurface).
+  //   Tier 3 · content — Vision profile / spatial-frequency / trend / science / paywall plan cards (glassContent).
+  hairlineGlassAccent: 'rgba(91,233,236,0.10)',
+  glassSurface: 'rgba(18,42,46,0.35)',
+  glassContent: 'rgba(16,36,40,0.55)'
 } as const;
 
 export const space = {

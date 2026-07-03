@@ -10,7 +10,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
-import { AppText, GaborMark, PressableScale, PrimaryButton } from '@/components/ui';
+import { AppText, GaborMark, GlassCard, PressableScale, PrimaryButton } from '@/components/ui';
 import { buildDeviceCalibration } from '@/core/deviceCalibration';
 import { viewingDistanceReminder } from '@/core/displayCalibration';
 import {
@@ -188,7 +188,9 @@ export function CalibrationCard({ onComplete, confirmLabel = 'This feels right' 
         </AppText>
       </View>
 
-      <View style={styles.calibrationControls}>
+      {/* ONE-material pass: Tier 2 'surface' glass, same treatment as settings
+          section cards — the bespoke rgba fill+border is gone. */}
+      <GlassCard radius={radius.lg} style={styles.calibrationControls} tier="surface">
         <GestureDetector gesture={gesture}>
           <View
             onLayout={(event) => setTrackWidth(event.nativeEvent.layout.width)}
@@ -217,7 +219,7 @@ export function CalibrationCard({ onComplete, confirmLabel = 'This feels right' 
             Bright
           </AppText>
         </View>
-      </View>
+      </GlassCard>
 
       <PrimaryButton label={confirmLabel} onPress={confirmBrightness} style={styles.confirmButton} />
     </View>
@@ -232,11 +234,8 @@ const styles = StyleSheet.create({
     minHeight: 500,
     paddingBottom: space.md,
   },
+  // ONE-material pass: fill/border now come from GlassCard (Tier 2 'surface') — this style only carries gap/padding.
   calibrationControls: {
-    backgroundColor: 'rgba(12, 20, 23, 0.58)',
-    borderColor: 'rgba(207, 250, 251, 0.12)',
-    borderRadius: radius.lg,
-    borderWidth: StyleSheet.hairlineWidth,
     gap: space.sm,
     paddingBottom: space.md,
     paddingHorizontal: space.base,

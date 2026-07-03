@@ -5,7 +5,7 @@ import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import type { SFSymbol } from 'sf-symbols-typescript';
 
 import { AmbientGradient } from '@/components/home/AmbientGradient';
-import { AppText, FadeIn, GaborMark, PrimaryButton, Screen, SecondaryButton } from '@/components/ui';
+import { AppText, FadeIn, GaborMark, GlassCard, PrimaryButton, Screen, SecondaryButton } from '@/components/ui';
 import { useAppStore } from '@/store/useAppStore';
 import { accent, fontWeight, hairline, material, radius, space } from '@/theme/tokens';
 import { useEffectiveReducedMotion } from '@/theme/useEffectiveReducedMotion';
@@ -144,7 +144,10 @@ export default function PaywallScreen() {
 
         <FadeIn delay={80} style={styles.planWrap}>
           <FilledChip label="Free" style={styles.planBadge} />
-          <View style={styles.plan}>
+          {/* ONE-material pass: fill switches to the same Tier 3 'content'
+              glass every other content card uses; the accent-border selection
+              treatment (law 11) is preserved on top. */}
+          <GlassCard style={styles.plan} tier="content">
             <AppText color="primary" variant="bodyStrong">
               Vision Trainer
             </AppText>
@@ -154,7 +157,7 @@ export default function PaywallScreen() {
             <AppText color="muted" style={styles.planBilled} variant="caption">
               Built for practice, not promises. Readings only track this routine.
             </AppText>
-          </View>
+          </GlassCard>
         </FadeIn>
 
         <FadeIn delay={140} style={styles.actions}>
@@ -277,10 +280,8 @@ const styles = StyleSheet.create({
   // radius.md, 1pt selected-state border in accent.core (the only state this
   // single card ships with).
   plan: {
-    // Mobbin-conquest fix #5: a whisper of interior fill behind the existing
-    // accent border — at the decision moment the card read too quiet without
-    // it. Radius/border/badge untouched.
-    backgroundColor: material.fillCard,
+    // ONE-material pass: fill is now GlassCard's Tier 3 'content' glass
+    // (was material.fillCard) — accent border/badge untouched (law 11).
     borderColor: accent.core,
     borderRadius: radius.lg,
     borderWidth: hairline.px1,

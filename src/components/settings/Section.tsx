@@ -1,8 +1,8 @@
 import { Children, Fragment, type ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 
-import { AppText, Hairline } from '@/components/ui';
-import { fontWeight, hairline, radius, space, surface } from '@/theme/tokens';
+import { AppText, GlassCard, Hairline } from '@/components/ui';
+import { fontWeight, hairline, radius, space } from '@/theme/tokens';
 
 export type SectionProps = {
   title: string;
@@ -18,7 +18,10 @@ export function Section({ title, children, footer }: SectionProps) {
       <AppText color="secondary" style={styles.title}>
         {title}
       </AppText>
-      <View style={styles.group}>
+      {/* ONE-material pass: Tier 2 'surface' glass (settings sections, calibration
+          slider) — the old opaque `surface.card` flat fill is gone, radius.xl(25)
+          preserved. */}
+      <GlassCard radius={radius.xl} style={styles.group} tier="surface">
         {rows.map((row, index) => (
           <Fragment key={index}>
             {/* spec rows 12-14: 1pt separator (hairline.px1, not native hairlineWidth), inset symmetric, flush with row text edge */}
@@ -26,7 +29,7 @@ export function Section({ title, children, footer }: SectionProps) {
             {row}
           </Fragment>
         ))}
-      </View>
+      </GlassCard>
       {footer ? (
         <AppText color="secondary" style={styles.footer} variant="caption">
           {footer}
@@ -41,10 +44,9 @@ const styles = StyleSheet.create({
     // spec row 35: caption weight reads Regular in reference; caption token is Medium — flagged minor mismatch, accepted
   },
   group: {
-    // settings-group spec rows 1, 20, 30: opaque flat card, radius.xl (25) fixed regardless of height, no blur/border
-    backgroundColor: surface.card,
+    // settings-group spec rows 1, 20, 30: radius.xl (25) fixed regardless of
+    // height. Fill/blur/hairline now come from GlassCard (Tier 2 'surface').
     borderRadius: radius.xl,
-    overflow: 'hidden',
   },
   hairline: {
     // spec row 12: separator thickness = hairline.px1 (1pt) — overrides Hairline's default native StyleSheet.hairlineWidth

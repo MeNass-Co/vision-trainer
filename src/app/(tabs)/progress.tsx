@@ -9,7 +9,7 @@ import { CsfGraph } from '@/components/progress/CsfGraph';
 import { ProgressEmptySky } from '@/components/progress/ProgressEmptySky';
 import { ChevronIcon, Sparkline, TrendIcon } from '@/components/progress/Sparkline';
 import { VerdictBand } from '@/components/progress/VerdictBand';
-import { AppText, Bloom, ContextChip, Card, FadeIn, Screen, Shimmer } from '@/components/ui';
+import { AppText, Bloom, ContextChip, Card, FadeIn, GlassCard, Screen, Shimmer } from '@/components/ui';
 import { useProgressData } from '@/presenters';
 import { haptics } from '@/theme/haptics';
 import { accent, data as tokenData, fontWeight, motion, radius, space, surface } from '@/theme/tokens';
@@ -118,13 +118,15 @@ export default function ProgressScreen() {
               </View>
             </Card>
           </FadeIn>
-          {/* progress-chart spec (VALIDATION.md law 8) — WHOOP trend card: flat
-              opaque `surface.card` fill (row 38, no blur/glass — pulled out of
-              the shared glass `Card` the way metric-rows already is), title
-              row = icon + caps `type.micro` label + chevron (rows 7-10), the
-              current-day highlight column (row 24) is deliberately omitted. */}
+          {/* ONE-material pass (native-revamp Phase 4 final wave): the trend
+              card now shares the same Tier 3 'content' glass as Vision
+              profile / By spatial frequency — the old flat opaque
+              `surface.card` fill (no contour against the other cards) is
+              gone. Title row = icon + caps `type.micro` label + chevron
+              (rows 7-10), the current-day highlight column (row 24) stays
+              deliberately omitted. */}
           <FadeIn delay={120}>
-            <View style={styles.trendCard}>
+            <GlassCard radius={radius.lg} style={styles.trendCard} tier="content">
               <View style={styles.trendCardTitleRow}>
                 <View style={styles.trendCardTitleLeading}>
                   <TrendIcon />
@@ -153,7 +155,7 @@ export default function ProgressScreen() {
                   ) : null}
                 </View>
               )}
-            </View>
+            </GlassCard>
           </FadeIn>
           <FadeIn delay={180}>
             <Card style={styles.card}>
@@ -275,12 +277,9 @@ const styles = StyleSheet.create({
     height: StyleSheet.hairlineWidth,
     width: '70%',
   },
-  // progress-chart rows 25/38 — flat opaque card, no blur (deliberately not the
-  // shared glass `Card`, same precedent as the metric-rows flat sections above).
+  // ONE-material pass: fill/radius/hairline now come from GlassCard (Tier 3
+  // 'content') — this style only carries the card's own internal padding.
   trendCard: {
-    backgroundColor: surface.card,
-    // radius-harmony fix: content cards unify at radius.lg(14) (was radius.md/10).
-    borderRadius: radius.lg,
     paddingBottom: space.base,
     paddingHorizontal: space.base,
     paddingTop: space.cardTop,

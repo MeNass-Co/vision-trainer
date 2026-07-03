@@ -3,7 +3,7 @@ import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 
 import { radius, space } from '@/theme/tokens';
 
-import { GlassSurface } from './GlassSurface';
+import { GlassCard } from './GlassCard';
 
 export type CardProps = {
   children: ReactNode;
@@ -11,12 +11,15 @@ export type CardProps = {
   raised?: boolean;
 };
 
+// ONE-material pass: Card is Tier 3 'content' glass (Vision profile,
+// spatial-frequency, science cards all consume it) — same GlassCard every
+// other content surface uses, radius/padding/content untouched.
 export function Card({ children, style, raised = false }: CardProps) {
   return (
     <View style={styles.shadow}>
-      <GlassSurface radius={radius.lg} style={[styles.card, raised && styles.raised, style]}>
+      <GlassCard radius={radius.lg} style={[styles.card, raised && styles.raised, style]} tier="content">
         {children}
-      </GlassSurface>
+      </GlassCard>
     </View>
   );
 }
