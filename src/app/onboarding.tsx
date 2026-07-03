@@ -19,7 +19,7 @@ import { StepReveal } from '@/components/onboarding/StepReveal';
 import { AppText, FadeIn, PressableScale, PrimaryButton, Screen } from '@/components/ui';
 import { notificationService } from '@/services/notifications';
 import { useAppStore } from '@/store/useAppStore';
-import { ACCENT, ACCENT_GLOW, motion, radius, space, surface, text, type } from '@/theme/tokens';
+import { ACCENT, ACCENT_GLOW, material, motion, radius, space, surface, text, type } from '@/theme/tokens';
 import { useEffectiveReducedMotion } from '@/theme/useEffectiveReducedMotion';
 import type { GoalType } from '@/types';
 
@@ -125,14 +125,12 @@ export default function OnboardingScreen() {
   return (
     <Screen padded warm background={<AmbientGradient constellation reduceMotion={reduceMotion} />}>
       <View style={styles.screen}>
-        {step > 0 ? (
-          <PressableScale
-            hitSlop={space.sm}
-            onPress={() => setStep((current) => Math.max(current - 1, 0))}
-            style={styles.topBackButton}>
-            <BackChevron />
-          </PressableScale>
-        ) : null}
+        <TopChrome
+          contentWidth={webContentWidth}
+          onBack={() => setStep((current) => Math.max(current - 1, 0))}
+          step={step}
+          totalSteps={STEPS.length}
+        />
         {currentStep.id === 'calibration' ? (
           <FadeIn key="calibration" duration={420} style={styles.page}>
             <CalibrationCard onComplete={handleCalibration} />
@@ -182,10 +180,6 @@ export default function OnboardingScreen() {
             </FadeIn>
           </View>
         )}
-        <Footer
-          contentWidth={webContentWidth}
-          step={step}
-        />
       </View>
     </Screen>
   );
@@ -362,15 +356,33 @@ function GoalChoices({ selected, onSelect }: GoalChoicesProps) {
   );
 }
 
-type FooterProps = {
+// onboarding-chrome (law 12): progress indicator lives at the TOP now — back
+// chevron, "N of M" step label, then the two-layer bar — left-margin-aligned
+// with the title/caption/CTA below. Step count is a formula (STEPS.length),
+// never hardcoded, so this holds for any N.
+type TopChromeProps = {
   contentWidth?: number;
+  onBack: () => void;
   step: number;
+  totalSteps: number;
 };
 
-function Footer({ contentWidth, step }: FooterProps) {
+function TopChrome({ contentWidth, onBack, step, totalSteps }: TopChromeProps) {
   return (
-    <View style={styles.footer}>
-      <ProgressBar contentWidth={contentWidth} step={step} />
+    <View style={[styles.topChrome, contentWidth === undefined ? undefined : { width: contentWidth }]}>
+      <View style={styles.backRow}>
+        {step > 0 ? (
+          <PressableScale hitSlop={space.sm} onPress={onBack} style={styles.backButton}>
+            <BackChevron />
+          </PressableScale>
+        ) : (
+          <View style={styles.backButtonPlaceholder} />
+        )}
+      </View>
+      <AppText color="primary" style={styles.stepLabel} variant="caption">
+        {`${step + 1} of ${totalSteps}`}
+      </AppText>
+      <ProgressBar step={step} totalSteps={totalSteps} />
     </View>
   );
 }
@@ -381,34 +393,40 @@ function BackChevron() {
       <Path
         d="M11.5 4L6.5 9L11.5 14"
         fill="none"
-        stroke={text.secondary}
+        stroke={text.primary}
         strokeLinecap="round"
         strokeLinejoin="round"
-        strokeWidth={1.8}
+        strokeWidth={1.6}
       />
     </Svg>
   );
 }
 
 type ProgressBarProps = {
-  contentWidth?: number;
   step: number;
+  totalSteps: number;
 };
 
-function ProgressBar({ contentWidth, step }: ProgressBarProps) {
-  const fill = useSharedValue((step + 1) / STEPS.length);
+// Two-layer bar (spec rows 9-14): 5pt ACCENT fill on a 1pt ~12%-white track,
+// TOP-aligned (not vertically centered) so the thin track reads as a rail the
+// thicker fill sits flush against. Square-cut corners (row 11) — no radius.
+function ProgressBar({ step, totalSteps }: ProgressBarProps) {
+  const fraction = (step + 1) / totalSteps;
+  const fill = useSharedValue(fraction);
 
   useEffect(() => {
-    fill.value = withTiming((step + 1) / STEPS.length, { duration: 320 });
-  }, [fill, step]);
+    // VALIDATION.md motion row: "Onboarding bar: fill width animates
+    // entranceMs (280) with spring.snap on step advance."
+    fill.value = withSpring(fraction, motion.spring.snap);
+  }, [fill, fraction]);
 
-  // Contained 2px bar inside a fixed-height track: animating width reflows nothing else.
   const fillStyle = useAnimatedStyle(() => ({
     width: `${fill.value * 100}%`,
   }));
 
   return (
-    <View style={[styles.progressTrack, contentWidth === undefined ? undefined : { width: contentWidth }]}>
+    <View style={styles.progressBarContainer}>
+      <View style={styles.progressTrack} />
       <Animated.View style={[styles.progressFill, fillStyle]} />
     </View>
   );
@@ -419,6 +437,19 @@ const styles = StyleSheet.create({
     gap: space.xs,
     paddingBottom: space.lg,
   },
+  backButton: {
+    alignItems: 'center',
+    height: 24,
+    justifyContent: 'center',
+    width: 24,
+  },
+  backButtonPlaceholder: {
+    height: 24,
+    width: 24,
+  },
+  backRow: {
+    height: 24,
+  },
   copy: {
     gap: space.base,
     maxWidth: 348,
@@ -428,9 +459,6 @@ const styles = StyleSheet.create({
     fontFamily: type.hero.fontFamily,
     fontSize: type.hero.fontSize,
     lineHeight: type.hero.lineHeight,
-  },
-  footer: {
-    paddingTop: space.sm,
   },
   goalChoice: {
     alignItems: 'center',
@@ -483,16 +511,27 @@ const styles = StyleSheet.create({
   page: {
     flex: 1,
   },
+  progressBarContainer: {
+    height: 5,
+    justifyContent: 'flex-start',
+    marginTop: space.xs,
+    width: '100%',
+  },
   progressFill: {
     backgroundColor: ACCENT,
-    borderRadius: radius.pill,
-    height: 3,
+    borderRadius: 0,
+    height: 5,
+    left: 0,
+    position: 'absolute',
+    top: 0,
   },
   progressTrack: {
-    backgroundColor: surface.hairlineStrong,
-    borderRadius: radius.pill,
-    height: 3,
-    overflow: 'hidden',
+    backgroundColor: material.hairlineOnGlass,
+    borderRadius: 0,
+    height: 1,
+    left: 0,
+    position: 'absolute',
+    top: 0,
     width: '100%',
   },
   remindersNotice: {
@@ -500,7 +539,6 @@ const styles = StyleSheet.create({
   },
   screen: {
     flex: 1,
-    paddingBottom: space.lg,
     paddingHorizontal: 0,
   },
   secondaryChoice: {
@@ -512,18 +550,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: space.lg,
     paddingVertical: space.sm,
   },
-  topBackButton: {
-    alignItems: 'center',
-    backgroundColor: 'rgba(14, 19, 22, 0.72)',
-    borderColor: 'rgba(167, 178, 180, 0.18)',
-    borderRadius: radius.pill,
-    borderWidth: StyleSheet.hairlineWidth,
-    height: 38,
-    justifyContent: 'center',
-    left: 0,
-    position: 'absolute',
-    top: 0,
-    width: 38,
-    zIndex: 3,
+  stepLabel: {
+    marginTop: space.xl,
+  },
+  topChrome: {
+    paddingBottom: space.sm,
   },
 });
