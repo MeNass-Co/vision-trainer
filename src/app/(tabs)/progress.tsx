@@ -1,4 +1,5 @@
 import { useLocalSearchParams } from 'expo-router';
+import { SymbolView } from 'expo-symbols';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { LayoutChangeEvent, Platform, ScrollView, StyleSheet, View } from 'react-native';
 
@@ -96,14 +97,25 @@ export default function ProgressScreen() {
           <FadeIn delay={90}>
             <Card style={styles.card}>
               {/* One section-header grammar app-wide: matches Settings'
-                  `Section.tsx` title exactly (sentence case, 18/23 bold,
+                  `Section.tsx` title exactly (sentence case, 15/20 semibold,
                   text.secondary) — not the 13pt `caption` variant. */}
               <AppText color="secondary" style={styles.sectionHeader}>
                 Vision profile
               </AppText>
-              <AppText color="primary" variant="body">
-                {visionProfileSummary(data)}
-              </AppText>
+              <View style={styles.insightRow}>
+                <SymbolView
+                  name="sparkles"
+                  resizeMode="scaleAspectFit"
+                  size={13}
+                  style={styles.insightGlyph}
+                  tintColor={accent.default}
+                  type="monochrome"
+                  weight="medium"
+                />
+                <AppText color="primary" style={styles.insightText} variant="body">
+                  {visionProfileSummary(data)}
+                </AppText>
+              </View>
             </Card>
           </FadeIn>
           {/* progress-chart spec (VALIDATION.md law 8) — WHOOP trend card: flat
@@ -233,6 +245,22 @@ const styles = StyleSheet.create({
   cardHeading: {
     gap: space.xs,
   },
+  // Mobbin-conquest fix #6 (WHOOP pattern): a leading sparkles glyph on the
+  // insight line reads "the app is telling you something" without the
+  // hairline-border route (kept ONE signal, not both — see dispatch note).
+  insightGlyph: {
+    height: 13,
+    marginTop: 5,
+    width: 13,
+  },
+  insightRow: {
+    alignItems: 'flex-start',
+    flexDirection: 'row',
+    gap: space.xs,
+  },
+  insightText: {
+    flex: 1,
+  },
   chartMeasure: {
     width: '100%',
   },
@@ -304,12 +332,13 @@ const styles = StyleSheet.create({
   screenLabelPlate: {
     alignSelf: 'flex-start',
   },
-  // Matches Settings' `Section.tsx` title style exactly (spec row 32: sentence
-  // case, bold ~18pt) — one section-header grammar app-wide.
+  // Matches Settings' `Section.tsx` title style exactly (Mobbin-conquest fix
+  // #2: dropped to 15pt semibold so the two-tier hierarchy reads against the
+  // hero number above it) — one section-header grammar app-wide.
   sectionHeader: {
-    fontWeight: fontWeight.bold,
-    fontSize: 18,
-    lineHeight: 23,
+    fontWeight: fontWeight.semibold,
+    fontSize: 15,
+    lineHeight: 20,
     letterSpacing: 0,
   },
 });

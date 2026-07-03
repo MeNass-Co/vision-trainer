@@ -77,6 +77,7 @@ export default function SettingsScreen() {
       <FadeIn delay={60}>
         <Section title="Feedback">
           <Row
+            icon="iphone.radiowaves.left.and.right"
             label="Haptics"
             right={
               <Toggle
@@ -88,6 +89,8 @@ export default function SettingsScreen() {
           />
           <Row
             description="Calm ambient animation"
+            icon="figure.walk.motion"
+            iconFallback="tortoise"
             label="Reduce motion"
             right={
               <Toggle
@@ -105,6 +108,7 @@ export default function SettingsScreen() {
             accessibilityLabel="Display calibration"
             chevron
             description="Set a comfortable brightness for sessions"
+            icon="sun.max"
             label="Display calibration"
             onPress={() => router.push('/calibration' as Href)}
             right={<Chevron />}
@@ -115,6 +119,7 @@ export default function SettingsScreen() {
         <Section title="Reminders">
           <Row
             description="A gentle evening nudge to keep your streak"
+            icon="bell"
             label="Daily reminder"
             right={
               <Toggle
@@ -148,6 +153,7 @@ export default function SettingsScreen() {
       <FadeIn delay={240}>
         <Section title="About">
           <Row
+            icon="info.circle"
             label="Version"
             right={
               <AppText color="muted" style={styles.rowValue}>
@@ -159,6 +165,7 @@ export default function SettingsScreen() {
             accessibilityLabel="The science"
             chevron
             description="How perceptual learning works"
+            icon="book"
             label="The science"
             onPress={() => router.push('/science' as Href)}
             right={<Chevron />}
@@ -167,6 +174,7 @@ export default function SettingsScreen() {
             accessibilityLabel="Early access"
             chevron
             description="What early access includes"
+            icon="sparkles"
             label="Early access"
             onPress={() => router.push('/paywall' as Href)}
             right={<Chevron />}

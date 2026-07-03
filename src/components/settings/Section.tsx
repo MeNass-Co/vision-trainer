@@ -57,10 +57,12 @@ const styles = StyleSheet.create({
     marginBottom: 34,
   },
   title: {
-    // spec row 32: section-cap label — sentence case (NOT uppercase/tracked), bold ~18pt
-    fontWeight: fontWeight.bold,
-    fontSize: 18,
-    lineHeight: 23,
+    // Mobbin-conquest fix #2: 18/23 bold competed with the 'Settings' title
+    // above it — dropped a tier so the two-tier hierarchy (screen title vs.
+    // section cap) actually reads. Sentence case preserved, still text.secondary.
+    fontWeight: fontWeight.semibold,
+    fontSize: 15,
+    lineHeight: 20,
     letterSpacing: 0,
   },
 });

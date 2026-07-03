@@ -1,5 +1,5 @@
 import { type Href, useRouter } from 'expo-router';
-import { SymbolView } from 'expo-symbols';
+import { SymbolView, type SymbolViewProps } from 'expo-symbols';
 import { useEffect, useRef, useState } from 'react';
 import { Platform, StyleSheet, View, useWindowDimensions } from 'react-native';
 import Animated, {
@@ -23,24 +23,34 @@ import { ACCENT, ACCENT_GLOW, material, motion, radius, space, surface, text, ty
 import { useEffectiveReducedMotion } from '@/theme/useEffectiveReducedMotion';
 import type { GoalType } from '@/types';
 
-const BASE_ORB = 180;
+// Narrative steps only (decision steps drop the orb entirely — see STEPS
+// 'kind'). Previously this scaled up to 180 on the 'vision' step; now that
+// step never renders the orb, a single constant size replaces the spring.
+const NARRATIVE_ORB_SIZE = 152;
 const REMINDER_HOUR = 19;
 const REMINDER_MINUTE = 0;
 
+// onb-v2 (Mobbin convergence — pliability/Deepstash/Fitbod): a step is either a
+// NARRATIVE beat (the breathing orb hero carries the copy) or a DECISION the
+// user must actually make (the orb is decorative noise there — the question
+// owns the screen instead). 'calibration' renders its own dedicated card.
 const STEPS = [
-  { id: 'welcome', buttonLabel: 'Begin' },
-  { id: 'science', buttonLabel: 'Continue' },
-  { id: 'vision', buttonLabel: 'Continue' },
-  { id: 'accent', buttonLabel: 'Got it' },
-  { id: 'reminders', buttonLabel: 'Enable reminders' },
-  { id: 'calibration', buttonLabel: '' },
-  { id: 'ready', buttonLabel: 'Start training' },
+  { id: 'welcome', buttonLabel: 'Begin', kind: 'narrative' },
+  { id: 'science', buttonLabel: 'Continue', kind: 'narrative' },
+  { id: 'vision', buttonLabel: 'Continue', kind: 'decision' },
+  { id: 'accent', buttonLabel: 'Got it', kind: 'narrative' },
+  { id: 'reminders', buttonLabel: 'Enable reminders', kind: 'narrative' },
+  { id: 'calibration', buttonLabel: '', kind: 'calibration' },
+  { id: 'ready', buttonLabel: 'Start training', kind: 'narrative' },
 ] as const;
 
-const GOAL_OPTIONS: { value: GoalType; label: string; detail: string }[] = [
-  { value: 'distance', label: 'Distance clarity', detail: 'Sharper contrast at farther targets.' },
-  { value: 'near', label: 'Near work', detail: 'Comfort for reading and close focus.' },
-  { value: 'sports', label: 'Fast reactions', detail: 'Faster visual pickup and motion decisions.' },
+const GOAL_ICON_SIZE = 20;
+const GOAL_ICON_SLOT = 36;
+
+const GOAL_OPTIONS: { value: GoalType; label: string; detail: string; icon: SymbolViewProps['name'] }[] = [
+  { value: 'distance', label: 'Distance clarity', detail: 'Sharper contrast at farther targets.', icon: 'mountain.2' },
+  { value: 'near', label: 'Near work', detail: 'Comfort for reading and close focus.', icon: 'book.closed' },
+  { value: 'sports', label: 'Fast reactions', detail: 'Faster visual pickup and motion decisions.', icon: 'bolt' },
 ];
 
 export default function OnboardingScreen() {
@@ -131,21 +141,34 @@ export default function OnboardingScreen() {
           step={step}
           totalSteps={STEPS.length}
         />
-        {currentStep.id === 'calibration' ? (
+        {currentStep.kind === 'calibration' ? (
           <FadeIn key="calibration" duration={420} style={styles.page}>
             <CalibrationCard onComplete={handleCalibration} />
           </FadeIn>
         ) : (
           <View style={styles.page}>
-            <View style={styles.hero}>
-              <PersistentOrb step={step} />
-              <View key={currentStep.id} style={styles.copy}>
-                <StepCopy step={step} />
-                {currentStep.id === 'vision' ? (
-                  <GoalChoices selected={selectedGoal} onSelect={setSelectedGoal} />
-                ) : null}
+            {currentStep.kind === 'decision' ? (
+              // Decision steps: the question owns the screen. No orb — the
+              // title block leads in the upper third, then caption, then a
+              // caps micro list label, then the option cards. The orb is
+              // ambient decoration; a real choice doesn't get one.
+              <View key={currentStep.id} style={styles.decisionBody}>
+                <View style={styles.decisionCopy}>
+                  <StepCopy step={step} />
+                </View>
+                <AppText color="muted" style={styles.decisionListLabel} uppercase variant="micro">
+                  Choose a goal
+                </AppText>
+                <GoalChoices onSelect={setSelectedGoal} selected={selectedGoal} />
               </View>
-            </View>
+            ) : (
+              <View style={styles.hero}>
+                <BreathingOrb resolveOnMount size={NARRATIVE_ORB_SIZE} />
+                <View key={currentStep.id} style={styles.copy}>
+                  <StepCopy step={step} />
+                </View>
+              </View>
+            )}
             <FadeIn key={`actions-${currentStep.id}`} delay={240} duration={motion.timing.entranceMs}>
               <View style={styles.actions}>
                 <PrimaryButton
@@ -182,31 +205,6 @@ export default function OnboardingScreen() {
         )}
       </View>
     </Screen>
-  );
-}
-
-type PersistentOrbProps = {
-  step: number;
-};
-
-// Co-Star/Linear: one orb is the constant of the flow. It scales between steps with a spring
-// instead of remounting per step (which stutters), so the eye tracks a single living object.
-function PersistentOrb({ step }: PersistentOrbProps) {
-  const target = (step === 2 ? 180 : 152) / BASE_ORB;
-  const orbScale = useSharedValue(target);
-
-  useEffect(() => {
-    orbScale.value = withSpring(target, motion.spring.snap);
-  }, [orbScale, target]);
-
-  const orbStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: orbScale.value }],
-  }));
-
-  return (
-    <Animated.View style={orbStyle}>
-      <BreathingOrb resolveOnMount size={BASE_ORB} />
-    </Animated.View>
   );
 }
 
@@ -340,8 +338,18 @@ function GoalChoices({ selected, onSelect }: GoalChoicesProps) {
             key={option.value}
             onPress={() => onSelect(option.value)}
             style={[styles.goalChoice, isSelected && styles.goalChoiceSelected]}>
-            <View>
-              <AppText color="primary" variant="caption">
+            <View style={styles.goalIconSlot}>
+              <SymbolView
+                name={option.icon}
+                resizeMode="scaleAspectFit"
+                size={GOAL_ICON_SIZE}
+                style={styles.goalIconGlyph}
+                tintColor={text.secondary}
+                type="monochrome"
+              />
+            </View>
+            <View style={styles.goalCopy}>
+              <AppText color="primary" variant="bodyStrong">
                 {option.label}
               </AppText>
               <AppText color={isSelected ? 'secondary' : 'muted'} style={styles.goalDetail} variant="caption">
@@ -463,6 +471,23 @@ const styles = StyleSheet.create({
     gap: space.base,
     maxWidth: 348,
   },
+  // Centering the title+cards group within the remaining flexible space
+  // (chrome and CTA already claim their own fixed bands) lands the block
+  // with its top edge around a quarter of the way down the full screen —
+  // solidly in the upper third — with generous, even whitespace on both
+  // sides of it (pliability composition), rather than hugging the chrome.
+  decisionBody: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  decisionCopy: {
+    gap: space.base,
+    maxWidth: 348,
+  },
+  decisionListLabel: {
+    marginBottom: space.sm,
+    marginTop: space.xl,
+  },
   focusHero: {
     color: text.primary,
     fontWeight: type.hero.fontWeight,
@@ -487,6 +512,9 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(91, 233, 236, 0.56)',
     borderWidth: 1.5,
   },
+  goalCopy: {
+    flex: 1,
+  },
   goalDetail: {
     marginTop: 1,
   },
@@ -505,6 +533,16 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.7,
     shadowRadius: 8,
+  },
+  goalIconGlyph: {
+    height: GOAL_ICON_SIZE,
+    width: GOAL_ICON_SIZE,
+  },
+  goalIconSlot: {
+    alignItems: 'center',
+    height: GOAL_ICON_SLOT,
+    justifyContent: 'center',
+    width: GOAL_ICON_SLOT,
   },
   goalList: {
     gap: space.sm,

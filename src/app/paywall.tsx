@@ -1,22 +1,23 @@
 import { type Href, useRouter } from 'expo-router';
+import { SymbolView } from 'expo-symbols';
 import { useEffect } from 'react';
 import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
-import Svg, { Path } from 'react-native-svg';
+import type { SFSymbol } from 'sf-symbols-typescript';
 
 import { AmbientGradient } from '@/components/home/AmbientGradient';
-import { AppText, FadeIn, PrimaryButton, Screen, SecondaryButton } from '@/components/ui';
+import { AppText, FadeIn, GaborMark, PrimaryButton, Screen, SecondaryButton } from '@/components/ui';
 import { useAppStore } from '@/store/useAppStore';
 import { accent, fontWeight, hairline, material, radius, space } from '@/theme/tokens';
 import { useEffectiveReducedMotion } from '@/theme/useEffectiveReducedMotion';
 
-const BENEFITS = [
-  'Adaptive sessions adjusted to your readings',
-  'Progress graphs with confidence and retest states',
-  'Private by design. Your readings stay on this device.',
+const BENEFITS: readonly { text: string; icon: SFSymbol }[] = [
+  { text: 'Adaptive sessions adjusted to your readings', icon: 'waveform.path.ecg' },
+  { text: 'Progress graphs with confidence and retest states', icon: 'chart.line.uptrend.xyaxis' },
+  { text: 'Private by design. Your readings stay on this device.', icon: 'lock' },
 ] as const;
 
-const CHECK_WIDTH = 14;
-const CHECK_HEIGHT = 10;
+const CHECK_GLYPH_SIZE = 14;
+const GABOR_HERO_SIZE = 72;
 
 /**
  * paywall spec rows 1-2, 10, 14, 17, 25 — the "Most Popular"-chip primitive:
@@ -57,25 +58,21 @@ function OutlineChip({ label, style }: { label: string; style?: StyleProp<ViewSt
   );
 }
 
-// spec row 3: checkmark glyph bbox 14.0x9.7pt — plain stroke glyph, no circular
-// backing chip (the reference's checks sit directly on the flat background).
-// Anchored to the FIRST line of a (possibly wrapped) feature row: featureRow
-// is flex-start (not center, which would center on the whole wrapped-text
-// block height), and this glyph's own marginTop nudges its optical center to
-// the first line's cap-height center rather than the row's top edge.
-// Calibrated against a native capture of the two-line "Progress graphs…" row.
-function CheckGlyph() {
+// Mobbin-conquest fix #4 (SuperGrok/Beside pattern): one SF Symbol per
+// benefit instead of three identical checks — same slot/size/tint the check
+// glyph had (accent.core, anchored to the FIRST line of a possibly-wrapped
+// feature row via the same marginTop nudge), just a distinct icon per row.
+function BenefitGlyph({ icon }: { icon: SFSymbol }) {
   return (
-    <Svg height={CHECK_HEIGHT} style={styles.checkGlyph} width={CHECK_WIDTH} viewBox="0 0 14 10">
-      <Path
-        d="M1.4 5.3L5.2 9L12.6 1"
-        fill="none"
-        stroke={accent.core}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={1.8}
-      />
-    </Svg>
+    <SymbolView
+      name={icon}
+      resizeMode="scaleAspectFit"
+      size={CHECK_GLYPH_SIZE}
+      style={styles.checkGlyph}
+      tintColor={accent.core}
+      type="monochrome"
+      weight="medium"
+    />
   );
 }
 
@@ -109,14 +106,22 @@ export default function PaywallScreen() {
   return (
     <Screen scroll padded background={<AmbientGradient constellation reduceMotion={reduceMotion} />}>
       <View style={styles.screen}>
+        {/* Mobbin-conquest fix #3 (featured-paywall pattern — Bevel/Outsiders/
+            Cosmos all lead with a focal object): the celestial GaborMark
+            reinstated as the "app object" moment — centered, sitting ABOVE
+            the chip with its own breathing room, so it reads anchored to the
+            whole header block rather than orphaned above a left-aligned
+            column (the earlier Fable-lock defect). Chip + headline stay
+            LEFT-aligned below it, per the reference's column. */}
+        <FadeIn duration={360} style={styles.gaborRow}>
+          <GaborMark quiet size={GABOR_HERO_SIZE} />
+        </FadeIn>
+
         {/* Everything below follows the reference's LEFT-aligned column and its
             stack order: headline block → checkmark features → plan card → CTA
             pair → legal caption (Fable-lock ruling: layout order is
-            bit-identical territory, not a carve-out). The decorative orb that
-            used to open this stack is gone — Screen's shared top inset
-            (insets.top + space.xxl, identical to Settings' title offset)
-            now gives the EARLY ACCESS chip its own breathing room. */}
-        <FadeIn duration={360} style={styles.headerBlock}>
+            bit-identical territory, not a carve-out). */}
+        <FadeIn delay={20} duration={360} style={styles.headerBlock}>
           <OutlineChip label="Early access" />
           <AppText style={styles.title} variant="title">
             Free while we finish the instrument.
@@ -128,10 +133,10 @@ export default function PaywallScreen() {
 
         <FadeIn delay={40} style={styles.features}>
           {BENEFITS.map((benefit) => (
-            <View key={benefit} style={styles.featureRow}>
-              <CheckGlyph />
+            <View key={benefit.text} style={styles.featureRow}>
+              <BenefitGlyph icon={benefit.icon} />
               <AppText color="secondary" style={styles.featureText} variant="body">
-                {benefit}
+                {benefit.text}
               </AppText>
             </View>
           ))}
@@ -207,6 +212,12 @@ const styles = StyleSheet.create({
     // relationship is preserved, just not at the reference's absolute pt value.
     marginTop: space.base,
   },
+  // Mobbin-conquest fix #3: centered hero mark, space.lg of breathing room
+  // before the (left-aligned) chip/headline column below it.
+  gaborRow: {
+    alignItems: 'center',
+    marginBottom: space.lg,
+  },
   filledChip: {
     alignItems: 'center',
     backgroundColor: accent.core,
@@ -234,14 +245,14 @@ const styles = StyleSheet.create({
     fontWeight: fontWeight.semibold,
     letterSpacing: 0.8,
   },
-  // Body text is 15pt/24pt line-height (SF Pro cap-height ≈15*0.71≈10.7pt,
-  // near-identical to this glyph's own 10pt bbox). Centering the glyph on the
-  // full 24pt first-line box lands almost exactly on the cap-height center
-  // (the descender-side leading below the cap outweighs the ascender-side
-  // leading above it by roughly the same margin this token adds) —
-  // calibrated against a native capture of the wrapped second row.
+  // Body text is 15pt/24pt line-height. Centering the (now 14x14 SF Symbol)
+  // glyph on the full 24pt first-line box: (24-14)/2 = 5 — same anchoring
+  // technique the plain-stroke check glyph used, recalculated for the new
+  // square bbox.
   checkGlyph: {
-    marginTop: 7,
+    height: CHECK_GLYPH_SIZE,
+    marginTop: 5,
+    width: CHECK_GLYPH_SIZE,
   },
   // Spec row 31: left content margin 32pt for the badge/headline/caption column.
   // Screen pads space.lg(24); this block adds the remaining 8pt — same local-
@@ -266,6 +277,10 @@ const styles = StyleSheet.create({
   // radius.md, 1pt selected-state border in accent.core (the only state this
   // single card ships with).
   plan: {
+    // Mobbin-conquest fix #5: a whisper of interior fill behind the existing
+    // accent border — at the decision moment the card read too quiet without
+    // it. Radius/border/badge untouched.
+    backgroundColor: material.fillCard,
     borderColor: accent.core,
     borderRadius: radius.lg,
     borderWidth: hairline.px1,

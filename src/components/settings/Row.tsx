@@ -1,3 +1,4 @@
+import { SymbolView } from 'expo-symbols';
 import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, type ViewStyle, View } from 'react-native';
 import Animated, {
@@ -7,13 +8,16 @@ import Animated, {
   withSpring,
   withTiming,
 } from 'react-native-reanimated';
+import type { SFSymbol } from 'sf-symbols-typescript';
 
 import { AppText } from '@/components/ui';
 import { haptics } from '@/theme/haptics';
-import { motion, space, surface } from '@/theme/tokens';
+import { accent, material, motion, radius, space, surface } from '@/theme/tokens';
 import { useEffectiveReducedMotion } from '@/theme/useEffectiveReducedMotion';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+const ICON_CHIP_SIZE = 28;
+const ICON_GLYPH_SIZE = 15;
 
 export type RowProps = {
   label: string;
@@ -22,15 +26,61 @@ export type RowProps = {
   onPress?: () => void;
   accessibilityLabel?: string;
   chevron?: boolean;
+  /** Leading SF Symbol, wrapped in a 28pt rounded-square accent chip (Mobbin-conquest gap #1). */
+  icon?: SFSymbol;
+  /** Rendered by expo-symbols when `icon` has no definition on the running OS. */
+  iconFallback?: SFSymbol;
 };
 
-type RowBodyProps = Pick<RowProps, 'label' | 'description' | 'right' | 'chevron'> & {
+type RowBodyProps = Pick<RowProps, 'label' | 'description' | 'right' | 'chevron' | 'icon' | 'iconFallback'> & {
   rightStyle?: ReturnType<typeof useAnimatedStyle<ViewStyle>>;
 };
 
-function RowBody({ label, description, right, chevron, rightStyle }: RowBodyProps) {
+function IconChip({
+  icon,
+  iconFallback,
+  twoLine,
+}: {
+  icon: SFSymbol;
+  iconFallback?: SFSymbol;
+  twoLine: boolean;
+}) {
+  return (
+    // Two-line rows (description present): the chip anchors to the title's
+    // vertical center, not the whole row's — otherwise it optically drifts
+    // toward the description line. alignSelf 'flex-start' + a small offset
+    // approximates the title-line center inside the double-height row.
+    <View style={[styles.iconChip, twoLine && styles.iconChipTwoLine]}>
+      <SymbolView
+        fallback={
+          iconFallback ? (
+            <SymbolView
+              name={iconFallback}
+              resizeMode="scaleAspectFit"
+              size={ICON_GLYPH_SIZE}
+              style={styles.iconGlyph}
+              tintColor={accent.default}
+              type="monochrome"
+              weight="medium"
+            />
+          ) : undefined
+        }
+        name={icon}
+        resizeMode="scaleAspectFit"
+        size={ICON_GLYPH_SIZE}
+        style={styles.iconGlyph}
+        tintColor={accent.default}
+        type="monochrome"
+        weight="medium"
+      />
+    </View>
+  );
+}
+
+function RowBody({ label, description, right, chevron, icon, iconFallback, rightStyle }: RowBodyProps) {
   return (
     <>
+      {icon ? <IconChip icon={icon} iconFallback={iconFallback} twoLine={Boolean(description)} /> : null}
       <View style={styles.copy}>
         {/* spec row 33: row title ~17pt/22 lineHeight, Regular (link/destructive-style weight — the identity-row-only Medium doesn't apply to our plain rows) */}
         <AppText style={styles.title}>{label}</AppText>
@@ -49,7 +99,16 @@ function RowBody({ label, description, right, chevron, rightStyle }: RowBodyProp
   );
 }
 
-export function Row({ label, description, right, onPress, accessibilityLabel, chevron = false }: RowProps) {
+export function Row({
+  label,
+  description,
+  right,
+  onPress,
+  accessibilityLabel,
+  chevron = false,
+  icon,
+  iconFallback,
+}: RowProps) {
   const pressed = useSharedValue(0);
   const reduceMotion = useEffectiveReducedMotion();
   const followX = useSharedValue(0);
@@ -67,7 +126,7 @@ export function Row({ label, description, right, onPress, accessibilityLabel, ch
   if (!onPress) {
     return (
       <View style={[styles.row, rowHeightStyle]}>
-        <RowBody description={description} label={label} right={right} />
+        <RowBody description={description} icon={icon} iconFallback={iconFallback} label={label} right={right} />
       </View>
     );
   }
@@ -94,6 +153,8 @@ export function Row({ label, description, right, onPress, accessibilityLabel, ch
       <RowBody
         chevron={chevron}
         description={description}
+        icon={icon}
+        iconFallback={iconFallback}
         label={label}
         right={right}
         rightStyle={rightStyle}
@@ -127,5 +188,27 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 17,
     lineHeight: 22,
+  },
+  iconChip: {
+    alignItems: 'center',
+    backgroundColor: material.fillChip,
+    borderRadius: radius.sm,
+    flexShrink: 0,
+    height: ICON_CHIP_SIZE,
+    justifyContent: 'center',
+    width: ICON_CHIP_SIZE,
+  },
+  iconChipTwoLine: {
+    alignSelf: 'flex-start',
+    // Row is minHeight.double(73) with paddingVertical(space.sm=8) top/bottom;
+    // the title's own line-height (22) center sits ~11pt below the copy
+    // block's top edge, which itself floats vertically centered inside the
+    // row by the row's alignItems:'center'. Net offset from the chip's own
+    // (also center-of-row) default position to the title-line center.
+    marginTop: 3,
+  },
+  iconGlyph: {
+    height: ICON_GLYPH_SIZE,
+    width: ICON_GLYPH_SIZE,
   },
 });
