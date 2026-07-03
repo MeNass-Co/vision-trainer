@@ -63,10 +63,12 @@ export default function ProgressScreen() {
                 to={data.headlineAcuity}
               />
             </View>
-            <VerdictBand delta={data.delta} verdict={data.verdict} />
-            <AppText color={data.measurementConfidence.tier === 'needs-retest' ? 'accent' : 'muted'} variant="micro">
-              {data.measurementConfidence.label}
-            </AppText>
+            <VerdictBand
+              captionTone={data.measurementConfidence.tier === 'needs-retest' ? 'accent' : 'default'}
+              caption={data.measurementConfidence.label}
+              delta={data.delta}
+              verdict={data.verdict}
+            />
           </FadeIn>
           <FadeIn delay={90}>
             <Card style={styles.card}>
