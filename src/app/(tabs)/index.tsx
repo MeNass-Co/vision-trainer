@@ -1,53 +1,109 @@
 import { type Href, useFocusEffect, useRouter } from 'expo-router';
-import { useCallback, useRef } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { useCallback, useEffect, useRef } from 'react';
+import { StyleSheet, Text, View } from 'react-native';
+import Animated, {
+  cancelAnimation,
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withTiming,
+} from 'react-native-reanimated';
 
 import { AmbientGradient } from '@/components/home/AmbientGradient';
 import { CelestialGabor } from '@/components/home/CelestialGabor';
-import { AppText, Bloom, ContextChip, FadeIn, PrimaryButton, Screen, Shimmer } from '@/components/ui';
+import { AppText, ContextChip, FadeIn, PrimaryButton, Screen, Shimmer } from '@/components/ui';
 import { useTodayData } from '@/presenters';
 import type { TodayView } from '@/presenters/types';
-import { ACCENT, ACCENT_CORE, ACCENT_GLOW, ACCENT_MUTED, motion, radius, space, surface } from '@/theme/tokens';
+import { accent, motion, radius, space, surface, text as textTokens, type as typo } from '@/theme/tokens';
 import { useEffectiveReducedMotion } from '@/theme/useEffectiveReducedMotion';
 
 const DAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'] as const;
 
+// week-strip law (VALIDATION.md #10): today = 35pt filled white circle w/ dark
+// text; state-cell box height = circle diameter so a plain digit and the
+// circle share one flexbox-centered axis (spec row 8) with no pixel math.
+// Dot re-measured at the Fable lock: the reference dot is a HOLLOW RING —
+// outer Ø 21px/7.0pt, stroke 3px/1.0pt on all four sides, center = pure
+// background (target.png days 8 & 11, PIL scanlines) — not a filled disc.
+const TODAY_CIRCLE_DIAMETER = 35;
+const DOT_DIAMETER = 7;
+const DOT_STROKE = 1;
+
 type WeekRowProps = {
   activeIndex?: number;
   weekDays: boolean[];
+  weekDates: number[];
+  reduceMotion: boolean;
 };
 
-function WeekRow({ activeIndex = 3, weekDays }: WeekRowProps) {
+function WeekRow({ activeIndex = 3, weekDays, weekDates, reduceMotion }: WeekRowProps) {
   return (
     <View style={styles.weekRow}>
       {DAYS.map((day, index) => {
         const isToday = index === activeIndex;
-        // Honest per-day truth: a dot lights only if that calendar day was completed.
-        const isDone = weekDays[index] ?? false;
+        // Honest per-day truth: a day is only "completed" if a session actually
+        // landed on that calendar day. The app has no per-day schedule concept
+        // (no program/recommended-day model exists — see week-strip-diff.md),
+        // so "scheduled" future days are not fabricated: future/no-activity days
+        // render as plain white digits with no dot, an intentional narrowing of
+        // spec row 26 to what our data can honestly say.
+        const isCompleted = weekDays[index] ?? false;
+        const isPast = index < activeIndex;
+        const showDot = isCompleted && !isToday;
+
+        let digitColor: string = textTokens.primary;
+        if (isCompleted) {
+          digitColor = accent.core;
+        } else if (isPast) {
+          digitColor = textTokens.faint;
+        }
 
         return (
           <View key={`${day}-${index}`} style={styles.dayCell}>
-            <AppText color={isToday ? 'primary' : isDone ? 'secondary' : 'muted'} variant="micro">
+            <AppText color="primary" variant="micro">
               {day}
             </AppText>
-            <View style={styles.dayDotFrame}>
+            <View style={styles.stateCell}>
               {isToday ? (
-                <Bloom color={ACCENT_GLOW} style={styles.dayBloom} />
-              ) : isDone ? (
-                <Bloom color={ACCENT_GLOW} opacity={0.5} style={styles.dayBloomSoft} />
-              ) : null}
-              <View
-                style={[
-                  styles.dayDot,
-                  isDone ? styles.dayDotDone : styles.dayDotFuture,
-                  isToday && styles.dayDotToday,
-                ]}
-              />
+                <TodayCircle digit={weekDates[index]} reduceMotion={reduceMotion} />
+              ) : (
+                <Text style={[styles.numeral, { color: digitColor }]}>{weekDates[index]}</Text>
+              )}
             </View>
+            <View style={styles.dotSlot}>{showDot ? <View style={styles.dot} /> : null}</View>
           </View>
         );
       })}
     </View>
+  );
+}
+
+function TodayCircle({ digit, reduceMotion }: { digit: number; reduceMotion: boolean }) {
+  const breathe = useSharedValue(0);
+
+  useEffect(() => {
+    cancelAnimation(breathe);
+    if (reduceMotion) {
+      breathe.value = 0;
+      return;
+    }
+    breathe.value = withRepeat(
+      withTiming(1, { duration: motion.timing.breatheMs, easing: Easing.inOut(Easing.sin) }),
+      -1,
+      true
+    );
+    return () => cancelAnimation(breathe);
+  }, [breathe, reduceMotion]);
+
+  const breatheStyle = useAnimatedStyle(() => ({
+    opacity: 1 - breathe.value * 0.06,
+  }));
+
+  return (
+    <Animated.View style={[styles.todayCircle, breatheStyle]}>
+      <Text style={styles.todayDigit}>{digit}</Text>
+    </Animated.View>
   );
 }
 
@@ -123,7 +179,12 @@ function TodayContent({ data, reduceMotion, router }: TodayContentProps) {
       </View>
       <View style={styles.bottomBlock}>
         <FadeIn>
-          <WeekRow activeIndex={data.todayIndex} weekDays={data.weekDays} />
+          <WeekRow
+            activeIndex={data.todayIndex}
+            reduceMotion={reduceMotion}
+            weekDates={data.weekDates}
+            weekDays={data.weekDays}
+          />
         </FadeIn>
         <FadeIn delay={40} style={styles.titleBlock}>
           <AppText color="primary" variant="hero">
@@ -187,44 +248,29 @@ export const styles = StyleSheet.create({
     gap: space.lg,
     paddingBottom: space.xl,
   },
-  dayBloom: {
-    height: 28,
-    width: 28,
-  },
-  dayBloomSoft: {
-    height: 18,
-    width: 18,
-  },
   dayCell: {
     alignItems: 'center',
-    gap: space.xs,
+    flex: 1,
   },
-  dayDot: {
-    borderRadius: radius.pill,
-    height: 6,
-    width: 6,
+  // week-strip Fable-lock re-measure: HOLLOW RING, outer Ø 7.0pt, 1.0pt stroke,
+  // transparent center; accent.core (the row's one "live" signal, hue-identical
+  // to the completed-digit tint — spec rows 15/16, color mapping unchanged).
+  dot: {
+    borderColor: accent.core,
+    borderRadius: DOT_DIAMETER / 2,
+    borderWidth: DOT_STROKE,
+    height: DOT_DIAMETER,
+    width: DOT_DIAMETER,
   },
-  dayDotDone: {
-    backgroundColor: ACCENT,
-    borderRadius: radius.pill,
-    height: 6,
-    width: 6,
-  },
-  dayDotFuture: {
-    backgroundColor: ACCENT_MUTED,
-    opacity: 0.32,
-  },
-  dayDotToday: {
-    backgroundColor: ACCENT_CORE,
-    borderWidth: 0,
-    height: 8,
-    width: 8,
-  },
-  dayDotFrame: {
+  // Fixed-height slot below the digit/circle so a dot toggling on/off never
+  // shifts layout (spec row 2: the whole strip is a reserved slot). marginTop
+  // tuned against a live capture to hit spec row 9's measured 18.5pt digit-
+  // bottom-to-dot-top gap (no named token at this exact value).
+  dotSlot: {
     alignItems: 'center',
-    height: 28,
+    height: 10,
     justifyContent: 'center',
-    width: 28,
+    marginTop: 5.5,
   },
   eyebrow: {
     alignItems: 'center',
@@ -267,9 +313,51 @@ export const styles = StyleSheet.create({
   titleBlock: {
     gap: 10,
   },
+  // week-strip spec row 21: type.numeral (18pt bold), no dedicated color here —
+  // color is assigned per-state at the call site (accent.core / text.faint / text.primary).
+  numeral: {
+    fontFamily: typo.numeral.fontFamily,
+    fontSize: typo.numeral.fontSize,
+    letterSpacing: typo.numeral.letterSpacing,
+    lineHeight: typo.numeral.lineHeight,
+  },
+  // Fixed-height box (= circle diameter) so a plain digit and the today-circle
+  // share one flexbox-centered vertical axis with no manual pixel math —
+  // satisfies spec row 8 ("center all state-cells on one shared row-center,
+  // do not top-align") for free.
+  stateCell: {
+    alignItems: 'center',
+    height: TODAY_CIRCLE_DIAMETER,
+    justifyContent: 'center',
+    // Tuned against a live capture to hit spec row 7's measured 18.7pt
+    // letter-bottom-to-digit-top gap (no named token at this exact value).
+    marginTop: 4,
+  },
+  // week-strip spec row 5/17/18: 35pt filled white circle, dark (`text.inverse`)
+  // digit inside.
+  todayCircle: {
+    alignItems: 'center',
+    backgroundColor: textTokens.primary,
+    borderRadius: TODAY_CIRCLE_DIAMETER / 2,
+    height: TODAY_CIRCLE_DIAMETER,
+    justifyContent: 'center',
+    width: TODAY_CIRCLE_DIAMETER,
+  },
+  todayDigit: {
+    color: textTokens.inverse,
+    fontFamily: typo.numeral.fontFamily,
+    fontSize: typo.numeral.fontSize,
+    letterSpacing: typo.numeral.letterSpacing,
+    lineHeight: typo.numeral.lineHeight,
+  },
+  // Bleeds -space.md (12pt) past the Screen's space.lg (24pt) padding on each
+  // side so the row's usable width is 393 − 2×12 = 369pt ≈ 7×52.7pt — the
+  // exact equal-center pitch spec row 10 measured. Equal-width flex cells
+  // (dayCell: flex 1) then center their content automatically, which is what
+  // produces "equal-center, not equal-gap" distribution (spec's own finding)
+  // without manual gap math.
   weekRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: '100%',
+    marginHorizontal: -space.md,
   },
 });

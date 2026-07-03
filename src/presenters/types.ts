@@ -14,6 +14,8 @@ export type TodayView = {
   todayIndex: number;
   /** completion flags for this local week, Sun..Sat — drives the week dots honestly */
   weekDays: boolean[];
+  /** calendar day-of-month numbers for this local week, Sun..Sat — week-strip date cells */
+  weekDates: number[];
   /** e.g. "6 cpd · 4 min" */
   nextTargetLabel: string;
   verdict: Verdict;

@@ -53,6 +53,22 @@ export function weekCompletion(completedDayKeys: string[], now: Date = new Date(
   });
 }
 
+/**
+ * Calendar day-of-month numbers for the local week (Sun..Sat) containing `now`.
+ * Pairs with `weekCompletion` so the week-strip can render real date numbers,
+ * not placeholder letters, per VALIDATION.md law 10.
+ */
+export function weekDates(now: Date = new Date()): number[] {
+  const sunday = new Date(now);
+  sunday.setHours(0, 0, 0, 0);
+  sunday.setDate(sunday.getDate() - sunday.getDay());
+  return Array.from({ length: 7 }, (_, index) => {
+    const cursor = new Date(sunday);
+    cursor.setDate(sunday.getDate() + index);
+    return cursor.getDate();
+  });
+}
+
 const WEEKDAY_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as const;
 
 /** The single ambient-clock accessor for the whole app. */

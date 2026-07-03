@@ -1,7 +1,7 @@
 import { buildBeforeAfterCsf, buildLatestCsf, improvementPercent } from '@/progress/csf';
 import { populationNormContrast } from '@/progress/norms';
 import type { SessionLog, ThresholdEstimate } from '@/types';
-import { computeStreak, localDayKey, localDayKeyFromIso, todayIndex, weekCompletion, weekdayShortFromIso } from '@/utils/clock';
+import { computeStreak, localDayKey, localDayKeyFromIso, todayIndex, weekCompletion, weekDates, weekdayShortFromIso } from '@/utils/clock';
 
 import {
   deriveMeasurementConfidence,
@@ -182,6 +182,7 @@ export function deriveTodayView(
   const sessionDoneToday = dayKeys.includes(todayKey);
   const index = todayIndex(now);
   const weekDays = weekCompletion(dayKeys, now);
+  const dates = weekDates(now);
 
   const latest = buildLatestCsf(thresholds);
   if (latest.length === 0) {
@@ -192,6 +193,7 @@ export function deriveTodayView(
       sessionDoneToday,
       todayIndex: index,
       weekDays,
+      weekDates: dates,
       nextTargetLabel: 'First session · 4 min',
       verdict: 'holding',
       measurementConfidence,
@@ -209,6 +211,7 @@ export function deriveTodayView(
     sessionDoneToday,
     todayIndex: index,
     weekDays,
+    weekDates: dates,
     nextTargetLabel: recent ? `${formatCpd(recent.spatialFrequencyCpd)} cpd · 4 min` : '6 cpd · 4 min',
     verdict: measurementConfidence.canDriveTrend ? verdictFromPercent(improvementPercent(usable)) : 'holding',
     measurementConfidence,
