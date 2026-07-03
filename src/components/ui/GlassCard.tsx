@@ -20,28 +20,32 @@ export type GlassCardProps = {
   tier?: GlassCardTier;
 };
 
-const TIER_TINT: Record<GlassCardTier, string> = {
+const TIER_SCRIM: Record<GlassCardTier, string> = {
   surface: material.glassSurface,
   content: material.glassContent,
 };
 
 /**
- * ONE material, app-wide (native-revamp Phase 4 final wave). Same bare
- * GlassView('regular') primitive CustomTabBar already ships — no manual
- * `tintColor` prop on the GlassView itself, which is what read grey/flat in
- * the older GlassSurface approach. Color instead comes from a plain tint
- * overlay layered ON TOP of the system glass, so the starfield still
- * refracts through underneath it; the cyan hairline is a second overlay, not
- * a native border, so both tiers share pixel-identical treatment.
+ * GlassCard v2 (owner verdict, glass-unification pass 3): base recipe is now
+ * EXACTLY the tab bar's — bare GlassView('regular') + the same uniform 1pt
+ * rim (`material.hairlineGlassAccent`, 16% white, no cyan tint) — because the
+ * bar is the one element that read as real liquid glass; v1's dark tint
+ * overlays (0.35/0.55) on top of the glass killed the material and made
+ * cards read as flat semi-transparent hex boxes instead. Tier difference is
+ * now minimal: 'surface' mounts NO scrim view at all (zero interference with
+ * the glass); 'content' gets only a thin near-black legibility scrim, just
+ * enough to hold body text ≥4.5:1 over the starfield backdrop.
  */
 export function GlassCard({ children, style, radius = radiusTokens.lg, tier = 'content' }: GlassCardProps) {
   const liquidGlass = Platform.OS === 'ios' && isLiquidGlassAvailable() && isGlassEffectAPIAvailable();
-  const tint = TIER_TINT[tier];
+  const scrim = TIER_SCRIM[tier];
   const shapeStyle = { borderRadius: radius };
 
   const overlays = (
     <>
-      <View pointerEvents="none" style={[styles.tint, shapeStyle, { backgroundColor: tint }]} />
+      {scrim !== 'transparent' ? (
+        <View pointerEvents="none" style={[styles.tint, shapeStyle, { backgroundColor: scrim }]} />
+      ) : null}
       <View pointerEvents="none" style={[styles.hairlineBorder, shapeStyle]} />
     </>
   );

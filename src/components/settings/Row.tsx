@@ -2,6 +2,7 @@ import { SymbolView } from 'expo-symbols';
 import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, type ViewStyle, View } from 'react-native';
 import Animated, {
+  interpolate,
   interpolateColor,
   useAnimatedStyle,
   useSharedValue,
@@ -18,6 +19,15 @@ import { useEffectiveReducedMotion } from '@/theme/useEffectiveReducedMotion';
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 const ICON_CHIP_SIZE = 28;
 const ICON_GLYPH_SIZE = 15;
+// GlassCard v2 (owner verdict, glass-unification pass 3): press feedback
+// should read as the glass itself brightening, not a "highlight box" painted
+// on top. A soft, low-alpha white wash + a tiny 0.99 scale settle (same
+// PressableScale spring pattern used elsewhere) reads as the material
+// responding to touch. GlassCard's own overflow:'hidden' + borderRadius
+// already clips this full-row wash to the card's shape for the first/last
+// row, so Row needs no radius of its own.
+const ROW_PRESS_WASH = 'rgba(255,255,255,0.07)';
+const ROW_PRESS_SCALE = 0.99;
 
 export type RowProps = {
   label: string;
@@ -121,10 +131,12 @@ export function Row({
   // the rows that have onPress (Display calibration, About's chevron rows)
   // while non-pressable rows (toggles, Version) stayed glass by omission. Rest
   // state is now fully transparent so the GlassCard glass always shows through;
-  // press feedback is a translucent white wash (material.pillOnGlass, same
-  // on-glass highlight token pills already use), not a real fill.
+  // press feedback is a translucent white wash (`ROW_PRESS_WASH`, 7%) plus a
+  // tiny 0.99 scale settle — the glass brightening under touch, not a
+  // highlight box.
   const fillStyle = useAnimatedStyle(() => ({
-    backgroundColor: interpolateColor(pressed.value, [0, 1], ['rgba(255,255,255,0)', material.pillOnGlass]),
+    backgroundColor: interpolateColor(pressed.value, [0, 1], ['rgba(255,255,255,0)', ROW_PRESS_WASH]),
+    transform: [{ scale: interpolate(pressed.value, [0, 1], [1, ROW_PRESS_SCALE]) }],
   }));
 
   // spec rows 4-6: single-line rows = rowHeight.single (52); rows with a description are

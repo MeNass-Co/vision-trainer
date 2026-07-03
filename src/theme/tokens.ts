@@ -80,16 +80,25 @@ export const material = {
   fillChip: 'rgba(255,255,255,0.05)',
   fillCard: 'rgba(255,255,255,0.07)',
   pillOnGlass: 'rgba(255,255,255,0.10)',
-  // ONE-material pass (native-revamp, Phase 4 final wave): every card/pill
-  // becomes real Liquid Glass (GlassCard, CustomTabBar's GlassView pattern)
-  // with a shared cyan-tinged hairline and a THREE-TIER tint hierarchy — same
-  // hue family, graded transparency, never forked per-card:
-  //   Tier 1 · chrome  — tab bar + SheetCloseButton chip (bespoke, no token; barely tinted).
-  //   Tier 2 · surface — settings section cards, calibration slider card (glassSurface).
-  //   Tier 3 · content — Vision profile / spatial-frequency / trend / science / paywall plan cards (glassContent).
-  hairlineGlassAccent: 'rgba(91,233,236,0.10)',
-  glassSurface: 'rgba(18,42,46,0.35)',
-  glassContent: 'rgba(16,36,40,0.55)'
+  // GlassCard v2 (owner verdict, glass-unification pass 3): the v1 dark-rgba
+  // tint washes (0.35/0.55) painted ON TOP of GlassView killed the native
+  // material — cards read as "semi-transparent hex overlays", not liquid
+  // glass. The tab bar (bare GlassView + uniform rim, no tint) was the one
+  // element that read as real liquid glass, so it is now THE reference
+  // recipe for every glass surface app-wide. Tier hierarchy shrinks to:
+  //   Tier 1 · chrome   — tab bar + SheetCloseButton chip (bespoke, no token).
+  //   Tier 2 · surface  — settings sections, calibration slider card: bare
+  //     glass, ZERO scrim (glassSurface is 'transparent' — no overlay View
+  //     mounted at all for this tier).
+  //   Tier 3 · content  — Vision profile / spatial-frequency / trend /
+  //     science / paywall plan cards: a near-black legibility scrim, just
+  //     enough to hold text.secondary ≥4.5:1 over the starfield backdrop.
+  // Rim is now the bar's own uniform 1pt perimeter highlight color (16%
+  // white, `CustomTabBar`'s RIM_COLOR) instead of a bespoke cyan hairline —
+  // one glass grammar, one rim, app-wide.
+  hairlineGlassAccent: 'rgba(255,255,255,0.16)',
+  glassSurface: 'transparent',
+  glassContent: 'rgba(8,12,14,0.14)'
 } as const;
 
 export const space = {

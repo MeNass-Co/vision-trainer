@@ -1,11 +1,12 @@
 import { BlurView } from 'expo-blur';
 import { GlassView, isGlassEffectAPIAvailable, isLiquidGlassAvailable } from 'expo-glass-effect';
+import { LinearGradient } from 'expo-linear-gradient';
 import type { ReactNode } from 'react';
 import { Platform, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 
 import { AppText } from './AppText';
 import { PressableScale, type PressableScaleProps } from './PressableScale';
-import { ACCENT_CORE, motion, radius, surface } from '@/theme/tokens';
+import { accent, ACCENT_CORE, motion, radius, surface, text } from '@/theme/tokens';
 
 export type PrimaryButtonProps = {
   label: string;
@@ -18,18 +19,15 @@ export type PrimaryButtonProps = {
   children?: ReactNode;
 };
 
-// Owner order (glass-unification pass 2): the flat isoluminant-ramp CTA is
-// gone — this is now real Liquid Glass, same GlassView('regular') primitive
-// as the tab bar / GlassCard. TRIED FIRST: the native `tintColor` prop set to
-// ACCENT — rejected after an on-sim capture (design/captures/glass2-today.png,
-// zoomed) showed it rendering as a near-fully-opaque flat cyan slab, zero
-// visible blur/refraction, indistinguishable from the old solid gradient it
-// was supposed to replace. Shipped instead: bare glass (no tintColor) + a
-// plain translucent ACCENT overlay layered ON TOP, same pattern GlassCard
-// already uses for its tint (a View, not a native recolor) — the backdrop
-// still refracts through underneath it. Uniform 1pt perimeter rim, same
-// color/alpha as the tab bar's active pill (`PILL_RIM_COLOR` in
-// CustomTabBar) — one glass grammar app-wide.
+// Owner order (glass-unification pass 3): "couleur qui pète et liquid glass
+// ne sont pas mutuellement exclusifs" — v2's flat single-hue TINT_OVERLAY
+// read as a dull teal wash, not vivid. Fix: bare GlassView('regular') (same
+// primitive as the tab bar / GlassCard) with `accent.ctaRamp`'s 5-stop
+// horizontal gradient laid over it as a TRANSLUCENT veil (each stop at
+// ~0.6 alpha) instead of one flat color — the starfield ghosts faintly
+// THROUGH the luminous gradient, i.e. colored liquid glass, not a solid CTA
+// slab. Uniform 1pt perimeter rim, same color/alpha as the tab bar's active
+// pill (`PILL_RIM_COLOR` in CustomTabBar) — one glass grammar app-wide.
 //
 // CTA law (VALIDATION.md #1): this component still governs EVERY full-width
 // CTA in the app (Today, paywall, empty-state, onboarding, calibration,
@@ -37,7 +35,19 @@ export type PrimaryButtonProps = {
 // material changed. Ghost = a softer secondary commit, unchanged geometry/
 // type, flat surface fill (currently unused by any call site).
 const RIM_COLOR = 'rgba(255,255,255,0.18)'; // same uniform rim as CustomTabBar's PILL_RIM_COLOR
-const TINT_OVERLAY = 'rgba(51,210,214,0.35)'; // ACCENT #33D2D6 @ 35%, layered over bare glass
+const CTA_VEIL_ALPHA = 0.8; // orchestrator retune: 0.6 read sage/dull — vivid first, residual translucency second
+const hexToRgba = (hex: string, alpha: number) => {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r},${g},${b},${alpha})`;
+};
+// accent.ctaRamp @ CTA_VEIL_ALPHA, layered over bare glass as a horizontal veil.
+const CTA_VEIL_COLORS = accent.ctaRamp.map((hex) => hexToRgba(hex, CTA_VEIL_ALPHA)) as unknown as [
+  string,
+  string,
+  ...string[],
+];
 
 export function PrimaryButton({
   label,
@@ -80,7 +90,13 @@ export function PrimaryButton({
               tint="dark"
             />
           )}
-          <View pointerEvents="none" style={[styles.glassFill, styles.tintOverlay, disabled && styles.disabledFill]} />
+          <LinearGradient
+            colors={CTA_VEIL_COLORS}
+            end={{ x: 1, y: 0.5 }}
+            pointerEvents="none"
+            start={{ x: 0, y: 0.5 }}
+            style={[styles.glassFill, disabled && styles.disabledFill]}
+          />
         </>
       ) : null}
       <AppText
@@ -127,16 +143,15 @@ const styles = StyleSheet.create({
   glassFill: {
     ...StyleSheet.absoluteFillObject,
   },
-  tintOverlay: {
-    backgroundColor: TINT_OVERLAY,
-  },
-  // Label color law, re-measured for the glass material: `text.inverse` (near-
-  // black, right for the old bright isoluminant ramp) measured ≈2.25:1 against
-  // the new translucent teal glass fill — fails WCAG AA even at large-text
-  // 3:1. White measured ≈8.17:1 (AAA). Sampled from a ×2 capture,
-  // design/captures/glass2-today-cta-zoom.png.
+  // Label color law (glass-unification pass 3, re-measured for the ctaRamp
+  // veil): white was tried first (matched the tab bar/rim's neutral voice)
+  // but sampled at only ≈2.9:1 against the bright pastel veil (design/
+  // captures/glassv2-today.png, ×3 crop) — fails even the 20pt/medium "large
+  // text" 3:1 floor. `text.inverse` (near-black) sampled ≈6.3:1 — clears AA
+  // with margin and reads as "alive": dark ink on a luminous colored-glass
+  // pill, not a washed-out label.
   solidLabel: {
-    color: '#FFFFFF',
+    color: text.inverse,
   },
   // States law (spec rows 17-18): fill −90% opacity, label −60/65% opacity vs enabled.
   disabledFill: {
