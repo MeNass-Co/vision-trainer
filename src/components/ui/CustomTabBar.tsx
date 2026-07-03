@@ -1,32 +1,41 @@
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { BlurView } from 'expo-blur';
-import { LinearGradient } from 'expo-linear-gradient';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { GlassView, isGlassEffectAPIAvailable, isLiquidGlassAvailable } from 'expo-glass-effect';
+import type { SFSymbol, SymbolWeight } from 'expo-symbols';
+import { SymbolView } from 'expo-symbols';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Platform, StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Svg, { Circle, Line, Path } from 'react-native-svg';
 
-import { hairline, icon, material, motion, radius, space, surface, text, type as typo } from '@/theme/tokens';
+import { icon, material, motion, radius, space, text, type as typo } from '@/theme/tokens';
 
 import { PressableScale } from './PressableScale';
 
-// Law 5 (VALIDATION.md): icons + labels are WHITE in BOTH states — the only
-// active/inactive distinction is the frosted pill + filled-vs-outline glyph swap.
-// No cyan on the tab bar.
+// Aesthetic-law rebuild (native-revamp): real Liquid Glass, SF Symbols, Apple
+// Music-style stadium bar. Overrides the old hand-drawn-SVG / opaque-slab spec.
+// Icons + labels stay WHITE in both states — the only active/inactive signal
+// is the frosted pill, the filled-vs-outline glyph, and label opacity.
 const GLYPH_COLOR = text.primary;
 
-// Spec rows 1/3-4/6: 61pt fixed bar height, ~60pt symmetric screen-edge margins
-// (no existing token this large — between space.xxl=48 and space.xxxl=64), radius
-// via the dedicated radius.floatingBar token.
-const BAR_HEIGHT = 61;
-const BAR_MARGIN = 60;
-// Spec rows 10/34: pill inset from bar edge on all sides = space.xs (4pt).
-const PILL_INSET = space.xs;
+// Geometry: floating stadium bar close to the home indicator. Radius = height/2
+// (true pill), derived from BAR_HEIGHT rather than a separate token so the two
+// can never drift out of sync.
+const BAR_HEIGHT = 64;
+const BAR_RADIUS = BAR_HEIGHT / 2;
+const BAR_SIDE_MARGIN = space.lg; // 24pt
+const BAR_BOTTOM_GAP = 4; // safe-area bottom inset + 4pt
+// The bar now floats via `position: absolute` (real overlay, not a flex row)
+// so content genuinely scrolls/sits underneath the glass. Fixed-layout screens
+// (Today) need to know how much clearance to reserve above the safe-area inset
+// so their bottom-most control never sits under the glyphs. Exported so
+// index.tsx (the only other file in this element's blast radius) can consume
+// it without duplicating the geometry.
+export const TAB_BAR_CLEARANCE = BAR_BOTTOM_GAP + BAR_HEIGHT + space.base;
+const PILL_INSET = space.xs; // 4pt inset on all sides
 const PILL_HEIGHT = BAR_HEIGHT - PILL_INSET * 2;
-// Spec rows 15/35: icon-to-label gap ~6.7pt avg, proposed token never finalized
-// in the VALIDATION.md addendum — used as a literal per that precedent (space.2xs).
-const ICON_LABEL_GAP = 6;
+const ICON_SIZE = icon.tab; // 23pt, within the 22-24pt law
+const ICON_LABEL_GAP = 4;
 
 type TabIconProps = {
   focused: boolean;
@@ -35,63 +44,37 @@ type TabIconProps = {
 
 type RouteItem = BottomTabBarProps['state']['routes'][number];
 
-// Glyphs are drawn to FILL the 24-unit viewBox (drawn extent ≈21-22 units incl.
-// stroke → ≈20-21pt visible in the 23pt box), matching the reference's chunky
-// ~90% optical fill. Stroke 2.4 units → ≈2.3pt displayed — inactive ≠ thin.
+type SymbolSpec = {
+  inactive: SFSymbol;
+  active: SFSymbol;
+  activeWeight?: SymbolWeight;
+};
+
+// SF Symbols per tab. Progress reuses the same glyph active/inactive and
+// signals state via weight (regular -> semibold) instead of a filled variant,
+// since chart.line.uptrend.xyaxis has no distinct .fill counterpart.
+const SYMBOLS: Record<string, SymbolSpec> = {
+  index: { inactive: 'house', active: 'house.fill' },
+  progress: {
+    inactive: 'chart.line.uptrend.xyaxis',
+    active: 'chart.line.uptrend.xyaxis',
+    activeWeight: 'semibold',
+  },
+  settings: { inactive: 'gearshape', active: 'gearshape.fill' },
+};
+
 function TabIcon({ focused, routeName }: TabIconProps) {
-  const dotFill = focused ? GLYPH_COLOR : 'none';
-
-  const content = (() => {
-    switch (routeName) {
-      case 'progress':
-        return (
-          <>
-            <Path d="M4 19 C 7.7 19, 9.4 10.1, 12.75 10.1 S 17.2 5.9, 20 5" fill="none" />
-            <Circle cx={4} cy={19} fill={dotFill} r={2.4} />
-            <Circle cx={20} cy={5} fill={dotFill} r={2.4} />
-          </>
-        );
-      case 'settings':
-        return (
-          <>
-            <Line x1={2.8} x2={21.2} y1={5} y2={5} />
-            <Circle cx={16.5} cy={5} fill={dotFill} r={2.6} />
-            <Line x1={2.8} x2={21.2} y1={12} y2={12} />
-            <Circle cx={8.3} cy={12} fill={dotFill} r={2.6} />
-            <Line x1={2.8} x2={21.2} y1={19} y2={19} />
-            <Circle cx={14.2} cy={19} fill={dotFill} r={2.6} />
-          </>
-        );
-      case 'index':
-      default:
-        return focused ? (
-          <Path
-            d="M1.4 10.84 12 1.56l10.6 9.28v11.75h-7.25v-6.82H8.67v6.82H1.4z"
-            fill={GLYPH_COLOR}
-            stroke="none"
-          />
-        ) : (
-          <>
-            <Path d="M2.06 11.33 12 2.39l9.94 8.94" fill="none" />
-            <Path d="M5.18 9.91v11.5h13.64v-11.5" fill="none" />
-            <Path d="M9.44 21.41v-6.67h5.11v6.67" fill="none" />
-          </>
-        );
-    }
-  })();
-
+  const spec = SYMBOLS[routeName] ?? SYMBOLS.index;
   return (
-    <Svg
-      fill="none"
-      height={icon.tab}
-      stroke={GLYPH_COLOR}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth={2.4}
-      viewBox="0 0 24 24"
-      width={icon.tab}>
-      {content}
-    </Svg>
+    <SymbolView
+      name={focused ? spec.active : spec.inactive}
+      resizeMode="scaleAspectFit"
+      size={ICON_SIZE}
+      style={styles.icon}
+      tintColor={GLYPH_COLOR}
+      type="monochrome"
+      weight={focused ? (spec.activeWeight ?? 'regular') : 'regular'}
+    />
   );
 }
 
@@ -113,12 +96,40 @@ function TabButton({ focused, label, onPress, routeName }: TabButtonProps) {
       style={styles.tabButton}>
       <TabIcon focused={focused} routeName={routeName} />
       {/* Plain RN Text (not AppText) so the exact spec type row (type.tabLabel)
-          applies without fighting AppText's Variant union — AppText is a shared
-          file out of this element's blast radius. */}
-      <Text numberOfLines={1} style={styles.label}>
+          applies without fighting AppText's Variant union. */}
+      <Text numberOfLines={1} style={[styles.label, { opacity: focused ? 1 : 0.64 }]}>
         {label}
       </Text>
     </PressableScale>
+  );
+}
+
+type BarMaterialProps = {
+  children: ReactNode;
+  liquidGlass: boolean;
+};
+
+// Real Liquid Glass on iOS 26 (GlassView, "regular" style — refracts the
+// starfield behind it, no manual tint/overlay layers riding on top). Falls
+// back to a plain BlurView on platforms where the Liquid Glass API isn't
+// available; that fallback is not the target render and is kept minimal.
+function BarMaterial({ children, liquidGlass }: BarMaterialProps) {
+  if (liquidGlass) {
+    return (
+      <GlassView colorScheme="dark" glassEffectStyle="regular" style={styles.bar}>
+        {children}
+      </GlassView>
+    );
+  }
+
+  return (
+    <BlurView
+      experimentalBlurMethod={Platform.OS === 'android' ? 'dimezisBlurView' : undefined}
+      intensity={Platform.OS === 'ios' ? 55 : 62}
+      style={styles.bar}
+      tint="dark">
+      {children}
+    </BlurView>
   );
 }
 
@@ -128,6 +139,7 @@ export function CustomTabBar({ state, descriptors, navigation }: BottomTabBarPro
   const translateX = useSharedValue(0);
   const hasMounted = useRef(false);
   const columnWidth = barWidth / state.routes.length;
+  const liquidGlass = Platform.OS === 'ios' && isLiquidGlassAvailable() && isGlassEffectAPIAvailable();
 
   const handleLayout = useCallback((event: LayoutChangeEvent) => {
     setBarWidth(event.nativeEvent.layout.width);
@@ -176,38 +188,21 @@ export function CustomTabBar({ state, descriptors, navigation }: BottomTabBarPro
   };
 
   return (
-    <View style={[styles.outer, { paddingBottom: insets.bottom + space.sm }]}>
-      {/* Neutral dark scrim behind the floating bar so it reads over any content —
-          no accent hue, unrelated to the bar's own material. */}
-      <LinearGradient
-        colors={['rgba(5,8,10,0)', 'rgba(5,8,10,0.34)', surface.base]}
-        pointerEvents="none"
-        style={styles.bottomField}
-      />
+    <View style={[styles.outer, { paddingBottom: insets.bottom + BAR_BOTTOM_GAP }]}>
       <View style={styles.barShadow}>
-        <BlurView
-          experimentalBlurMethod={Platform.OS === 'android' ? 'dimezisBlurView' : undefined}
-          intensity={Platform.OS === 'ios' ? 55 : 62}
-          style={styles.bar}
-          tint="dark">
-          <View style={styles.barTint} />
-          {/* Hairline drawn as overlays, not borderWidth — a border would eat into
-              the content box and throw off the pill's symmetric top/bottom inset. */}
-          <View style={styles.hairlineTop} />
-          <View style={styles.hairlineBottom} />
+        <BarMaterial liquidGlass={liquidGlass}>
+          {/* Hairline kept to a whisper — a single top edge, not a boxed outline,
+              so the pill still reads as glass rather than a bordered card. */}
+          <View pointerEvents="none" style={styles.hairlineTop} />
           <View onLayout={handleLayout} style={styles.primaryRow}>
             {barWidth > 0 ? (
               <Animated.View
-                style={[
-                  styles.pill,
-                  pillStyle,
-                  { width: columnWidth - PILL_INSET * 2 },
-                ]}
+                style={[styles.pill, pillStyle, { width: columnWidth - PILL_INSET * 2 }]}
               />
             ) : null}
             {state.routes.map((route) => renderTab(route))}
           </View>
-        </BlurView>
+        </BarMaterial>
       </View>
     </View>
   );
@@ -215,50 +210,31 @@ export function CustomTabBar({ state, descriptors, navigation }: BottomTabBarPro
 
 const styles = StyleSheet.create({
   bar: {
-    borderRadius: radius.floatingBar,
+    backgroundColor: 'transparent',
+    borderRadius: BAR_RADIUS,
     height: BAR_HEIGHT,
     overflow: 'hidden',
     width: '100%',
   },
   barShadow: {
-    borderRadius: radius.floatingBar,
+    borderRadius: BAR_RADIUS,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.12,
-    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.22,
+    shadowRadius: 20,
     width: '100%',
-  },
-  barTint: {
-    backgroundColor: surface.overlay,
-    bottom: 0,
-    left: 0,
-    opacity: 0.45,
-    position: 'absolute',
-    right: 0,
-    top: 0,
-  },
-  bottomField: {
-    bottom: 0,
-    height: 132,
-    left: 0,
-    position: 'absolute',
-    right: 0,
-  },
-  hairlineBottom: {
-    backgroundColor: material.hairlineOnGlass,
-    bottom: 0,
-    height: hairline.px1,
-    left: 0,
-    position: 'absolute',
-    right: 0,
   },
   hairlineTop: {
     backgroundColor: material.hairlineOnGlass,
-    height: hairline.px1,
+    height: StyleSheet.hairlineWidth,
     left: 0,
     position: 'absolute',
     right: 0,
     top: 0,
+  },
+  icon: {
+    height: ICON_SIZE,
+    width: ICON_SIZE,
   },
   label: {
     color: GLYPH_COLOR,
@@ -270,9 +246,11 @@ const styles = StyleSheet.create({
   outer: {
     alignItems: 'center',
     backgroundColor: 'transparent',
-    paddingHorizontal: BAR_MARGIN,
-    paddingTop: space.sm,
-    position: 'relative',
+    bottom: 0,
+    left: 0,
+    paddingHorizontal: BAR_SIDE_MARGIN,
+    position: 'absolute',
+    right: 0,
     width: '100%',
   },
   pill: {

@@ -9,13 +9,15 @@ import Animated, {
   withRepeat,
   withTiming,
 } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AmbientGradient } from '@/components/home/AmbientGradient';
 import { CelestialGabor } from '@/components/home/CelestialGabor';
 import { AppText, ContextChip, FadeIn, PrimaryButton, Screen, Shimmer } from '@/components/ui';
+import { TAB_BAR_CLEARANCE } from '@/components/ui/CustomTabBar';
 import { useTodayData } from '@/presenters';
 import type { TodayView } from '@/presenters/types';
-import { accent, motion, radius, space, surface, text as textTokens, type as typo } from '@/theme/tokens';
+import { accent, motion, radius, space, text as textTokens, type as typo } from '@/theme/tokens';
 import { useEffectiveReducedMotion } from '@/theme/useEffectiveReducedMotion';
 
 const DAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'] as const;
@@ -111,9 +113,16 @@ export default function TodayScreen() {
   const router = useRouter();
   const reduceMotion = useEffectiveReducedMotion();
   const { data, isLoading } = useTodayData();
+  const insets = useSafeAreaInsets();
 
   return (
-    <Screen padded background={<AmbientGradient constellation reduceMotion={reduceMotion} />}>
+    <Screen
+      background={<AmbientGradient constellation reduceMotion={reduceMotion} />}
+      padded
+      // The floating glass tab bar is now a real overlay (position: absolute),
+      // not a flex row, so it no longer reserves its own space — the CTA needs
+      // explicit clearance to sit above it instead of underneath the glass.
+      style={{ paddingBottom: insets.bottom + TAB_BAR_CLEARANCE }}>
       {isLoading ? (
         <LoadingToday />
       ) : (
@@ -158,11 +167,9 @@ function TodayContent({ data, reduceMotion, router }: TodayContentProps) {
       <FadeIn duration={motion.timing.entranceMs} style={styles.eyebrow}>
         <ContextChip label="Today" />
         {data.streakDays > 0 ? (
-          <View style={styles.streakChip}>
-            <AppText color="secondary" tabular variant="caption">
-              {`${data.streakDays} day streak`}
-            </AppText>
-          </View>
+          <AppText color="secondary" tabular variant="caption">
+            {`${data.streakDays} day streak`}
+          </AppText>
         ) : null}
       </FadeIn>
       <View style={styles.spacer}>
@@ -300,12 +307,6 @@ export const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'flex-end',
     paddingBottom: space.base,
-  },
-  streakChip: {
-    backgroundColor: surface.raised,
-    borderRadius: radius.pill,
-    paddingHorizontal: space.md,
-    paddingVertical: space.xs,
   },
   // screen-header law 6 (gap ramp transfer): title→caption ≈10pt (spec row 30,
   // measured ascender/descender-bbox to bbox), tightened from the previous
