@@ -106,6 +106,19 @@ export function CelestialGabor({
     opacity: resolve.value * clampedContrast,
   }));
 
+  // Taste-iteration-3 (one motion delight): the arc's head marker gets a
+  // subtle breathe, reusing the same `breathe` shared value that already
+  // drives the body's scale/opacity above — whisper, not blink. Scale rides
+  // 1 -> 1.25 via the marker's own radius (an SVG Circle has no transform
+  // origin to scale from otherwise); opacity rides 0.85 -> 1. When
+  // `reduceMotion` is on, `breathe` is pinned at 0.5 (see effect above), so
+  // this settles at a fixed mid-state rather than animating — same
+  // reduced-motion contract the body already honors.
+  const markerAnimatedProps = useAnimatedProps(() => ({
+    opacity: 0.85 + breathe.value * 0.15,
+    r: HALO_STROKE * (1 + breathe.value * 0.25),
+  }));
+
   const bodyStyle = useAnimatedStyle(() => {
     const e = exit?.value ?? 0;
     return {
@@ -237,7 +250,7 @@ export function CelestialGabor({
             transform={`rotate(-90 ${C} ${C})`}
           />
           {/* head marker — circle riding the progress arc's leading edge, diameter = 2x stroke */}
-          <Circle cx={markerX} cy={markerY} r={HALO_STROKE} fill={ACCENT_CORE} />
+          <AnimatedCircle animatedProps={markerAnimatedProps} cx={markerX} cy={markerY} fill={ACCENT_CORE} />
         </Svg>
       </Animated.View>
     </View>

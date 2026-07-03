@@ -1,5 +1,5 @@
+import { SymbolView } from 'expo-symbols';
 import { StyleSheet } from 'react-native';
-import Svg, { Path } from 'react-native-svg';
 
 import { PressableScale } from '@/components/ui/PressableScale';
 import { material, radius, text } from '@/theme/tokens';
@@ -7,7 +7,6 @@ import { material, radius, text } from '@/theme/tokens';
 // modal-sheet spec (design/references/modal-sheet/spec.md): rows 4-8, 20, 22.
 const CHIP_SIZE = 44;
 const ICON_SIZE = 17;
-const ICON_STROKE = 2;
 
 export type SheetCloseButtonProps = {
   onPress: () => void;
@@ -22,14 +21,17 @@ export function SheetCloseButton({ onPress }: SheetCloseButtonProps) {
       hitSlop={8}
       onPress={onPress}
       style={styles.chip}>
-      <Svg height={ICON_SIZE} width={ICON_SIZE}>
-        <Path
-          d="M2.5 2.5L14.5 14.5M14.5 2.5L2.5 14.5"
-          stroke={text.primary}
-          strokeLinecap="round"
-          strokeWidth={ICON_STROKE}
-        />
-      </Svg>
+      {/* Taste-iteration-3 (SF Symbols everywhere): one icon language app-wide,
+          same SymbolView primitive the tab bar already uses. */}
+      <SymbolView
+        name="xmark"
+        resizeMode="scaleAspectFit"
+        size={ICON_SIZE}
+        style={styles.iconGlyph}
+        tintColor={text.primary}
+        type="monochrome"
+        weight="semibold"
+      />
     </PressableScale>
   );
 }
@@ -42,5 +44,9 @@ const styles = StyleSheet.create({
     height: CHIP_SIZE,
     justifyContent: 'center',
     width: CHIP_SIZE,
+  },
+  iconGlyph: {
+    height: ICON_SIZE,
+    width: ICON_SIZE,
   },
 });

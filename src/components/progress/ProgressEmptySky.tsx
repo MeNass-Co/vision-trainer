@@ -5,7 +5,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Line, Path } from 'react-native-svg';
 
 import { CelestialGabor } from '@/components/home/CelestialGabor';
-import { AppText, FadeIn, PrimaryButton } from '@/components/ui';
+import { AppText, ContextChip, FadeIn, PrimaryButton } from '@/components/ui';
+import { TAB_BAR_CLEARANCE } from '@/components/ui/CustomTabBar';
 import {
   ACCENT,
   ACCENT_CORE,
@@ -89,9 +90,7 @@ export function ProgressEmptySky({ reduceMotion }: ProgressEmptySkyProps) {
     <View style={styles.root}>
       <FadeIn>
         <View onLayout={handleHeaderLayout} style={styles.screenLabelPlate}>
-          <AppText color="accent" style={styles.screenLabel} variant="caption">
-            Progress
-          </AppText>
+          <ContextChip label="Progress" />
         </View>
       </FadeIn>
       <View style={[styles.scene, { height: sceneHeight, marginTop: sceneMarginTop }]}>
@@ -173,9 +172,16 @@ const styles = StyleSheet.create({
   // reach the law's 32pt total. Row 7's bottom offset (safeAreaBottom + 16) is
   // Screen's own insets.bottom padding (34pt) plus this paddingBottom (16pt) —
   // NOT Shake Shack's 166.7pt dead zone, which VALIDATION explicitly voids.
+  // Taste-iteration-3 empty-state fix: unlike Today/paywall, this screen sits
+  // UNDER the floating glass tab bar (Progress tab) — but `Screen`'s
+  // `tabBarClearance` prop only reserves room on its `scroll` branch, and this
+  // screen renders with `scroll={false}` while empty, so no clearance was
+  // ever reserved and the CTA rendered flush behind the tab bar's glass. Add
+  // `TAB_BAR_CLEARANCE` locally (same constant `index.tsx`'s Today screen adds
+  // at its own Screen-prop level) so the button clears the bar.
   ctaWrap: {
     marginHorizontal: CTA_EXTRA_MARGIN,
-    paddingBottom: space.base,
+    paddingBottom: space.base + TAB_BAR_CLEARANCE,
   },
   orbScale: {
     alignItems: 'center',
@@ -189,22 +195,8 @@ const styles = StyleSheet.create({
     gap: VISUAL_GAP,
     justifyContent: 'center',
   },
-  screenLabel: {
-    color: ACCENT_HOT,
-    fontWeight: '800',
-    letterSpacing: 0,
-    textShadowColor: 'rgba(51, 210, 214, 0.56)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 10,
-  },
   screenLabelPlate: {
     alignSelf: 'flex-start',
-    backgroundColor: 'rgba(8, 14, 16, 0.52)',
-    borderColor: 'rgba(207, 250, 251, 0.16)',
-    borderRadius: radius.pill,
-    borderWidth: StyleSheet.hairlineWidth,
-    paddingHorizontal: space.sm,
-    paddingVertical: space.xs,
   },
   // Row 21: caption->CTA is a MINIMUM of space.xl (32pt) — our CTA's own
   // bottom offset (row 7, law 1) is anchored near the screen edge rather than
@@ -218,7 +210,7 @@ const styles = StyleSheet.create({
   // (nearest to the reference's bold-for-a-caption stroke ratio).
   caption: {
     fontWeight: fontWeight.medium,
-    marginTop: -3,
+    marginTop: 4,
     textAlign: 'center',
   },
   // Row 22: text block (title + caption) inset ~50pt (space.xxl) each side —

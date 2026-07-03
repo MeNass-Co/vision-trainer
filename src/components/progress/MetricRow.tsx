@@ -1,3 +1,4 @@
+import { SymbolView } from 'expo-symbols';
 import { useEffect, type ComponentProps, type ComponentType, type ReactNode } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 import Animated, {
@@ -6,7 +7,7 @@ import Animated, {
   useSharedValue,
   withTiming,
 } from 'react-native-reanimated';
-import Svg, { Circle, Path } from 'react-native-svg';
+import Svg, { Path } from 'react-native-svg';
 
 import { FadeIn } from '@/components/ui';
 import { easings } from '@/theme/motion';
@@ -169,78 +170,58 @@ export function MetricRow({
   );
 }
 
-// Rows 6/10 — a small family of neutral `text.muted`-stroke glyphs (24x24
-// viewBox, 1.6 stroke), sharing this app's own rounded-line visual language
-// (echoing the tab bar's icon set) rather than literal WHOOP stopwatch/moon
-// icons, since none of our metrics are literally sleep timers. Beauty-audit
-// fix: dropped from `text.secondary` so the value is the only bright thing
-// in the row.
+// Taste-iteration-3 (SF Symbols everywhere): one icon language app-wide, same
+// SymbolView primitive the tab bar already uses. `text.muted` tint, monochrome
+// rendering type, fixed square footprint at `METRIC_ICON_SIZE`.
 export function WaveIcon() {
   return (
-    <Svg
-      fill="none"
-      height={METRIC_ICON_SIZE}
-      stroke={text.muted}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth={1.6}
-      viewBox="0 0 24 24"
-      width={METRIC_ICON_SIZE}>
-      <Path d="M2 12 C4 6, 6 6, 8 12 C10 18, 12 18, 14 12 C16 6, 18 6, 20 12" />
-    </Svg>
+    <SymbolView
+      name="waveform.path.ecg"
+      resizeMode="scaleAspectFit"
+      size={METRIC_ICON_SIZE}
+      style={styles.iconGlyph}
+      tintColor={text.muted}
+      type="monochrome"
+    />
   );
 }
 
 export function ShieldCheckIcon() {
   return (
-    <Svg
-      fill="none"
-      height={METRIC_ICON_SIZE}
-      stroke={text.muted}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth={1.6}
-      viewBox="0 0 24 24"
-      width={METRIC_ICON_SIZE}>
-      <Path d="M12 3 L19 6 V11 C19 16 16 19.5 12 21 C8 19.5 5 16 5 11 V6 Z" />
-      <Path d="M8.6 12 L11 14.4 L15.6 9.6" />
-    </Svg>
+    <SymbolView
+      name="checkmark.shield"
+      resizeMode="scaleAspectFit"
+      size={METRIC_ICON_SIZE}
+      style={styles.iconGlyph}
+      tintColor={text.muted}
+      type="monochrome"
+    />
   );
 }
 
 export function LayersIcon() {
   return (
-    <Svg
-      fill="none"
-      height={METRIC_ICON_SIZE}
-      stroke={text.muted}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth={1.6}
-      viewBox="0 0 24 24"
-      width={METRIC_ICON_SIZE}>
-      <Path d="M12 3 L21 8 L12 13 L3 8 Z" />
-      <Path d="M3 12 L12 17 L21 12" />
-      <Path d="M3 16 L12 21 L21 16" />
-    </Svg>
+    <SymbolView
+      name="square.3.stack.3d"
+      resizeMode="scaleAspectFit"
+      size={METRIC_ICON_SIZE}
+      style={styles.iconGlyph}
+      tintColor={text.muted}
+      type="monochrome"
+    />
   );
 }
 
 export function TargetIcon() {
   return (
-    <Svg
-      fill="none"
-      height={METRIC_ICON_SIZE}
-      stroke={text.muted}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth={1.6}
-      viewBox="0 0 24 24"
-      width={METRIC_ICON_SIZE}>
-      <Circle cx={12} cy={12} r={8.5} />
-      <Circle cx={12} cy={12} r={4} />
-      <Circle cx={12} cy={12} fill={text.muted} r={1.2} stroke="none" />
-    </Svg>
+    <SymbolView
+      name="target"
+      resizeMode="scaleAspectFit"
+      size={METRIC_ICON_SIZE}
+      style={styles.iconGlyph}
+      tintColor={text.muted}
+      type="monochrome"
+    />
   );
 }
 
@@ -264,6 +245,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     height: METRIC_ICON_SIZE,
     justifyContent: 'center',
+    width: METRIC_ICON_SIZE,
+  },
+  iconGlyph: {
+    height: METRIC_ICON_SIZE,
     width: METRIC_ICON_SIZE,
   },
   label: {

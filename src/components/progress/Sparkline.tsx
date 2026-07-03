@@ -1,3 +1,4 @@
+import { SymbolView } from 'expo-symbols';
 import { useEffect } from 'react';
 import { Platform, StyleSheet, Text, View } from 'react-native';
 import Animated, {
@@ -40,37 +41,33 @@ export const CHART_TITLE_ICON_SIZE = 18;
 export const CHART_CHEVRON_TAP_SIZE = 24;
 const CHEVRON_GLYPH_SIZE = 16;
 
+// Taste-iteration-3 (SF Symbols everywhere): one icon language app-wide, same
+// SymbolView primitive the tab bar already uses.
 export function TrendIcon() {
   return (
-    <Svg
-      fill="none"
-      height={CHART_TITLE_ICON_SIZE}
-      stroke={text.secondary}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth={1.8}
-      viewBox="0 0 24 24"
-      width={CHART_TITLE_ICON_SIZE}>
-      <Path d="M3 14 L10 7 L14 11 L21 3" />
-      <Path d="M15 3 L21 3 L21 9" />
-    </Svg>
+    <SymbolView
+      name="chart.line.uptrend.xyaxis"
+      resizeMode="scaleAspectFit"
+      size={CHART_TITLE_ICON_SIZE}
+      style={styles.trendGlyph}
+      tintColor={text.secondary}
+      type="monochrome"
+    />
   );
 }
 
 export function ChevronIcon() {
   return (
     <View style={styles.chevronTap}>
-      <Svg
-        fill="none"
-        height={CHEVRON_GLYPH_SIZE}
-        stroke={text.primary}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={1.8}
-        viewBox="0 0 24 24"
-        width={CHEVRON_GLYPH_SIZE}>
-        <Path d="M9 5 L16 12 L9 19" />
-      </Svg>
+      <SymbolView
+        name="chevron.right"
+        resizeMode="scaleAspectFit"
+        size={CHEVRON_GLYPH_SIZE}
+        style={styles.chevronGlyph}
+        tintColor={text.primary}
+        type="monochrome"
+        weight="medium"
+      />
     </View>
   );
 }
@@ -353,6 +350,10 @@ const styles = StyleSheet.create({
   // row 4's icon-top padding off-spec by the extra centering slack). The
   // width still buys the tap-target's horizontal presence/inset (row 10); the
   // glyph's own 16pt height sizes the row alongside the icon.
+  chevronGlyph: {
+    height: CHEVRON_GLYPH_SIZE,
+    width: CHEVRON_GLYPH_SIZE,
+  },
   chevronTap: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -393,5 +394,9 @@ const styles = StyleSheet.create({
     fontVariant: ['tabular-nums'],
     letterSpacing: typo.caption.letterSpacing,
     lineHeight: VALUE_LABEL_LINE_HEIGHT,
+  },
+  trendGlyph: {
+    height: CHART_TITLE_ICON_SIZE,
+    width: CHART_TITLE_ICON_SIZE,
   },
 });

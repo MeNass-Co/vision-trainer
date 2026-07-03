@@ -1,9 +1,9 @@
 import Constants from 'expo-constants';
 import { type Href, useRouter } from 'expo-router';
+import { SymbolView } from 'expo-symbols';
 import * as WebBrowser from 'expo-web-browser';
 import { useRef, useState } from 'react';
 import { Linking, StyleSheet, View } from 'react-native';
-import Svg, { Path } from 'react-native-svg';
 
 import { AmbientGradient } from '@/components/home/AmbientGradient';
 import { Row } from '@/components/settings/Row';
@@ -27,10 +27,7 @@ export default function SettingsScreen() {
   const reminderToggleInFlightRef = useRef(false);
   const [remindersBlocked, setRemindersBlocked] = useState(false);
   const appVersion = Constants.expoConfig?.version ?? '1.0.0';
-  const extra = Constants.expoConfig?.extra as
-    | { buildNumber?: string; gitSha?: string }
-    | undefined;
-  const gitSha = extra?.gitSha ?? 'dev';
+  const extra = Constants.expoConfig?.extra as { buildNumber?: string } | undefined;
   const buildNumber = Constants.expoConfig?.ios?.buildNumber ?? extra?.buildNumber ?? '–';
 
   const handleRemindersChange = async (next: boolean) => {
@@ -154,7 +151,7 @@ export default function SettingsScreen() {
             label="Version"
             right={
               <AppText color="muted" style={styles.rowValue}>
-                v{appVersion} ({buildNumber}) · {gitSha}
+                v{appVersion} ({buildNumber})
               </AppText>
             }
           />
@@ -199,24 +196,26 @@ export default function SettingsScreen() {
 }
 
 function Chevron() {
-  // spec rows 15-16, 23: ink bbox target 6.7x11.7pt, ~2pt stroke, color text.muted.
-  // Path coords are pulled in from the raw target bbox because round caps/joins on a
-  // 2pt stroke inflate the visible ink bbox beyond the path's own centerline extent.
+  // Taste-iteration-3 (SF Symbols everywhere): one icon language app-wide,
+  // same SymbolView primitive the tab bar already uses.
   return (
-    <Svg height={16} width={16}>
-      <Path
-        d="M5.85 2.8L10.85 8L5.85 13.2"
-        fill="none"
-        stroke={text.muted}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={2}
-      />
-    </Svg>
+    <SymbolView
+      name="chevron.right"
+      resizeMode="scaleAspectFit"
+      size={14}
+      style={styles.chevronGlyph}
+      tintColor={text.muted}
+      type="monochrome"
+      weight="medium"
+    />
   );
 }
 
 const styles = StyleSheet.create({
+  chevronGlyph: {
+    height: 14,
+    width: 14,
+  },
   remindersBlocked: {
     alignItems: 'center',
     flexDirection: 'row',

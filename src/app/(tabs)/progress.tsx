@@ -269,9 +269,13 @@ function confidenceValueLabel(data: ProgressViewData): string {
   return 'Building';
 }
 
+// Taste-iteration-3 (vision-profile noise kill): the metric rows below this
+// card already carry "Reading confidence" / "Bands measured" / "Strongest
+// band" — this line is not allowed to restate them. One sentence of genuine
+// insight, derived purely from the same presenter fields the rows use.
 function visionProfileSummary(data: ProgressViewData): string {
   if (data.contributors.length === 0) {
-    return 'Baseline captured. Future sessions will turn this into a trend.';
+    return 'Baseline captured.';
   }
 
   const strongest = data.contributors.reduce(
@@ -284,10 +288,10 @@ function visionProfileSummary(data: ProgressViewData): string {
   );
 
   if (strongest.label === weakest.label) {
-    return `Baseline captured at ${strongest.bandLabel.toLowerCase()} (${strongest.label}). Future sessions will show whether this band is improving.`;
+    return `Strongest at ${strongest.bandLabel.toLowerCase()} (${strongest.label}).`;
   }
 
-  return `Baseline captured across ${data.csf.length} bands. Your strongest read today is ${strongest.bandLabel.toLowerCase()}; ${weakest.bandLabel.toLowerCase()} is the band to watch next.`;
+  return `Strongest at ${strongest.bandLabel.toLowerCase()} · watch ${weakest.label}.`;
 }
 
 const styles = StyleSheet.create({
