@@ -88,7 +88,6 @@ export default function SettingsScreen() {
             }
           />
           <Row
-            description="Calm ambient animation"
             icon="figure.walk.motion"
             iconFallback="tortoise"
             label="Reduce motion"
@@ -107,7 +106,6 @@ export default function SettingsScreen() {
           <Row
             accessibilityLabel="Display calibration"
             chevron
-            description="Set a comfortable brightness for sessions"
             icon="sun.max"
             label="Display calibration"
             onPress={() => router.push('/calibration' as Href)}
@@ -118,7 +116,6 @@ export default function SettingsScreen() {
       <FadeIn delay={180}>
         <Section title="Reminders">
           <Row
-            description="A gentle evening nudge to keep your streak"
             icon="bell"
             label="Daily reminder"
             right={
@@ -164,7 +161,6 @@ export default function SettingsScreen() {
           <Row
             accessibilityLabel="The science"
             chevron
-            description="How perceptual learning works"
             icon="book"
             label="The science"
             onPress={() => router.push('/science' as Href)}
@@ -173,7 +169,6 @@ export default function SettingsScreen() {
           <Row
             accessibilityLabel="Early access"
             chevron
-            description="What early access includes"
             icon="sparkles"
             label="Early access"
             onPress={() => router.push('/paywall' as Href)}
