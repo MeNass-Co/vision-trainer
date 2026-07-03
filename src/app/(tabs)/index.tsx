@@ -4,20 +4,10 @@ import { StyleSheet, View } from 'react-native';
 
 import { AmbientGradient } from '@/components/home/AmbientGradient';
 import { CelestialGabor } from '@/components/home/CelestialGabor';
-import { AppText, Bloom, FadeIn, PrimaryButton, Screen, Shimmer } from '@/components/ui';
+import { AppText, Bloom, ContextChip, FadeIn, PrimaryButton, Screen, Shimmer } from '@/components/ui';
 import { useTodayData } from '@/presenters';
 import type { TodayView } from '@/presenters/types';
-import {
-  ACCENT,
-  ACCENT_CORE,
-  ACCENT_GLOW,
-  ACCENT_HOT,
-  ACCENT_MUTED,
-  motion,
-  radius,
-  space,
-  surface,
-} from '@/theme/tokens';
+import { ACCENT, ACCENT_CORE, ACCENT_GLOW, ACCENT_MUTED, motion, radius, space, surface } from '@/theme/tokens';
 import { useEffectiveReducedMotion } from '@/theme/useEffectiveReducedMotion';
 
 const DAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'] as const;
@@ -110,11 +100,7 @@ function TodayContent({ data, reduceMotion, router }: TodayContentProps) {
   return (
     <>
       <FadeIn duration={motion.timing.entranceMs} style={styles.eyebrow}>
-        <View style={styles.screenLabelPlate}>
-          <AppText color="accent" style={styles.screenLabel} variant="caption">
-            Today
-          </AppText>
-        </View>
+        <ContextChip label="Today" />
         {data.streakDays > 0 ? (
           <View style={styles.streakChip}>
             <AppText color="secondary" tabular variant="caption">
@@ -255,22 +241,6 @@ export const styles = StyleSheet.create({
   orbScale: {
     transform: [{ scale: 1.08 }],
   },
-  screenLabel: {
-    color: ACCENT_HOT,
-    fontWeight: '800',
-    letterSpacing: 0,
-    textShadowColor: 'rgba(51, 210, 214, 0.56)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 10,
-  },
-  screenLabelPlate: {
-    backgroundColor: 'rgba(8, 14, 16, 0.52)',
-    borderColor: 'rgba(207, 250, 251, 0.16)',
-    borderRadius: radius.pill,
-    borderWidth: StyleSheet.hairlineWidth,
-    paddingHorizontal: space.sm,
-    paddingVertical: space.xs,
-  },
   sessionMeta: {
     gap: space.xs,
   },
@@ -291,8 +261,11 @@ export const styles = StyleSheet.create({
     paddingHorizontal: space.md,
     paddingVertical: space.xs,
   },
+  // screen-header law 6 (gap ramp transfer): title→caption ≈10pt (spec row 30,
+  // measured ascender/descender-bbox to bbox), tightened from the previous
+  // space.sm(8pt) CSS gap toward the reference's measured 10pt.
   titleBlock: {
-    gap: space.sm,
+    gap: 10,
   },
   weekRow: {
     flexDirection: 'row',

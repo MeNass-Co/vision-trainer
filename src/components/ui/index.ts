@@ -1,6 +1,7 @@
 export * from './AppText';
 export * from './Bloom';
 export * from './Card';
+export * from './ContextChip';
 export * from './FadeIn';
 export { Grain } from './Grain';
 export type { GrainProps } from './Grain';

@@ -8,10 +8,10 @@ import { CsfGraph } from '@/components/progress/CsfGraph';
 import { ProgressEmptySky } from '@/components/progress/ProgressEmptySky';
 import { Sparkline } from '@/components/progress/Sparkline';
 import { VerdictBand } from '@/components/progress/VerdictBand';
-import { AppText, Bloom, Card, FadeIn, Screen, Shimmer } from '@/components/ui';
+import { AppText, Bloom, Card, ContextChip, FadeIn, Screen, Shimmer } from '@/components/ui';
 import { useProgressData } from '@/presenters';
 import { haptics } from '@/theme/haptics';
-import { ACCENT_HOT, data as tokenData, motion, radius, space, surface } from '@/theme/tokens';
+import { data as tokenData, motion, radius, space, surface } from '@/theme/tokens';
 import { useEffectiveReducedMotion } from '@/theme/useEffectiveReducedMotion';
 
 const SPARKLINE_HEIGHT = 112;
@@ -46,11 +46,7 @@ export default function ProgressScreen() {
       ) : (
         <>
           <FadeIn>
-            <View style={styles.screenLabelPlate}>
-              <AppText color="accent" style={styles.screenLabel} variant="caption">
-                Progress
-              </AppText>
-            </View>
+            <ContextChip label="Progress" style={styles.screenLabelPlate} />
           </FadeIn>
           <FadeIn delay={60} style={styles.hero}>
             <AppText color="muted" uppercase variant="micro">
@@ -249,10 +245,17 @@ const styles = StyleSheet.create({
     height: StyleSheet.hairlineWidth,
     width: '70%',
   },
+  // screen-header law 6 (gap ramp transfer): chip→title ≈20pt total (spec row 29).
+  // `styles.screen.gap` (space.md=12) already separates this block from the chip
+  // above at the Screen level, so paddingTop only adds the remainder (8pt) — not
+  // the bottom gap into the "Vision profile" card, which stays out of this
+  // element's blast radius. Internal gap tightened title→caption ≈10pt (row 30,
+  // was space.sm=8).
   hero: {
     alignItems: 'center',
-    gap: space.sm,
-    paddingVertical: space.xl,
+    gap: 10,
+    paddingBottom: space.xl,
+    paddingTop: 4,
   },
   heroNumber: {
     alignItems: 'center',
@@ -280,21 +283,7 @@ const styles = StyleSheet.create({
     gap: space.md,
     paddingBottom: space.lg,
   },
-  screenLabel: {
-    color: ACCENT_HOT,
-    fontWeight: '800',
-    letterSpacing: 0,
-    textShadowColor: 'rgba(51, 210, 214, 0.56)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 10,
-  },
   screenLabelPlate: {
     alignSelf: 'flex-start',
-    backgroundColor: 'rgba(8, 14, 16, 0.52)',
-    borderColor: 'rgba(207, 250, 251, 0.16)',
-    borderRadius: radius.pill,
-    borderWidth: StyleSheet.hairlineWidth,
-    paddingHorizontal: space.sm,
-    paddingVertical: space.xs,
   },
 });
