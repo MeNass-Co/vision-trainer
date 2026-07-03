@@ -1,4 +1,5 @@
 import { type Href, useRouter } from 'expo-router';
+import { SymbolView } from 'expo-symbols';
 import { useEffect, useRef, useState } from 'react';
 import { Platform, StyleSheet, View, useWindowDimensions } from 'react-native';
 import Animated, {
@@ -10,7 +11,6 @@ import Animated, {
   withSpring,
   withTiming,
 } from 'react-native-reanimated';
-import Svg, { Path } from 'react-native-svg';
 
 import { CalibrationCard } from '@/components/calibration/CalibrationCard';
 import { AmbientGradient } from '@/components/home/AmbientGradient';
@@ -387,18 +387,20 @@ function TopChrome({ contentWidth, onBack, step, totalSteps }: TopChromeProps) {
   );
 }
 
+// Taste-iteration-3 (SF Symbols everywhere): one icon language app-wide — same
+// SymbolView primitive as SheetCloseButton / CustomTabBar / Settings' chevron,
+// replacing the hand-drawn SVG path this screen shipped with pre-audit.
 function BackChevron() {
   return (
-    <Svg height={18} width={18}>
-      <Path
-        d="M11.5 4L6.5 9L11.5 14"
-        fill="none"
-        stroke={text.primary}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={1.6}
-      />
-    </Svg>
+    <SymbolView
+      name="chevron.left"
+      resizeMode="scaleAspectFit"
+      size={18}
+      style={styles.backChevronGlyph}
+      tintColor={text.primary}
+      type="monochrome"
+      weight="semibold"
+    />
   );
 }
 
@@ -433,9 +435,12 @@ function ProgressBar({ step, totalSteps }: ProgressBarProps) {
 }
 
 const styles = StyleSheet.create({
+  // CTA anchoring law: Today (index.tsx) and the paywall both clear space.xl
+  // (32pt) below the primary CTA stack — this screen shipped pre-audit at
+  // space.lg (24), 8pt shy of that convention.
   actions: {
     gap: space.xs,
-    paddingBottom: space.lg,
+    paddingBottom: space.xl,
   },
   backButton: {
     alignItems: 'center',
@@ -446,6 +451,10 @@ const styles = StyleSheet.create({
   backButtonPlaceholder: {
     height: 24,
     width: 24,
+  },
+  backChevronGlyph: {
+    height: 18,
+    width: 18,
   },
   backRow: {
     height: 24,
