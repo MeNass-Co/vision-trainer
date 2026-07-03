@@ -1,6 +1,6 @@
 import { type Href, useRouter } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { AppState, StyleSheet, View } from 'react-native';
+import { Alert, AppState, StyleSheet, View } from 'react-native';
 import Animated, {
   cancelAnimation,
   Extrapolation,
@@ -87,7 +87,6 @@ export default function SessionScreen() {
   const [blockCorrectCount, setBlockCorrectCount] = useState(0);
   const [canvasReady, setCanvasReady] = useState(false);
   const [showBlockSummary, setShowBlockSummary] = useState(false);
-  const [showAbortConfirm, setShowAbortConfirm] = useState(false);
   const [showCompletion, setShowCompletion] = useState(false);
   const [showInsight, setShowInsight] = useState(false);
   const [insightSessionId, setInsightSessionId] = useState<string | null>(null);
@@ -384,29 +383,31 @@ export default function SessionScreen() {
     setPhase('idle');
   }, [setPhase]);
 
-  const handleClose = useCallback(() => {
-    // A live session with at least one converged block holds real measurements:
-    // confirm before ending, keep what was earned. Zero blocks = nothing to lose.
-    if (
-      (controller.status === 'running' || controller.status === 'block-complete') &&
-      controller.completedBlockCount > 0
-    ) {
-      setShowAbortConfirm(true);
-      return;
-    }
-    canvasRef.current?.clear();
-    router.back();
-  }, [controller.completedBlockCount, controller.status, router]);
-
   const handleAbortConfirm = useCallback(() => {
     controller.abandonSession();
     canvasRef.current?.clear();
     router.replace('/(tabs)' as Href);
   }, [controller, router]);
 
-  const handleAbortCancel = useCallback(() => {
-    setShowAbortConfirm(false);
-  }, []);
+  const handleClose = useCallback(() => {
+    // A live session with at least one converged block holds real measurements:
+    // confirm before ending, keep what was earned. Zero blocks = nothing to lose.
+    // Native alert, not a bespoke overlay: correct system layering for free — it
+    // can never fuse with the inter-block card beneath, and "Keep training" (the
+    // cancel action) just dismisses, returning to whatever was already showing.
+    if (
+      (controller.status === 'running' || controller.status === 'block-complete') &&
+      controller.completedBlockCount > 0
+    ) {
+      Alert.alert('End session?', 'Completed blocks will be kept.', [
+        { text: 'Keep training', style: 'cancel' },
+        { text: 'End session', style: 'destructive', onPress: handleAbortConfirm },
+      ]);
+      return;
+    }
+    canvasRef.current?.clear();
+    router.back();
+  }, [controller.completedBlockCount, controller.status, handleAbortConfirm, router]);
 
   const handleCompletionDone = useCallback(() => {
     // Continue is gated on a confirmed save: never guess at "the latest
@@ -607,31 +608,6 @@ export default function SessionScreen() {
               <PressableScale onPress={() => void handleContinue()} style={styles.action}>
                 <AppText color="inverse" variant="caption">
                   {controller.nextBlockLabel ? `Next: ${controller.nextBlockLabel}` : 'Continue'}
-                </AppText>
-              </PressableScale>
-            </GlassSurface>
-          </FadeIn>
-        </View>
-      ) : null}
-
-      {showAbortConfirm ? (
-        <View style={styles.centeredOverlay}>
-          <FadeIn duration={motion.timing.entranceMs}>
-            <GlassSurface radius={material.radius} style={styles.abortCard}>
-              <AppText color="primary" style={styles.abortTitle} variant="heading">
-                End session?
-              </AppText>
-              <AppText color="secondary" style={styles.abortMessage} variant="body">
-                Completed blocks will be kept.
-              </AppText>
-              <PrimaryButton label="End session" onPress={handleAbortConfirm} />
-              <PressableScale
-                accessibilityLabel="Keep training"
-                accessibilityRole="button"
-                onPress={handleAbortCancel}
-                style={styles.abortKeepGoing}>
-                <AppText color="muted" variant="caption">
-                  Keep training
                 </AppText>
               </PressableScale>
             </GlassSurface>
@@ -883,23 +859,6 @@ const styles = StyleSheet.create({
     minHeight: 268,
     paddingHorizontal: space.xl,
     paddingVertical: space.xl,
-  },
-  abortCard: {
-    alignItems: 'center',
-    gap: space.md,
-    minWidth: 260,
-    paddingHorizontal: space.xl,
-    paddingVertical: space.xl,
-  },
-  abortKeepGoing: {
-    paddingHorizontal: space.md,
-    paddingVertical: space.sm,
-  },
-  abortMessage: {
-    textAlign: 'center',
-  },
-  abortTitle: {
-    textAlign: 'center',
   },
   saveFailedCard: {
     alignItems: 'center',

@@ -14,7 +14,7 @@ import Svg, { Circle } from 'react-native-svg';
 
 import { AmbientGradient } from '@/components/home/AmbientGradient';
 import { CelestialGabor } from '@/components/home/CelestialGabor';
-import { AppText, Bloom, GlassSurface, PressableScale } from '@/components/ui';
+import { AppText, Bloom, GlassCard, PressableScale } from '@/components/ui';
 import { useTodayData } from '@/presenters';
 import { haptics } from '@/theme/haptics';
 import { easings } from '@/theme/motion';
@@ -53,6 +53,14 @@ const RING_SIZE = 132;
 const RING_CENTER = RING_SIZE / 2;
 const RING_RADIUS = 58;
 const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
+// Bloom reads as a soft halo around the ring, not a screen-filling wash —
+// contained within the card like the inter-block score's Bloom treatment.
+const BLOOM_INSET = 44;
+// Small-emblem technique borrowed from ProgressEmptySky's dormant orb: reserve
+// the true intrinsic layout box, then transform:scale it down so it renders at
+// EMBLEM_SIZE — a badge, never a text backdrop (owner verdict on the disaster).
+const CELESTIAL_NATIVE_SIZE = 300;
+const EMBLEM_SIZE = 64;
 
 export function CompletionReward({
   accuracyTarget,
@@ -209,9 +217,6 @@ export function CompletionReward({
   const skyStyle = useAnimatedStyle(() => ({
     opacity: skyIgnite.value,
   }));
-  const gaborLayerStyle = useAnimatedStyle(() => ({
-    opacity: skyIgnite.value,
-  }));
   const bloomStyle = useAnimatedStyle(() => ({
     opacity: bloomOpacity.value,
     transform: [{ scale: bloomScale.value }],
@@ -247,52 +252,57 @@ export function CompletionReward({
       <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, skyStyle]}>
         <AmbientGradient constellation reduceMotion={reduceMotion} />
       </Animated.View>
-      <Animated.View pointerEvents="none" style={[styles.gaborLayer, gaborLayerStyle]}>
-        <CelestialGabor contrast={1} reduceMotion={reduceMotion} resolveOnMount />
-      </Animated.View>
-      <Animated.View pointerEvents="none" style={[styles.bloom, bloomStyle]}>
-        <Bloom color={ACCENT_GLOW} />
-      </Animated.View>
       <Animated.View style={cardStyle}>
-        <GlassSurface radius={material.radius} style={styles.card}>
-          <Animated.View pointerEvents="none" style={styles.ring}>
-            <Svg height={RING_SIZE} width={RING_SIZE}>
-              <Circle
-                cx={RING_CENTER}
-                cy={RING_CENTER}
-                fill="none"
-                r={RING_RADIUS}
-                stroke={surface.hairline}
-                strokeWidth={1}
-              />
-              <AnimatedCircle
-                animatedProps={ringProps}
-                cx={RING_CENTER}
-                cy={RING_CENTER}
-                fill="none"
-                r={RING_RADIUS}
-                stroke={ACCENT}
-                strokeDasharray={RING_CIRCUMFERENCE}
-                strokeLinecap="round"
-                strokeWidth={1.5}
-                transform={`rotate(-90 ${RING_CENTER} ${RING_CENTER})`}
-              />
-            </Svg>
-          </Animated.View>
+        <GlassCard radius={material.radius} style={styles.card} tier="content">
+          {/* Celestial identity as a small emblem only (never a text backdrop,
+              same scaled-orb technique as ProgressEmptySky's dormant-state icon) —
+              the grating must never sit behind legible text. */}
+          <View pointerEvents="none" style={styles.emblemScale}>
+            <CelestialGabor contrast={0.34} progress={accuracyTarget / 100} reduceMotion={reduceMotion} resolveOnMount />
+          </View>
           <AppText color="muted" uppercase variant="micro">
             Session complete
           </AppText>
-          <View accessible accessibilityLabel={`${accuracyTarget}% accuracy`} style={styles.accuracy}>
-            <AnimatedTextInput
-              animatedProps={accuracyProps}
-              defaultValue="0"
-              editable={false}
-              style={styles.accuracyNumber}
-              underlineColorAndroid="transparent"
-            />
-            <AppText style={styles.percent} tabular variant="display">
-              %
-            </AppText>
+          <View style={styles.scoreWrap}>
+            <Animated.View pointerEvents="none" style={[styles.bloom, bloomStyle]}>
+              <Bloom color={ACCENT_GLOW} />
+            </Animated.View>
+            <Animated.View pointerEvents="none" style={styles.ring}>
+              <Svg height={RING_SIZE} width={RING_SIZE}>
+                <Circle
+                  cx={RING_CENTER}
+                  cy={RING_CENTER}
+                  fill="none"
+                  r={RING_RADIUS}
+                  stroke={surface.hairline}
+                  strokeWidth={1}
+                />
+                <AnimatedCircle
+                  animatedProps={ringProps}
+                  cx={RING_CENTER}
+                  cy={RING_CENTER}
+                  fill="none"
+                  r={RING_RADIUS}
+                  stroke={ACCENT}
+                  strokeDasharray={RING_CIRCUMFERENCE}
+                  strokeLinecap="round"
+                  strokeWidth={1.5}
+                  transform={`rotate(-90 ${RING_CENTER} ${RING_CENTER})`}
+                />
+              </Svg>
+            </Animated.View>
+            <View accessible accessibilityLabel={`${accuracyTarget}% accuracy`} style={styles.accuracy}>
+              <AnimatedTextInput
+                animatedProps={accuracyProps}
+                defaultValue="0"
+                editable={false}
+                style={styles.accuracyNumber}
+                underlineColorAndroid="transparent"
+              />
+              <AppText style={styles.percent} tabular variant="display">
+                %
+              </AppText>
+            </View>
           </View>
           <AppText color="secondary" style={styles.correctLine} tabular variant="caption">
             {correctCount}/{total} correct
@@ -314,23 +324,23 @@ export function CompletionReward({
               </AppText>
             </Animated.View>
           ) : null}
-        </GlassSurface>
-      </Animated.View>
-      <Animated.View pointerEvents="none" style={[styles.subtitleWrap, subtitleStyle]}>
-        <AppText color="muted" variant="caption">
-          {subtitle}
-        </AppText>
-      </Animated.View>
-      <Animated.View pointerEvents={ctaInteractive ? 'auto' : 'none'} style={ctaStyle}>
-        <PressableScale
-          accessibilityLabel="Finish session"
-          accessibilityRole="button"
-          onPress={onDone}
-          style={styles.action}>
-          <AppText color="inverse" variant="caption">
-            {actionLabel}
-          </AppText>
-        </PressableScale>
+          <Animated.View pointerEvents="none" style={[styles.subtitleWrap, subtitleStyle]}>
+            <AppText color="muted" variant="caption">
+              {subtitle}
+            </AppText>
+          </Animated.View>
+          <Animated.View pointerEvents={ctaInteractive ? 'auto' : 'none'} style={ctaStyle}>
+            <PressableScale
+              accessibilityLabel="Finish session"
+              accessibilityRole="button"
+              onPress={onDone}
+              style={styles.action}>
+              <AppText color="inverse" variant="caption">
+                {actionLabel}
+              </AppText>
+            </PressableScale>
+          </Animated.View>
+        </GlassCard>
       </Animated.View>
     </View>
   );
@@ -341,8 +351,6 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
     flexDirection: 'row',
     justifyContent: 'center',
-    marginBottom: 0,
-    marginTop: space.xl,
     width: 220,
   },
   accuracyNumber: {
@@ -388,9 +396,11 @@ const styles = StyleSheet.create({
     top: 0,
   },
   bloom: {
-    height: 320,
+    bottom: -BLOOM_INSET,
+    left: -BLOOM_INSET,
     position: 'absolute',
-    width: 320,
+    right: -BLOOM_INSET,
+    top: -BLOOM_INSET,
   },
   card: {
     alignItems: 'center',
@@ -401,15 +411,11 @@ const styles = StyleSheet.create({
   correctLine: {
     marginTop: -2,
   },
-  gaborLayer: {
-    alignItems: 'center',
-    bottom: 0,
-    justifyContent: 'center',
-    left: 0,
-    position: 'absolute',
-    right: 0,
-    top: 0,
-    transform: [{ scale: 0.9 }],
+  emblemScale: {
+    height: EMBLEM_SIZE,
+    marginBottom: space.sm,
+    transform: [{ scale: EMBLEM_SIZE / CELESTIAL_NATIVE_SIZE }],
+    width: EMBLEM_SIZE,
   },
   percent: {
     color: text.primary,
@@ -421,10 +427,18 @@ const styles = StyleSheet.create({
   },
   ring: {
     alignItems: 'center',
+    bottom: 0,
+    justifyContent: 'center',
+    left: 0,
+    position: 'absolute',
+    right: 0,
+    top: 0,
+  },
+  scoreWrap: {
+    alignItems: 'center',
     height: RING_SIZE,
     justifyContent: 'center',
-    position: 'absolute',
-    top: 72,
+    marginTop: space.xl,
     width: RING_SIZE,
   },
   streakLabel: {
