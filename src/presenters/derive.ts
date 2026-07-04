@@ -1,7 +1,8 @@
+import { t, tList } from '@/i18n';
 import { buildBeforeAfterCsf, buildLatestCsf, improvementPercent } from '@/progress/csf';
 import { populationNormContrast } from '@/progress/norms';
 import type { SessionLog, ThresholdEstimate } from '@/types';
-import { computeStreak, dateOfMonthFromIso, localDayKey, localDayKeyFromIso, todayIndex, weekCompletion, weekDates, weekdayShortFromIso } from '@/utils/clock';
+import { computeStreak, dateOfMonthFromIso, localDayKey, localDayKeyFromIso, todayIndex, weekCompletion, weekDates } from '@/utils/clock';
 
 import {
   deriveMeasurementConfidence,
@@ -194,7 +195,7 @@ export function deriveTodayView(
       todayIndex: index,
       weekDays,
       weekDates: dates,
-      nextTargetLabel: 'First session · 4 min',
+      nextTargetLabel: t('common.session.firstSessionLabel', { minutes: 4 }),
       verdict: 'holding',
       measurementConfidence,
     };
@@ -215,7 +216,9 @@ export function deriveTodayView(
     // Human band label, not raw cpd — useTodayData overrides this with the
     // next guided-protocol block's band when available; this is the fallback
     // for when no next block resolves, kept in the same human vocabulary.
-    nextTargetLabel: recent ? `${humanBandLabel(recent.spatialFrequencyCpd)} · 4 min` : `${humanBandLabel(6)} · 4 min`,
+    nextTargetLabel: recent
+      ? t('common.session.durationLabel', { band: humanBandLabel(recent.spatialFrequencyCpd), minutes: 4 })
+      : t('common.session.durationLabel', { band: humanBandLabel(6), minutes: 4 }),
     verdict: measurementConfidence.canDriveTrend ? verdictFromPercent(improvementPercent(usable)) : 'holding',
     measurementConfidence,
   };
@@ -276,7 +279,9 @@ export function deriveProgressView(
     .map((session) => ({ session, points: thresholdsBySession.get(session.id) ?? [] }))
     .filter((entry) => entry.points.length > 0)
     .map((entry) => ({
-      day: weekdayShortFromIso(entry.session.startedAt),
+      // Locale-aware short weekday (common.weekdayShort) — not the raw
+      // English-only clock.ts util, since this label renders in the UI.
+      day: tList('common.weekdayShort')[new Date(entry.session.startedAt).getDay()],
       date: dateOfMonthFromIso(entry.session.startedAt),
       value: round(
         Math.log10(Math.max(peakSensitivity(entry.points.map((t) => ({ sensitivity: 1 / t.thresholdContrast }))), 1)),
@@ -290,7 +295,7 @@ export function deriveProgressView(
   }));
 
   const contributors = latest.map((point) => ({
-    label: `${formatCpd(point.spatialFrequencyCpd)} cpd`,
+    label: t('common.cpdUnit', { value: formatCpd(point.spatialFrequencyCpd) }),
     bandLabel: humanBandLabel(point.spatialFrequencyCpd),
     sensitivity: round(point.sensitivity, 1),
     norm: round(1 / populationNormContrast(point.spatialFrequencyCpd, point.paradigm), 1),
@@ -320,8 +325,8 @@ export function deriveProgressView(
     sparkline,
     csf,
     csfReferences: [
-      { label: 'Target', points: targetPoints },
-      { label: 'Norm', points: normPoints },
+      { label: t('common.csfReference.target'), points: targetPoints },
+      { label: t('common.csfReference.norm'), points: normPoints },
     ],
     contributors,
     measurementConfidence,

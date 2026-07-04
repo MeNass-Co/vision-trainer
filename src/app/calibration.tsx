@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CalibrationCard } from '@/components/calibration/CalibrationCard';
 import { AmbientGradient } from '@/components/home/AmbientGradient';
 import { FadeIn, Screen, SheetCloseButton } from '@/components/ui';
+import { t } from '@/i18n';
 import { space } from '@/theme/tokens';
 import { useEffectiveReducedMotion } from '@/theme/useEffectiveReducedMotion';
 
@@ -40,7 +41,7 @@ export default function CalibrationScreen() {
         <SheetCloseButton onPress={exitCalibration} />
       </View>
       <FadeIn duration={420} style={styles.body}>
-        <CalibrationCard confirmLabel="Done" onComplete={exitCalibration} />
+        <CalibrationCard confirmLabel={t('calibration.done')} onComplete={exitCalibration} />
       </FadeIn>
     </Screen>
   );

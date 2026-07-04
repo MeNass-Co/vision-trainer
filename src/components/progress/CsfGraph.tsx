@@ -15,6 +15,7 @@ import Svg, { Circle, Defs, Line, LinearGradient, Path, Stop } from 'react-nativ
 
 import { TrajectoryPointLight } from '@/components/progress/TrajectoryPointLight';
 import { AppText } from '@/components/ui';
+import { t } from '@/i18n';
 import { haptics } from '@/theme/haptics';
 import { ACCENT, ACCENT_CORE, ACCENT_SOFT, data, motion, radius, surface } from '@/theme/tokens';
 import { useEffectiveReducedMotion } from '@/theme/useEffectiveReducedMotion';
@@ -373,7 +374,12 @@ export function CsfGraph({ points, width, height, references = EMPTY_REFERENCES 
           ) : null}
         </Svg>
         {referenceCurves.map((reference) => {
-          const isTarget = reference.label === 'Target';
+          // `reference.label` is the already-localized display string
+          // (derive.ts fills it from `common.csfReference.target/norm`), so the
+          // Target-vs-Norm layout branch must compare against the same
+          // localized value — a hardcoded 'Target' literal silently breaks the
+          // label anchoring in every non-English locale.
+          const isTarget = reference.label === t('common.csfReference.target');
           // Beauty-audit fix: a left-anchored label ("Norm") must read its y
           // from that curve's OWN leftmost point, not the rightmost one — the
           // previous code anchored both labels to `lastPoint`, which put
@@ -411,7 +417,7 @@ export function CsfGraph({ points, width, height, references = EMPTY_REFERENCES 
               ]}
               tabular
               variant="caption">
-              {`${selectedPoint.spatialFrequency} cpd · ${selectedPoint.sensitivity}`}
+              {`${t('common.cpdUnit', { value: selectedPoint.spatialFrequency })} · ${selectedPoint.sensitivity}`}
             </AppText>
           </>
         ) : null}

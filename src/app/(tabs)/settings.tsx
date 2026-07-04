@@ -11,6 +11,7 @@ import { Row } from '@/components/settings/Row';
 import { Section } from '@/components/settings/Section';
 import { Toggle } from '@/components/settings/Toggle';
 import { AppText, FadeIn, PressableScale, Screen } from '@/components/ui';
+import { t } from '@/i18n';
 import { useSettingsState } from '@/presenters';
 import { notificationService } from '@/services/notifications';
 import { space, text } from '@/theme/tokens';
@@ -72,7 +73,7 @@ export default function SettingsScreen() {
       style={styles.screen}>
       <FadeIn style={styles.title}>
         <AppText style={styles.settingsTitle} variant="title">
-          Settings
+          {t('settings.title')}
         </AppText>
       </FadeIn>
       {/* GlassContainer (THE GREAT NATIVE WAVE): groups every settings section's
@@ -81,13 +82,13 @@ export default function SettingsScreen() {
           same droplet behavior Apple's own System Settings sections get. */}
       <GlassContainer spacing={space.lg}>
       <FadeIn delay={60}>
-        <Section title="Feedback">
+        <Section title={t('settings.sections.feedback.title')}>
           <Row
             icon="iphone.radiowaves.left.and.right"
-            label="Haptics"
+            label={t('settings.rows.haptics.label')}
             right={
               <Toggle
-                accessibilityLabel="Haptics"
+                accessibilityLabel={t('settings.rows.haptics.label')}
                 onChange={(value) => set('hapticsEnabled', value)}
                 value={state.hapticsEnabled}
               />
@@ -96,10 +97,10 @@ export default function SettingsScreen() {
           <Row
             icon="figure.walk.motion"
             iconFallback="tortoise"
-            label="Reduce motion"
+            label={t('settings.rows.reduceMotion.label')}
             right={
               <Toggle
-                accessibilityLabel="Reduce motion"
+                accessibilityLabel={t('settings.rows.reduceMotion.label')}
                 onChange={(value) => set('reduceMotion', value)}
                 value={state.reduceMotion}
               />
@@ -108,25 +109,25 @@ export default function SettingsScreen() {
         </Section>
       </FadeIn>
       <FadeIn delay={120}>
-        <Section title="Display">
+        <Section title={t('settings.sections.display.title')}>
           <Row
-            accessibilityLabel="Display calibration"
+            accessibilityLabel={t('settings.rows.displayCalibration.label')}
             chevron
             icon="sun.max"
-            label="Display calibration"
+            label={t('settings.rows.displayCalibration.label')}
             onPress={() => router.push('/calibration' as Href)}
             right={<Chevron />}
           />
         </Section>
       </FadeIn>
       <FadeIn delay={180}>
-        <Section title="Reminders">
+        <Section title={t('settings.sections.reminders.title')}>
           <Row
             icon="bell"
-            label="Daily reminder"
+            label={t('settings.rows.dailyReminder.label')}
             right={
               <Toggle
-                accessibilityLabel="Daily reminder"
+                accessibilityLabel={t('settings.rows.dailyReminder.label')}
                 onChange={(value) => {
                   void handleRemindersChange(value);
                 }}
@@ -137,16 +138,16 @@ export default function SettingsScreen() {
           {remindersBlocked ? (
             <View style={styles.remindersBlocked}>
               <AppText color="muted" variant="micro">
-                Reminders are off in iOS Settings.
+                {t('settings.messages.remindersDisabled')}
               </AppText>
               <PressableScale
-                accessibilityLabel="Open Settings"
+                accessibilityLabel={t('settings.messages.openSettings')}
                 accessibilityRole="button"
                 onPress={() => {
                   void Linking.openSettings();
                 }}>
                 <AppText color="accent" variant="micro">
-                  Open Settings
+                  {t('settings.messages.openSettings')}
                 </AppText>
               </PressableScale>
             </View>
@@ -154,45 +155,45 @@ export default function SettingsScreen() {
         </Section>
       </FadeIn>
       <FadeIn delay={240}>
-        <Section title="About">
+        <Section title={t('settings.sections.about.title')}>
           <Row
             icon="info.circle"
-            label="Version"
+            label={t('settings.rows.version.label')}
             right={
               <AppText color="muted" style={styles.rowValue}>
-                v{appVersion} ({buildNumber})
+                {t('settings.rows.version.value', { version: appVersion, build: buildNumber })}
               </AppText>
             }
           />
           <Row
-            accessibilityLabel="The science"
+            accessibilityLabel={t('settings.rows.science.label')}
             chevron
             icon="book"
-            label="The science"
+            label={t('settings.rows.science.label')}
             onPress={() => router.push('/science' as Href)}
             right={<Chevron />}
           />
           <Row
-            accessibilityLabel="Early access"
+            accessibilityLabel={t('settings.rows.earlyAccess.label')}
             chevron
             icon="sparkles"
-            label="Early access"
+            label={t('settings.rows.earlyAccess.label')}
             onPress={() => router.push('/paywall' as Href)}
             right={<Chevron />}
           />
           <Row
-            accessibilityLabel="Privacy Policy"
+            accessibilityLabel={t('settings.rows.privacyPolicy.label')}
             chevron
-            label="Privacy Policy"
+            label={t('settings.rows.privacyPolicy.label')}
             onPress={() => {
               void WebBrowser.openBrowserAsync(PRIVACY_URL);
             }}
             right={<Chevron />}
           />
           <Row
-            accessibilityLabel="Terms of Use"
+            accessibilityLabel={t('settings.rows.termsOfUse.label')}
             chevron
-            label="Terms of Use"
+            label={t('settings.rows.termsOfUse.label')}
             onPress={() => {
               void WebBrowser.openBrowserAsync(TERMS_URL);
             }}

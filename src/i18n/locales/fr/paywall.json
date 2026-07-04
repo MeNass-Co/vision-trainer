@@ -1,0 +1,17 @@
+{
+  "earlyAccessChip": "Accès anticipé",
+  "title": "Gratuit pendant la finalisation de l’instrument.",
+  "subtitle": "Établir une ligne de base, tester la routine et garder vos mesures privées sur cet appareil.",
+  "benefits": {
+    "adaptive": "Des sessions adaptatives ajustées à vos mesures",
+    "progress": "Des graphiques de progression avec indicateurs de fiabilité et de retest",
+    "privacy": "Confidentialité par conception. Vos mesures restent sur cet appareil."
+  },
+  "freeBadge": "Gratuit",
+  "planName": "Vision Trainer",
+  "planPrice": "Versions anticipées. Aucun paiement aujourd’hui.",
+  "planBilled": "Conçu pour la pratique, pas pour les promesses. Les mesures ne suivent que cette routine.",
+  "ctaStart": "Commencer l’entraînement",
+  "ctaMaybeLater": "Plus tard",
+  "legalCaption": "Gratuit pendant l’accès anticipé. Aucun abonnement actif."
+}

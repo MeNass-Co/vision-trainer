@@ -1,0 +1,54 @@
+{
+  "nav": {
+    "begin": "Commencer",
+    "continue": "Continuer",
+    "gotIt": "Compris",
+    "enableReminders": "Activer les rappels",
+    "startTraining": "Commencer l’entraînement",
+    "notNow": "Plus tard",
+    "chooseGoal": "Choisir un objectif",
+    "stepProgress": "{{step}} sur {{total}}"
+  },
+  "steps": {
+    "welcome": {
+      "title": "Entraîner votre\nfaçon de voir",
+      "caption": "Une pratique quotidienne plus sereine, pour un contraste plus net."
+    },
+    "science": {
+      "title": "Le cerveau affine le contraste avec la pratique. De façon mesurable.",
+      "body": "Des sessions courtes et régulières aident l’apprentissage perceptif à s’installer avec le temps."
+    },
+    "vision": {
+      "title": "Quel objectif l’entraînement doit-il viser ?",
+      "body": "La première mesure reste large. L’objectif choisi façonne ensuite le plan d’entraînement."
+    },
+    "accent": {
+      "titleLead": "Cette couleur signifie",
+      "titleAccent": "l’action.",
+      "caption": "La lueur signale tout ce qui peut être lancé ou validé."
+    },
+    "reminders": {
+      "title": "Un rappel discret garde la pratique à portée.",
+      "body": "Des rappels quotidiens aident à maintenir la série et à consolider les acquis de chaque session.",
+      "blockedNotice": "Les rappels sont désactivés dans les Réglages iOS."
+    },
+    "ready": {
+      "title": "Tout est prêt",
+      "caption": "La première session établira une ligne de base."
+    }
+  },
+  "goalCards": {
+    "distance": {
+      "title": "Netteté de loin",
+      "detail": "Un contraste plus net sur les cibles éloignées."
+    },
+    "near": {
+      "title": "Vision de près",
+      "detail": "Confort pour la lecture et la vision rapprochée."
+    },
+    "sports": {
+      "title": "Réactions rapides",
+      "detail": "Une perception visuelle plus rapide et de meilleures décisions sur le mouvement."
+    }
+  }
+}

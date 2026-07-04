@@ -1,0 +1,16 @@
+{
+  "eyebrowLabel": "Today",
+  "weekDayLetters": ["S", "M", "T", "W", "T", "F", "S"],
+  "streak": {
+    "one": "{{count}} day streak",
+    "other": "{{count}} day streak"
+  },
+  "title": {
+    "comeBackTomorrow": "Come back\ntomorrow",
+    "setBaseline": "Set your\nbaseline",
+    "readyWhenYouAre": "Ready when\nyou are"
+  },
+  "nextLabel": "Next · {{target}}",
+  "ctaStart": "Start session",
+  "ctaOptionalPractice": "Optional practice"
+}

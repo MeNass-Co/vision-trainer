@@ -3,29 +3,16 @@ import { StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppText, Card, FadeIn, GaborMark, Screen, SheetCloseButton } from '@/components/ui';
+import { t } from '@/i18n';
 import { radius, space, surface } from '@/theme/tokens';
 
+// Stable ids drive both the React key and the diagram branch below; the copy
+// itself is resolved per-locale from the `science.cards.<id>` namespace.
 const SECTIONS = [
-  {
-    body: 'Contrast sensitivity is not fixed. With brief, repeated exposure to faint striped patterns, the visual cortex sharpens how it encodes edges. This is perceptual learning, and the gains can persist.',
-    eyebrow: 'Why it works',
-    title: 'Your visual system keeps learning',
-  },
-  {
-    body: 'Each trial shows two quick flashes. One holds a faint grating, the other is blank. You pick the one with the pattern. The contrast keeps adjusting to sit right at the edge of what you can see.',
-    eyebrow: 'What you are doing',
-    title: 'Two flashes, one pattern',
-  },
-  {
-    body: 'A staircase lowers the contrast when you are right and raises it when you are wrong. You spend the whole session at the boundary of your vision, which is exactly where the learning is strongest.',
-    eyebrow: 'Why it adapts',
-    title: 'Training lives at your threshold',
-  },
-  {
-    body: 'A few quiet minutes in a dimly lit room beats a long, distracted stretch. Consistency is what moves the curve, so a daily session keeps the gains compounding.',
-    eyebrow: 'How to get the most',
-    title: 'Short, dim, and daily',
-  },
+  { id: 'learning', diagram: false },
+  { id: 'flashes', diagram: true },
+  { id: 'threshold', diagram: false },
+  { id: 'daily', diagram: false },
 ] as const;
 
 export default function ScienceScreen() {
@@ -49,38 +36,38 @@ export default function ScienceScreen() {
       </View>
       <FadeIn style={styles.header}>
         <AppText color="muted" uppercase variant="micro">
-          The science
+          {t('science.eyebrow')}
         </AppText>
         <AppText style={styles.title} variant="title">
-          How perceptual learning sharpens your sight
+          {t('science.title')}
         </AppText>
       </FadeIn>
       {SECTIONS.map((section, index) => (
-        <FadeIn delay={80 + index * 60} key={section.eyebrow}>
+        <FadeIn delay={80 + index * 60} key={section.id}>
           <Card style={styles.card}>
             <AppText color="accent" uppercase variant="micro">
-              {section.eyebrow}
+              {t(`science.cards.${section.id}.eyebrow`)}
             </AppText>
-            <AppText variant="heading">{section.title}</AppText>
-            {section.title === 'Two flashes, one pattern' ? (
+            <AppText variant="heading">{t(`science.cards.${section.id}.title`)}</AppText>
+            {section.diagram ? (
               <View style={styles.diagramRow}>
                 <View style={styles.diagramItem}>
                   <View style={styles.diagramSquare}>
                     <GaborMark quiet size={40} />
                   </View>
                   <AppText color="muted" style={styles.diagramLabel} uppercase variant="micro">
-                    Pattern
+                    {t('science.diagram.pattern')}
                   </AppText>
                 </View>
                 <View style={styles.diagramItem}>
                   <View style={styles.diagramSquare} />
                   <AppText color="muted" style={styles.diagramLabel} uppercase variant="micro">
-                    Blank
+                    {t('science.diagram.blank')}
                   </AppText>
                 </View>
               </View>
             ) : null}
-            <AppText color="secondary">{section.body}</AppText>
+            <AppText color="secondary">{t(`science.cards.${section.id}.body`)}</AppText>
           </Card>
         </FadeIn>
       ))}

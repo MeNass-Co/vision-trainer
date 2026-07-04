@@ -7,6 +7,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { AppText, PrimaryButton } from '@/components/ui';
+import { t } from '@/i18n';
 import { notificationService } from '@/services/notifications';
 import { useAppStore } from '@/store/useAppStore';
 import { radius, space, surface } from '@/theme/tokens';
@@ -70,9 +71,9 @@ export default function RootLayout() {
           <StatusBar style="light" />
           <View style={styles.degraded}>
             <AppText style={styles.degradedTitle} variant="title">
-              {"Your data couldn't be loaded."}
+              {t('common.errors.hydrateFailedTitle')}
             </AppText>
-            <PrimaryButton label="Try again" onPress={() => void retryHydrate()} />
+            <PrimaryButton label={t('common.errors.retry')} onPress={() => void retryHydrate()} />
           </View>
         </SafeAreaProvider>
       </GestureHandlerRootView>

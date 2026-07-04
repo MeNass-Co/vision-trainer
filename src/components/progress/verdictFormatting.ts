@@ -1,5 +1,7 @@
+import { t } from '@/i18n';
+
 export function formatDelta(delta: number) {
-  if (Math.abs(delta) < 0.005) return 'Baseline';
+  if (Math.abs(delta) < 0.005) return t('progress.verdict.baseline');
 
   const sign = delta < 0 ? '−' : delta > 0 ? '+' : '';
 
@@ -10,12 +12,6 @@ export type Verdict = 'improving' | 'holding' | 'regressing';
 
 // verdict-band spec — the score→verdict lockup names the trend directly
 // (Oura "Optimal" anatomy); color alone never carries the meaning.
-const VERDICT_WORDS: Record<Verdict, string> = {
-  improving: 'Improving',
-  holding: 'Holding',
-  regressing: 'Regressing',
-};
-
 export function formatVerdictWord(verdict: Verdict) {
-  return VERDICT_WORDS[verdict];
+  return t(`progress.verdict.${verdict}`);
 }

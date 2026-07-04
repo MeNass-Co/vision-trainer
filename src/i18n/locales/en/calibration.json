@@ -1,0 +1,8 @@
+{
+  "title": "Set a comfortable glow for your room.",
+  "dim": "Dim",
+  "bright": "Bright",
+  "brightnessValue": "{{value}}%",
+  "done": "Done",
+  "confirmDefault": "This feels right"
+}

@@ -1,0 +1,34 @@
+{
+  "header": {
+    "title": "Progrès"
+  },
+  "hero": {
+    "eyebrow": "Sensibilité au contraste estimée"
+  },
+  "visionProfile": {
+    "title": "Profil visuel",
+    "baselineCaptured": "Ligne de base enregistrée.",
+    "strongest": "Pic de sensibilité : {{band}} ({{label}}).",
+    "strongestWatch": "Pic de sensibilité : {{band}} · surveiller {{label}}."
+  },
+  "trend": {
+    "title": "7 derniers jours",
+    "emptyTitle": "En attente d’une première mesure",
+    "emptyHint": "Terminer une session pour tracer la tendance"
+  },
+  "csf": {
+    "title": "Par fréquence spatiale",
+    "dragHint": "Glisser pour explorer"
+  },
+  "empty": {
+    "title": "Le ciel\nest sombre",
+    "subtitle": "Une session suffit pour allumer la première étoile.",
+    "cta": "Commencer une session"
+  },
+  "verdict": {
+    "improving": "En progrès",
+    "holding": "Stable",
+    "regressing": "En baisse",
+    "baseline": "Ligne de base"
+  }
+}

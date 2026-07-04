@@ -1,3 +1,4 @@
+import { t, tPlural } from '@/i18n';
 import type { SessionLog, ThresholdEstimate } from '@/types';
 
 export type MeasurementConfidenceTier = 'provisional' | 'reliable' | 'needs-retest';
@@ -32,9 +33,9 @@ export function usableThresholds(thresholds: ThresholdEstimate[]): ThresholdEsti
 }
 
 export function humanBandLabel(spatialFrequencyCpd: number): string {
-  if (spatialFrequencyCpd <= 1.5) return 'Broad shapes';
-  if (spatialFrequencyCpd <= 6) return 'Everyday detail';
-  return 'Fine detail';
+  if (spatialFrequencyCpd <= 1.5) return t('common.bands.broad');
+  if (spatialFrequencyCpd <= 6) return t('common.bands.everyday');
+  return t('common.bands.fine');
 }
 
 function completedSessionsWithUsableThresholds(
@@ -68,8 +69,8 @@ export function deriveMeasurementConfidence(
   if (latestSessionSuspicious) {
     return {
       tier: 'needs-retest',
-      label: 'Retest recommended',
-      detail: 'This reading should be repeated before it counts toward your trend.',
+      label: t('common.confidence.needsRetest.label'),
+      detail: t('common.confidence.needsRetest.detail'),
       canDriveTrend: false,
       baselineStep,
       baselineTarget: RELIABLE_SESSION_COUNT,
@@ -80,8 +81,11 @@ export function deriveMeasurementConfidence(
   if (usableSessionCount < RELIABLE_SESSION_COUNT) {
     return {
       tier: 'provisional',
-      label: `Building baseline ${baselineStep}/${RELIABLE_SESSION_COUNT}`,
-      detail: `${remaining} more clean session${remaining === 1 ? '' : 's'} before trends become reliable.`,
+      label: t('common.confidence.provisional.label', {
+        step: baselineStep,
+        target: RELIABLE_SESSION_COUNT,
+      }),
+      detail: tPlural('common.confidence.provisional.detail', remaining, { remaining }),
       canDriveTrend: false,
       baselineStep,
       baselineTarget: RELIABLE_SESSION_COUNT,
@@ -91,8 +95,8 @@ export function deriveMeasurementConfidence(
 
   return {
     tier: 'reliable',
-    label: 'Reliable reading',
-    detail: 'Enough clean sessions are available to compare your trend.',
+    label: t('common.confidence.reliable.label'),
+    detail: t('common.confidence.reliable.detail'),
     canDriveTrend: true,
     baselineStep,
     baselineTarget: RELIABLE_SESSION_COUNT,

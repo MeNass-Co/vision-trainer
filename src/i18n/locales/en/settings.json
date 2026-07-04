@@ -1,0 +1,24 @@
+{
+  "title": "Settings",
+  "sections": {
+    "feedback": { "title": "Feedback" },
+    "display": { "title": "Display" },
+    "reminders": { "title": "Reminders" },
+    "about": { "title": "About" }
+  },
+  "rows": {
+    "haptics": { "label": "Haptics" },
+    "reduceMotion": { "label": "Reduce motion" },
+    "displayCalibration": { "label": "Display calibration" },
+    "dailyReminder": { "label": "Daily reminder" },
+    "version": { "label": "Version", "value": "v{{version}} ({{build}})" },
+    "science": { "label": "The science" },
+    "earlyAccess": { "label": "Early access" },
+    "privacyPolicy": { "label": "Privacy Policy" },
+    "termsOfUse": { "label": "Terms of Use" }
+  },
+  "messages": {
+    "remindersDisabled": "Reminders are off in iOS Settings.",
+    "openSettings": "Open Settings"
+  }
+}

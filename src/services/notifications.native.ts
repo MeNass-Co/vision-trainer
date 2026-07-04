@@ -1,6 +1,8 @@
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 
+import { t } from '@/i18n';
+
 import type { NotificationService } from './notifications';
 
 const DAILY_REMINDER_KIND = 'daily-reminder';
@@ -48,7 +50,7 @@ export const notificationService: NotificationService = {
   async scheduleDailyReminder(hour: number, minute: number) {
     if (Platform.OS === 'android') {
       await Notifications.setNotificationChannelAsync('daily-reminder', {
-        name: 'Daily reminder',
+        name: t('common.notifications.channelName'),
         importance: Notifications.AndroidImportance.DEFAULT,
       });
     }
@@ -56,8 +58,8 @@ export const notificationService: NotificationService = {
     await cancelScheduledDailyReminders();
     await Notifications.scheduleNotificationAsync({
       content: {
-        title: 'Time to train your vision',
-        body: 'A few quiet minutes keeps your streak and your gains alive.',
+        title: t('common.notifications.dailyTitle'),
+        body: t('common.notifications.dailyBody'),
         data: { kind: DAILY_REMINDER_KIND },
       },
       trigger: {

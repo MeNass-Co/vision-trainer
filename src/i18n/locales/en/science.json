@@ -1,0 +1,30 @@
+{
+  "eyebrow": "The science",
+  "title": "How perceptual learning sharpens your sight",
+  "diagram": {
+    "pattern": "Pattern",
+    "blank": "Blank"
+  },
+  "cards": {
+    "learning": {
+      "eyebrow": "Why it works",
+      "title": "Your visual system keeps learning",
+      "body": "Contrast sensitivity is not fixed. With brief, repeated exposure to faint striped patterns, the visual cortex sharpens how it encodes edges. This is perceptual learning, and the gains can persist."
+    },
+    "flashes": {
+      "eyebrow": "What you are doing",
+      "title": "Two flashes, one pattern",
+      "body": "Each trial shows two quick flashes. One holds a faint grating, the other is blank. You pick the one with the pattern. The contrast keeps adjusting to sit right at the edge of what you can see."
+    },
+    "threshold": {
+      "eyebrow": "Why it adapts",
+      "title": "Training lives at your threshold",
+      "body": "A staircase lowers the contrast when you are right and raises it when you are wrong. You spend the whole session at the boundary of your vision, which is exactly where the learning is strongest."
+    },
+    "daily": {
+      "eyebrow": "How to get the most",
+      "title": "Short, dim, and daily",
+      "body": "A few quiet minutes in a dimly lit room beats a long, distracted stretch. Consistency is what moves the curve, so a daily session keeps the gains compounding."
+    }
+  }
+}

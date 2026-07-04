@@ -15,6 +15,7 @@ import Svg, { Circle, Line, Path } from 'react-native-svg';
 import { CelestialGabor } from '@/components/home/CelestialGabor';
 import { AppText, ContextChip, FadeIn, PrimaryButton } from '@/components/ui';
 import { TAB_BAR_CLEARANCE } from '@/components/ui/CustomTabBar';
+import { t } from '@/i18n';
 import {
   ACCENT,
   ACCENT_CORE,
@@ -128,7 +129,7 @@ export function ProgressEmptySky({ reduceMotion }: ProgressEmptySkyProps) {
     <View style={styles.root}>
       <FadeIn>
         <View onLayout={handleHeaderLayout} style={styles.screenLabelPlate}>
-          <ContextChip label="Progress" />
+          <ContextChip label={t('progress.header.title')} />
         </View>
       </FadeIn>
       <View style={[styles.scene, { height: sceneHeight, marginTop: sceneMarginTop }]}>
@@ -190,19 +191,19 @@ export function ProgressEmptySky({ reduceMotion }: ProgressEmptySkyProps) {
       <View style={styles.textBlock}>
         <FadeIn delay={180}>
           <AppText color="primary" style={styles.title} variant="title">
-            {'Your sky\nis dark'}
+            {t('progress.empty.title')}
           </AppText>
         </FadeIn>
         <FadeIn delay={200}>
           <AppText color="secondary" style={styles.caption} variant="body">
-            Train once to light your first star.
+            {t('progress.empty.subtitle')}
           </AppText>
         </FadeIn>
       </View>
       <View style={styles.spacer} />
       <FadeIn delay={220} style={styles.ctaWrap}>
         <PrimaryButton
-          label="Start a session"
+          label={t('progress.empty.cta')}
           onPress={() => router.push('/session' as Href)}
         />
       </FadeIn>

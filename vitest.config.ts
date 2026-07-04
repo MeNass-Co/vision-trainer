@@ -6,6 +6,7 @@ export default defineConfig({
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
       'expo-crypto': fileURLToPath(new URL('./src/test/expoCryptoMock.ts', import.meta.url)),
+      'expo-localization': fileURLToPath(new URL('./src/test/expoLocalizationMock.ts', import.meta.url)),
       'react-native': fileURLToPath(new URL('./src/test/reactNativeMock.ts', import.meta.url)),
     },
   },

@@ -15,12 +15,15 @@ import { AmbientGradient } from '@/components/home/AmbientGradient';
 import { CelestialGabor } from '@/components/home/CelestialGabor';
 import { AppText, ContextChip, FadeIn, PrimaryButton, Screen, Shimmer } from '@/components/ui';
 import { TAB_BAR_CLEARANCE } from '@/components/ui/CustomTabBar';
+import { t, tList, tPlural } from '@/i18n';
 import { useTodayData } from '@/presenters';
 import type { TodayView } from '@/presenters/types';
 import { accent, motion, radius, space, text as textTokens, type as typo } from '@/theme/tokens';
 import { useEffectiveReducedMotion } from '@/theme/useEffectiveReducedMotion';
 
-const DAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'] as const;
+// Locale-aware narrow week-day letters (today.weekDayLetters) — en: S M T W T F S,
+// fr: D L M M J V S (Dimanche-first, matching the en array's Sunday start).
+const DAYS = tList('today.weekDayLetters');
 
 // week-strip law (VALIDATION.md #10): today = 35pt filled white circle w/ dark
 // text; state-cell box height = circle diameter so a plain digit and the
@@ -171,10 +174,10 @@ function TodayContent({ data, reduceMotion, router }: TodayContentProps) {
   return (
     <>
       <FadeIn duration={motion.timing.entranceMs} style={styles.eyebrow}>
-        <ContextChip label="Today" />
+        <ContextChip label={t('today.eyebrowLabel')} />
         {data.streakDays > 0 ? (
           <AppText color="secondary" tabular variant="caption">
-            {`${data.streakDays} day streak`}
+            {tPlural('today.streak', data.streakDays, { count: data.streakDays })}
           </AppText>
         ) : null}
       </FadeIn>
@@ -202,15 +205,15 @@ function TodayContent({ data, reduceMotion, router }: TodayContentProps) {
         <FadeIn delay={40} style={styles.titleBlock}>
           <AppText color="primary" variant="hero">
             {data.sessionDoneToday
-              ? 'Come back\ntomorrow'
+              ? t('today.title.comeBackTomorrow')
               : data.streakDays === 0
-                ? 'Set your\nbaseline'
-                : 'Ready when\nyou are'}
+                ? t('today.title.setBaseline')
+                : t('today.title.readyWhenYouAre')}
           </AppText>
           <View style={styles.sessionMeta}>
             {data.streakDays === 0 && !data.sessionDoneToday ? null : (
               <AppText color="muted" variant="caption">
-                {`Next · ${data.nextTargetLabel}`}
+                {t('today.nextLabel', { target: data.nextTargetLabel })}
               </AppText>
             )}
             {data.measurementConfidence.tier === 'needs-retest' ? (
@@ -222,9 +225,9 @@ function TodayContent({ data, reduceMotion, router }: TodayContentProps) {
         </FadeIn>
         <FadeIn delay={80}>
           <PrimaryButton
-            accessibilityLabel={data.sessionDoneToday ? 'Optional practice' : 'Start session'}
+            accessibilityLabel={data.sessionDoneToday ? t('today.ctaOptionalPractice') : t('today.ctaStart')}
             haptic="select"
-            label={data.sessionDoneToday ? 'Optional practice' : 'Start session'}
+            label={data.sessionDoneToday ? t('today.ctaOptionalPractice') : t('today.ctaStart')}
             onPress={startSession}
             style={styles.startCta}
           />

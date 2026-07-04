@@ -1,0 +1,30 @@
+{
+  "eyebrow": "La science",
+  "title": "Comment l’apprentissage perceptif affine la vision",
+  "diagram": {
+    "pattern": "Motif",
+    "blank": "Vide"
+  },
+  "cards": {
+    "learning": {
+      "eyebrow": "Pourquoi ça fonctionne",
+      "title": "Le système visuel continue d’apprendre",
+      "body": "La sensibilité au contraste n’est pas figée. Exposé brièvement et de façon répétée à de faibles motifs rayés, le cortex visuel affine sa manière de coder les contours. C’est l’apprentissage perceptif, et les gains peuvent perdurer."
+    },
+    "flashes": {
+      "eyebrow": "Le déroulé",
+      "title": "Deux flashs, un motif",
+      "body": "Chaque essai présente deux flashs brefs. L’un contient un faible réseau, l’autre est vide. Il suffit de désigner celui qui porte le motif. Le contraste s’ajuste en continu pour rester juste à la limite du perceptible."
+    },
+    "threshold": {
+      "eyebrow": "Pourquoi ça s’adapte",
+      "title": "L’entraînement se joue au seuil",
+      "body": "Une procédure en escalier abaisse le contraste après une bonne réponse et l’augmente après une erreur. Toute la session se déroule à la frontière de la vision, précisément là où l’apprentissage est le plus fort."
+    },
+    "daily": {
+      "eyebrow": "Pour en tirer le meilleur",
+      "title": "Court, sombre et quotidien",
+      "body": "Quelques minutes au calme dans une pièce peu éclairée valent mieux qu’une longue plage distraite. C’est la régularité qui fait bouger la courbe : une session quotidienne fait fructifier les gains."
+    }
+  }
+}

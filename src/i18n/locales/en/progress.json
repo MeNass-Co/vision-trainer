@@ -1,0 +1,34 @@
+{
+  "header": {
+    "title": "Progress"
+  },
+  "hero": {
+    "eyebrow": "Contrast sensitivity estimate"
+  },
+  "visionProfile": {
+    "title": "Vision profile",
+    "baselineCaptured": "Baseline captured.",
+    "strongest": "Strongest at {{band}} ({{label}}).",
+    "strongestWatch": "Strongest at {{band}} · watch {{label}}."
+  },
+  "trend": {
+    "title": "Last 7 days",
+    "emptyTitle": "Awaiting first reading",
+    "emptyHint": "Complete a session to chart your trend"
+  },
+  "csf": {
+    "title": "By spatial frequency",
+    "dragHint": "Drag to inspect"
+  },
+  "empty": {
+    "title": "Your sky\nis dark",
+    "subtitle": "Train once to light your first star.",
+    "cta": "Start a session"
+  },
+  "verdict": {
+    "improving": "Improving",
+    "holding": "Holding",
+    "regressing": "Regressing",
+    "baseline": "Baseline"
+  }
+}

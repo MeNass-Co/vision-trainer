@@ -11,6 +11,7 @@ import { ProgressEmptySky } from '@/components/progress/ProgressEmptySky';
 import { ChevronIcon, Sparkline, TrendIcon } from '@/components/progress/Sparkline';
 import { VerdictBand } from '@/components/progress/VerdictBand';
 import { AppText, Bloom, ContextChip, Card, FadeIn, GlassCard, Screen, Shimmer } from '@/components/ui';
+import { t } from '@/i18n';
 import { useProgressData } from '@/presenters';
 import { haptics } from '@/theme/haptics';
 import { accent, data as tokenData, fontWeight, motion, radius, space, surface } from '@/theme/tokens';
@@ -63,11 +64,11 @@ export default function ProgressScreen() {
       ) : (
         <>
           <FadeIn>
-            <ContextChip label="Progress" style={styles.screenLabelPlate} />
+            <ContextChip label={t('progress.header.title')} style={styles.screenLabelPlate} />
           </FadeIn>
           <FadeIn delay={60} style={styles.hero}>
             <AppText color="muted" uppercase variant="micro">
-              Contrast sensitivity estimate
+              {t('progress.hero.eyebrow')}
             </AppText>
             <View
               accessibilityLabel={data.headlineAcuity.toFixed(2)}
@@ -106,7 +107,7 @@ export default function ProgressScreen() {
                   `Section.tsx` title exactly (sentence case, 15/20 semibold,
                   text.secondary) — not the 13pt `caption` variant. */}
               <AppText color="secondary" style={styles.sectionHeader}>
-                Vision profile
+                {t('progress.visionProfile.title')}
               </AppText>
               <View style={styles.insightRow}>
                 <SymbolView
@@ -137,7 +138,7 @@ export default function ProgressScreen() {
                 <View style={styles.trendCardTitleLeading}>
                   <TrendIcon />
                   <AppText color="primary" style={styles.trendCardTitleText} uppercase variant="micro">
-                    Last 7 days
+                    {t('progress.trend.title')}
                   </AppText>
                 </View>
                 <ChevronIcon />
@@ -145,11 +146,11 @@ export default function ProgressScreen() {
               {data.sparkline.length === 0 ? (
                 <View style={styles.emptyTrend}>
                   <AppText color="secondary" variant="caption">
-                    Awaiting first reading
+                    {t('progress.trend.emptyTitle')}
                   </AppText>
                   <View style={styles.emptyTrendBaseline} />
                   <AppText color="muted" uppercase variant="micro">
-                    Complete a session to chart your trend
+                    {t('progress.trend.emptyHint')}
                   </AppText>
                 </View>
               ) : (
@@ -167,10 +168,10 @@ export default function ProgressScreen() {
             <Card style={styles.card}>
               <View style={styles.cardHeading}>
                 <AppText color="secondary" variant="caption">
-                  By spatial frequency
+                  {t('progress.csf.title')}
                 </AppText>
                 <AppText color="muted" variant="micro">
-                  Drag to inspect
+                  {t('progress.csf.dragHint')}
                 </AppText>
               </View>
               <View onLayout={handleCsfGraphLayout} style={styles.chartMeasure}>
@@ -228,7 +229,7 @@ type ProgressViewData = NonNullable<ReturnType<typeof useProgressData>['data']>;
 // insight, derived purely from the same presenter fields the rows use.
 function visionProfileSummary(data: ProgressViewData): string {
   if (data.contributors.length === 0) {
-    return 'Baseline captured.';
+    return t('progress.visionProfile.baselineCaptured');
   }
 
   const strongest = data.contributors.reduce(
@@ -241,10 +242,16 @@ function visionProfileSummary(data: ProgressViewData): string {
   );
 
   if (strongest.label === weakest.label) {
-    return `Strongest at ${strongest.bandLabel.toLowerCase()} (${strongest.label}).`;
+    return t('progress.visionProfile.strongest', {
+      band: strongest.bandLabel.toLowerCase(),
+      label: strongest.label,
+    });
   }
 
-  return `Strongest at ${strongest.bandLabel.toLowerCase()} · watch ${weakest.label}.`;
+  return t('progress.visionProfile.strongestWatch', {
+    band: strongest.bandLabel.toLowerCase(),
+    label: weakest.label,
+  });
 }
 
 const styles = StyleSheet.create({

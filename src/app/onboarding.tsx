@@ -17,6 +17,7 @@ import { AmbientGradient } from '@/components/home/AmbientGradient';
 import { BreathingOrb } from '@/components/onboarding/BreathingOrb';
 import { StepReveal } from '@/components/onboarding/StepReveal';
 import { AppText, FadeIn, PressableScale, PrimaryButton, Screen } from '@/components/ui';
+import { t, type TranslationKey } from '@/i18n';
 import { notificationService } from '@/services/notifications';
 import { useAppStore } from '@/store/useAppStore';
 import { ACCENT, ACCENT_GLOW, material, motion, radius, space, surface, text, type } from '@/theme/tokens';
@@ -34,23 +35,25 @@ const REMINDER_MINUTE = 0;
 // NARRATIVE beat (the breathing orb hero carries the copy) or a DECISION the
 // user must actually make (the orb is decorative noise there — the question
 // owns the screen instead). 'calibration' renders its own dedicated card.
+// buttonLabel holds an i18n key resolved via t() at render (calibration renders
+// its own card and never shows the CTA, so its label stays empty).
 const STEPS = [
-  { id: 'welcome', buttonLabel: 'Begin', kind: 'narrative' },
-  { id: 'science', buttonLabel: 'Continue', kind: 'narrative' },
-  { id: 'vision', buttonLabel: 'Continue', kind: 'decision' },
-  { id: 'accent', buttonLabel: 'Got it', kind: 'narrative' },
-  { id: 'reminders', buttonLabel: 'Enable reminders', kind: 'narrative' },
+  { id: 'welcome', buttonLabel: 'onboarding.nav.begin', kind: 'narrative' },
+  { id: 'science', buttonLabel: 'onboarding.nav.continue', kind: 'narrative' },
+  { id: 'vision', buttonLabel: 'onboarding.nav.continue', kind: 'decision' },
+  { id: 'accent', buttonLabel: 'onboarding.nav.gotIt', kind: 'narrative' },
+  { id: 'reminders', buttonLabel: 'onboarding.nav.enableReminders', kind: 'narrative' },
   { id: 'calibration', buttonLabel: '', kind: 'calibration' },
-  { id: 'ready', buttonLabel: 'Start training', kind: 'narrative' },
+  { id: 'ready', buttonLabel: 'onboarding.nav.startTraining', kind: 'narrative' },
 ] as const;
 
 const GOAL_ICON_SIZE = 20;
 const GOAL_ICON_SLOT = 36;
 
-const GOAL_OPTIONS: { value: GoalType; label: string; detail: string; icon: SymbolViewProps['name'] }[] = [
-  { value: 'distance', label: 'Distance clarity', detail: 'Sharper contrast at farther targets.', icon: 'mountain.2' },
-  { value: 'near', label: 'Near work', detail: 'Comfort for reading and close focus.', icon: 'book.closed' },
-  { value: 'sports', label: 'Fast reactions', detail: 'Faster visual pickup and motion decisions.', icon: 'bolt' },
+const GOAL_OPTIONS: { value: GoalType; labelKey: TranslationKey; detailKey: TranslationKey; icon: SymbolViewProps['name'] }[] = [
+  { value: 'distance', labelKey: 'onboarding.goalCards.distance.title', detailKey: 'onboarding.goalCards.distance.detail', icon: 'mountain.2' },
+  { value: 'near', labelKey: 'onboarding.goalCards.near.title', detailKey: 'onboarding.goalCards.near.detail', icon: 'book.closed' },
+  { value: 'sports', labelKey: 'onboarding.goalCards.sports.title', detailKey: 'onboarding.goalCards.sports.detail', icon: 'bolt' },
 ];
 
 export default function OnboardingScreen() {
@@ -157,7 +160,7 @@ export default function OnboardingScreen() {
                   <StepCopy step={step} />
                 </View>
                 <AppText color="muted" style={styles.decisionListLabel} uppercase variant="micro">
-                  Choose a goal
+                  {t('onboarding.nav.chooseGoal')}
                 </AppText>
                 <GoalChoices
                   onSelect={setSelectedGoal}
@@ -177,7 +180,7 @@ export default function OnboardingScreen() {
               <View style={styles.actions}>
                 <PrimaryButton
                   haptic={currentStep.id === 'ready' ? 'milestone' : 'selection'}
-                  label={currentStep.buttonLabel}
+                  label={t(currentStep.buttonLabel)}
                   onPress={
                     currentStep.id === 'vision'
                       ? handleGoalContinue
@@ -194,13 +197,13 @@ export default function OnboardingScreen() {
                 {currentStep.id === 'reminders' ? (
                   <PressableScale onPress={advance} style={styles.secondaryChoice}>
                     <AppText color="secondary" variant="caption">
-                      Not now
+                      {t('onboarding.nav.notNow')}
                     </AppText>
                   </PressableScale>
                 ) : null}
                 {currentStep.id === 'reminders' && remindersBlocked ? (
                   <AppText color="muted" style={styles.remindersNotice} variant="micro">
-                    Reminders are off in iOS Settings.
+                    {t('onboarding.steps.reminders.blockedNotice')}
                   </AppText>
                 ) : null}
               </View>
@@ -249,10 +252,10 @@ function StepCopy({ step }: StepCopyProps) {
     <>
       {step === 0 ? (
         <>
-          <FocusInText>{'Train the\nway you see'}</FocusInText>
+          <FocusInText>{t('onboarding.steps.welcome.title')}</FocusInText>
           <StepReveal delay={200} duration={320}>
             <AppText color="secondary" variant="caption">
-              A quieter daily practice for sharper contrast.
+              {t('onboarding.steps.welcome.caption')}
             </AppText>
           </StepReveal>
         </>
@@ -261,12 +264,12 @@ function StepCopy({ step }: StepCopyProps) {
         <>
           <StepReveal delay={0}>
             <AppText variant="title">
-              Your brain sharpens contrast with practice. Measurably.
+              {t('onboarding.steps.science.title')}
             </AppText>
           </StepReveal>
           <StepReveal delay={120} duration={320}>
             <AppText color="secondary">
-              Short, consistent sessions help perceptual learning settle in over time.
+              {t('onboarding.steps.science.body')}
             </AppText>
           </StepReveal>
         </>
@@ -274,11 +277,11 @@ function StepCopy({ step }: StepCopyProps) {
       {step === 2 ? (
         <>
           <StepReveal delay={0}>
-            <AppText variant="title">What should training optimise for?</AppText>
+            <AppText variant="title">{t('onboarding.steps.vision.title')}</AppText>
           </StepReveal>
           <StepReveal delay={120} duration={320}>
             <AppText color="secondary">
-              The first calibration stays broad. Your goal shapes the training plan after that.
+              {t('onboarding.steps.vision.body')}
             </AppText>
           </StepReveal>
         </>
@@ -287,12 +290,13 @@ function StepCopy({ step }: StepCopyProps) {
         <>
           <StepReveal delay={0}>
             <AppText variant="title">
-              This colour means <AppText color="accent" variant="title">action.</AppText>
+              {t('onboarding.steps.accent.titleLead')}{' '}
+              <AppText color="accent" variant="title">{t('onboarding.steps.accent.titleAccent')}</AppText>
             </AppText>
           </StepReveal>
           <StepReveal delay={120} duration={320}>
             <AppText color="muted" variant="caption">
-              The glow marks anything you can start or commit.
+              {t('onboarding.steps.accent.caption')}
             </AppText>
           </StepReveal>
         </>
@@ -300,11 +304,11 @@ function StepCopy({ step }: StepCopyProps) {
       {step === 4 ? (
         <>
           <StepReveal delay={0}>
-            <AppText variant="title">A gentle cue keeps the practice close.</AppText>
+            <AppText variant="title">{t('onboarding.steps.reminders.title')}</AppText>
           </StepReveal>
           <StepReveal delay={120} duration={320}>
             <AppText color="secondary">
-              {"Daily reminders make it easier to keep your streak and retain each session's gains."}
+              {t('onboarding.steps.reminders.body')}
             </AppText>
           </StepReveal>
         </>
@@ -312,11 +316,11 @@ function StepCopy({ step }: StepCopyProps) {
       {step === 6 ? (
         <>
           <StepReveal delay={0}>
-            <AppText variant="hero">{"You're set"}</AppText>
+            <AppText variant="hero">{t('onboarding.steps.ready.title')}</AppText>
           </StepReveal>
           <StepReveal delay={120} duration={320}>
             <AppText color="secondary" variant="caption">
-              Your first session will set a baseline.
+              {t('onboarding.steps.ready.caption')}
             </AppText>
           </StepReveal>
         </>
@@ -366,10 +370,10 @@ function GoalChoices({ selected, onSelect, reduceMotion }: GoalChoicesProps) {
             </View>
             <View style={styles.goalCopy}>
               <AppText color="primary" variant="bodyStrong">
-                {option.label}
+                {t(option.labelKey)}
               </AppText>
               <AppText color={isSelected ? 'secondary' : 'muted'} style={styles.goalDetail} variant="caption">
-                {option.detail}
+                {t(option.detailKey)}
               </AppText>
             </View>
             <View style={[styles.goalDot, isSelected && styles.goalDotSelected]} />
@@ -404,7 +408,7 @@ function TopChrome({ contentWidth, onBack, step, totalSteps }: TopChromeProps) {
         )}
       </View>
       <AppText color="primary" style={styles.stepLabel} variant="caption">
-        {`${step + 1} of ${totalSteps}`}
+        {t('onboarding.nav.stepProgress', { step: step + 1, total: totalSteps })}
       </AppText>
       <ProgressBar step={step} totalSteps={totalSteps} />
     </View>

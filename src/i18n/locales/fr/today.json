@@ -1,0 +1,16 @@
+{
+  "eyebrowLabel": "Aujourd’hui",
+  "weekDayLetters": ["D", "L", "M", "M", "J", "V", "S"],
+  "streak": {
+    "one": "{{count}} jour de suite",
+    "other": "{{count}} jours de suite"
+  },
+  "title": {
+    "comeBackTomorrow": "Rendez-vous\ndemain",
+    "setBaseline": "Définir votre\nligne de base",
+    "readyWhenYouAre": "Prêt à\ncommencer"
+  },
+  "nextLabel": "Suivant · {{target}}",
+  "ctaStart": "Commencer la session",
+  "ctaOptionalPractice": "Entraînement optionnel"
+}

@@ -6,15 +6,18 @@ import type { SFSymbol } from 'sf-symbols-typescript';
 
 import { AmbientGradient } from '@/components/home/AmbientGradient';
 import { AppText, FadeIn, GaborMark, GlassCard, PrimaryButton, Screen, SecondaryButton } from '@/components/ui';
+import { t } from '@/i18n';
 import { useAppStore } from '@/store/useAppStore';
 import { accent, fontWeight, hairline, material, radius, space } from '@/theme/tokens';
 import { useEffectiveReducedMotion } from '@/theme/useEffectiveReducedMotion';
 
-const BENEFITS: readonly { text: string; icon: SFSymbol }[] = [
-  { text: 'Adaptive sessions adjusted to your readings', icon: 'waveform.path.ecg' },
-  { text: 'Progress graphs with confidence and retest states', icon: 'chart.line.uptrend.xyaxis' },
-  { text: 'Private by design. Your readings stay on this device.', icon: 'lock' },
-] as const;
+function useBenefits(): readonly { text: string; icon: SFSymbol }[] {
+  return [
+    { text: t('paywall.benefits.adaptive'), icon: 'waveform.path.ecg' },
+    { text: t('paywall.benefits.progress'), icon: 'chart.line.uptrend.xyaxis' },
+    { text: t('paywall.benefits.privacy'), icon: 'lock' },
+  ] as const;
+}
 
 const CHECK_GLYPH_SIZE = 14;
 const GABOR_HERO_SIZE = 72;
@@ -79,6 +82,7 @@ function BenefitGlyph({ icon }: { icon: SFSymbol }) {
 export default function PaywallScreen() {
   const router = useRouter();
   const reduceMotion = useEffectiveReducedMotion();
+  const benefits = useBenefits();
 
   // Onboarding completion is persisted here, once the paywall has actually
   // mounted: flipping it inside onboarding's completion handler raced the root
@@ -122,17 +126,17 @@ export default function PaywallScreen() {
             pair → legal caption (Fable-lock ruling: layout order is
             bit-identical territory, not a carve-out). */}
         <FadeIn delay={20} duration={360} style={styles.headerBlock}>
-          <OutlineChip label="Early access" />
+          <OutlineChip label={t('paywall.earlyAccessChip')} />
           <AppText style={styles.title} variant="title">
-            Free while we finish the instrument.
+            {t('paywall.title')}
           </AppText>
           <AppText color="secondary" style={styles.subtitle} variant="body">
-            Build a baseline, test the routine, and keep your readings private on this device.
+            {t('paywall.subtitle')}
           </AppText>
         </FadeIn>
 
         <FadeIn delay={40} style={styles.features}>
-          {BENEFITS.map((benefit) => (
+          {benefits.map((benefit) => (
             <View key={benefit.text} style={styles.featureRow}>
               <BenefitGlyph icon={benefit.icon} />
               <AppText color="secondary" style={styles.featureText} variant="body">
@@ -143,28 +147,28 @@ export default function PaywallScreen() {
         </FadeIn>
 
         <FadeIn delay={80} style={styles.planWrap}>
-          <FilledChip label="Free" style={styles.planBadge} />
+          <FilledChip label={t('paywall.freeBadge')} style={styles.planBadge} />
           {/* ONE-material pass: fill switches to the same Tier 3 'content'
               glass every other content card uses; the accent-border selection
               treatment (law 11) is preserved on top. */}
           <GlassCard style={styles.plan} tier="content">
             <AppText color="primary" variant="bodyStrong">
-              Vision Trainer
+              {t('paywall.planName')}
             </AppText>
             <AppText color="secondary" style={styles.planPrice} variant="caption">
-              Early builds. No payment today.
+              {t('paywall.planPrice')}
             </AppText>
             <AppText color="muted" style={styles.planBilled} variant="caption">
-              Built for practice, not promises. Readings only track this routine.
+              {t('paywall.planBilled')}
             </AppText>
           </GlassCard>
         </FadeIn>
 
         <FadeIn delay={140} style={styles.actions}>
-          <PrimaryButton label="Start training" onPress={startTraining} />
-          <SecondaryButton label="Maybe later" onPress={maybeLater} />
+          <PrimaryButton label={t('paywall.ctaStart')} onPress={startTraining} />
+          <SecondaryButton label={t('paywall.ctaMaybeLater')} onPress={maybeLater} />
           <AppText color="muted" style={styles.legalCaption} variant="caption">
-            Free while in Early Access. No subscription is active.
+            {t('paywall.legalCaption')}
           </AppText>
         </FadeIn>
       </View>

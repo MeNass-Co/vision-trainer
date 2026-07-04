@@ -6,6 +6,7 @@ import { StyleSheet, View } from 'react-native';
 import { AppText, GaborMark, GlassCard, PrimaryButton } from '@/components/ui';
 import { buildDeviceCalibration } from '@/core/deviceCalibration';
 import { viewingDistanceReminder } from '@/core/displayCalibration';
+import { t } from '@/i18n';
 import {
   applySessionBrightness,
   getCurrentBrightness,
@@ -41,7 +42,10 @@ function edgeForProgress(progressValue: number): 'min' | 'max' | null {
   return null;
 }
 
-export function CalibrationCard({ onComplete, confirmLabel = 'This feels right' }: CalibrationCardProps) {
+export function CalibrationCard({
+  onComplete,
+  confirmLabel = t('calibration.confirmDefault'),
+}: CalibrationCardProps) {
   const storedBrightness = useAppStore((state) => state.settings.displayBrightness);
   const [brightness, setBrightness] = useState(
     clamp(storedBrightness, BRIGHTNESS_MIN, BRIGHTNESS_MAX)
@@ -116,7 +120,7 @@ export function CalibrationCard({ onComplete, confirmLabel = 'This feels right' 
       <View style={styles.calibrationReference}>
         <GaborMark size={212} />
         <AppText style={styles.calibrationCopy} variant="title">
-          Set a comfortable glow for your room.
+          {t('calibration.title')}
         </AppText>
         <AppText color="muted" style={styles.calibrationDistance} variant="caption">
           {distanceLine}
@@ -141,13 +145,13 @@ export function CalibrationCard({ onComplete, confirmLabel = 'This feels right' 
         </Host>
         <View style={styles.sliderLabels}>
           <AppText color="secondary" uppercase variant="micro">
-            Dim
+            {t('calibration.dim')}
           </AppText>
           <AppText color="primary" tabular variant="bodyStrong">
-            {Math.round(brightness * 100)}%
+            {t('calibration.brightnessValue', { value: Math.round(brightness * 100) })}
           </AppText>
           <AppText color="secondary" uppercase variant="micro">
-            Bright
+            {t('calibration.bright')}
           </AppText>
         </View>
       </GlassCard>

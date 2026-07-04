@@ -1,0 +1,8 @@
+{
+  "title": "Régler une luminosité confortable pour la pièce.",
+  "dim": "Faible",
+  "bright": "Forte",
+  "brightnessValue": "{{value}} %",
+  "done": "Terminé",
+  "confirmDefault": "Valider le réglage"
+}

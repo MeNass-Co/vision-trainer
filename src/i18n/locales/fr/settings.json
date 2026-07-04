@@ -1,0 +1,24 @@
+{
+  "title": "Réglages",
+  "sections": {
+    "feedback": { "title": "Retour sensoriel" },
+    "display": { "title": "Affichage" },
+    "reminders": { "title": "Rappels" },
+    "about": { "title": "À propos" }
+  },
+  "rows": {
+    "haptics": { "label": "Retour haptique" },
+    "reduceMotion": { "label": "Réduire les animations" },
+    "displayCalibration": { "label": "Calibrage de l’écran" },
+    "dailyReminder": { "label": "Rappel quotidien" },
+    "version": { "label": "Version", "value": "v{{version}} ({{build}})" },
+    "science": { "label": "La science" },
+    "earlyAccess": { "label": "Accès anticipé" },
+    "privacyPolicy": { "label": "Politique de confidentialité" },
+    "termsOfUse": { "label": "Conditions d’utilisation" }
+  },
+  "messages": {
+    "remindersDisabled": "Les rappels sont désactivés dans Réglages.",
+    "openSettings": "Ouvrir Réglages"
+  }
+}

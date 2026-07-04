@@ -1,0 +1,48 @@
+{
+  "bands": {
+    "broad": "Formes larges",
+    "everyday": "Détail du quotidien",
+    "fine": "Détail fin"
+  },
+  "confidence": {
+    "needsRetest": {
+      "label": "Nouveau test conseillé",
+      "detail": "Cette mesure doit être répétée avant de compter dans la tendance."
+    },
+    "provisional": {
+      "label": "Ligne de base {{step}}/{{target}}",
+      "detail": {
+        "one": "Encore {{remaining}} session propre avant que la tendance ne soit fiable.",
+        "other": "Encore {{remaining}} sessions propres avant que la tendance ne soit fiable."
+      }
+    },
+    "reliable": {
+      "label": "Mesure fiable",
+      "detail": "Assez de sessions propres sont disponibles pour comparer la tendance."
+    }
+  },
+  "csfReference": {
+    "target": "Cible",
+    "norm": "Norme"
+  },
+  "cpdUnit": "{{value}} cpd",
+  "session": {
+    "durationLabel": "{{band}} · {{minutes}} min",
+    "firstSessionLabel": "Première session · {{minutes}} min"
+  },
+  "weekdayShort": ["Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"],
+  "tabs": {
+    "today": "Aujourd’hui",
+    "progress": "Progrès",
+    "settings": "Réglages"
+  },
+  "errors": {
+    "hydrateFailedTitle": "Impossible de charger les données.",
+    "retry": "Réessayer"
+  },
+  "notifications": {
+    "channelName": "Rappel quotidien",
+    "dailyTitle": "C’est l’heure d’entraîner votre vision",
+    "dailyBody": "Quelques minutes au calme préservent la série et les acquis."
+  }
+}

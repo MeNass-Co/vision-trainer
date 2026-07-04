@@ -1,0 +1,48 @@
+{
+  "bands": {
+    "broad": "Broad shapes",
+    "everyday": "Everyday detail",
+    "fine": "Fine detail"
+  },
+  "confidence": {
+    "needsRetest": {
+      "label": "Retest recommended",
+      "detail": "This reading should be repeated before it counts toward your trend."
+    },
+    "provisional": {
+      "label": "Building baseline {{step}}/{{target}}",
+      "detail": {
+        "one": "{{remaining}} more clean session before trends become reliable.",
+        "other": "{{remaining}} more clean sessions before trends become reliable."
+      }
+    },
+    "reliable": {
+      "label": "Reliable reading",
+      "detail": "Enough clean sessions are available to compare your trend."
+    }
+  },
+  "csfReference": {
+    "target": "Target",
+    "norm": "Norm"
+  },
+  "cpdUnit": "{{value}} cpd",
+  "session": {
+    "durationLabel": "{{band}} · {{minutes}} min",
+    "firstSessionLabel": "First session · {{minutes}} min"
+  },
+  "weekdayShort": ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
+  "tabs": {
+    "today": "Today",
+    "progress": "Progress",
+    "settings": "Settings"
+  },
+  "errors": {
+    "hydrateFailedTitle": "Your data couldn't be loaded.",
+    "retry": "Try again"
+  },
+  "notifications": {
+    "channelName": "Daily reminder",
+    "dailyTitle": "Time to train your vision",
+    "dailyBody": "A few quiet minutes keeps your streak and your gains alive."
+  }
+}

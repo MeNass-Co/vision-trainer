@@ -1,0 +1,54 @@
+{
+  "nav": {
+    "begin": "Begin",
+    "continue": "Continue",
+    "gotIt": "Got it",
+    "enableReminders": "Enable reminders",
+    "startTraining": "Start training",
+    "notNow": "Not now",
+    "chooseGoal": "Choose a goal",
+    "stepProgress": "{{step}} of {{total}}"
+  },
+  "steps": {
+    "welcome": {
+      "title": "Train the\nway you see",
+      "caption": "A quieter daily practice for sharper contrast."
+    },
+    "science": {
+      "title": "Your brain sharpens contrast with practice. Measurably.",
+      "body": "Short, consistent sessions help perceptual learning settle in over time."
+    },
+    "vision": {
+      "title": "What should training optimise for?",
+      "body": "The first calibration stays broad. Your goal shapes the training plan after that."
+    },
+    "accent": {
+      "titleLead": "This colour means",
+      "titleAccent": "action.",
+      "caption": "The glow marks anything you can start or commit."
+    },
+    "reminders": {
+      "title": "A gentle cue keeps the practice close.",
+      "body": "Daily reminders make it easier to keep your streak and retain each session's gains.",
+      "blockedNotice": "Reminders are off in iOS Settings."
+    },
+    "ready": {
+      "title": "You're set",
+      "caption": "Your first session will set a baseline."
+    }
+  },
+  "goalCards": {
+    "distance": {
+      "title": "Distance clarity",
+      "detail": "Sharper contrast at farther targets."
+    },
+    "near": {
+      "title": "Near work",
+      "detail": "Comfort for reading and close focus."
+    },
+    "sports": {
+      "title": "Fast reactions",
+      "detail": "Faster visual pickup and motion decisions."
+    }
+  }
+}
