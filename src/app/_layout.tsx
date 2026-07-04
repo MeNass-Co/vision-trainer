@@ -9,7 +9,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AppText, PrimaryButton } from '@/components/ui';
 import { notificationService } from '@/services/notifications';
 import { useAppStore } from '@/store/useAppStore';
-import { space, surface } from '@/theme/tokens';
+import { radius, space, surface } from '@/theme/tokens';
 import { useAppFonts } from '@/theme/useAppFonts';
 
 SplashScreen.preventAutoHideAsync();
@@ -100,11 +100,23 @@ export default function RootLayout() {
           <Stack.Screen name="paywall" options={{ animation: 'fade' }} />
           <Stack.Screen
             name="calibration"
-            options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
+            options={{
+              presentation: 'formSheet',
+              animation: 'slide_from_bottom',
+              sheetAllowedDetents: [1],
+              sheetGrabberVisible: true,
+              sheetCornerRadius: radius.sheet,
+            }}
           />
           <Stack.Screen
             name="science"
-            options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
+            options={{
+              presentation: 'formSheet',
+              animation: 'slide_from_bottom',
+              sheetAllowedDetents: [1],
+              sheetGrabberVisible: true,
+              sheetCornerRadius: radius.sheet,
+            }}
           />
         </Stack>
       </SafeAreaProvider>

@@ -159,7 +159,11 @@ export default function OnboardingScreen() {
                 <AppText color="muted" style={styles.decisionListLabel} uppercase variant="micro">
                   Choose a goal
                 </AppText>
-                <GoalChoices onSelect={setSelectedGoal} selected={selectedGoal} />
+                <GoalChoices
+                  onSelect={setSelectedGoal}
+                  reduceMotion={reduceMotion}
+                  selected={selectedGoal}
+                />
               </View>
             ) : (
               <View style={styles.hero}>
@@ -324,9 +328,10 @@ function StepCopy({ step }: StepCopyProps) {
 type GoalChoicesProps = {
   selected: GoalType;
   onSelect: (goal: GoalType) => void;
+  reduceMotion: boolean;
 };
 
-function GoalChoices({ selected, onSelect }: GoalChoicesProps) {
+function GoalChoices({ selected, onSelect, reduceMotion }: GoalChoicesProps) {
   return (
     <View style={styles.goalList}>
       {GOAL_OPTIONS.map((option) => {
@@ -339,12 +344,23 @@ function GoalChoices({ selected, onSelect }: GoalChoicesProps) {
             onPress={() => onSelect(option.value)}
             style={[styles.goalChoice, isSelected && styles.goalChoiceSelected]}>
             <View style={styles.goalIconSlot}>
+              {/* SF Symbol animations (THE GREAT NATIVE WAVE): a one-shot
+                  'bounce' plays whenever this glyph's tint flips on select —
+                  `OnViewDidUpdateProps` re-triggers the (non-repeating) effect
+                  on any prop change, so tying the tint to selection state is
+                  what makes the bounce fire exactly on select/deselect.
+                  `animated` is derived internally from `animationSpec`'s
+                  presence, so reduceMotion gates the whole effect by simply
+                  omitting the spec. */}
               <SymbolView
+                animationSpec={
+                  reduceMotion ? undefined : { effect: { type: 'bounce', wholeSymbol: true } }
+                }
                 name={option.icon}
                 resizeMode="scaleAspectFit"
                 size={GOAL_ICON_SIZE}
                 style={styles.goalIconGlyph}
-                tintColor={text.secondary}
+                tintColor={isSelected ? ACCENT : text.secondary}
                 type="monochrome"
               />
             </View>

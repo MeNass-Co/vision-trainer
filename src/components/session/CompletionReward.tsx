@@ -1,3 +1,4 @@
+import { SymbolView } from 'expo-symbols';
 import { useCallback, useEffect, useRef, useState, type ComponentType, type ComponentProps } from 'react';
 import { StyleSheet, TextInput, View } from 'react-native';
 import Animated, {
@@ -20,6 +21,7 @@ import { haptics } from '@/theme/haptics';
 import { easings } from '@/theme/motion';
 import {
   ACCENT,
+  ACCENT_CORE,
   ACCENT_GLOW,
   material,
   motion,
@@ -85,6 +87,12 @@ export function CompletionReward({
   // The CTA spends ~2.3s at opacity 0; while invisible it must not be tappable,
   // or a blind tap dismisses the reward the user never saw.
   const [ctaInteractive, setCtaInteractive] = useState(reduceMotion);
+  // SF Symbol animations (THE GREAT NATIVE WAVE): the "Session complete" badge
+  // plays a one-shot bounce as it lands with the card. `animationSpec` starts
+  // undefined (no effect) and flips to a spec object once the card has faded
+  // in — that prop transition is what fires the native bounce, same trigger
+  // technique as the onboarding goal card's select bounce.
+  const [badgeBounce, setBadgeBounce] = useState(false);
   const backdropOpacity = useSharedValue(0);
   const skyIgnite = useSharedValue(0);
   const bloomOpacity = useSharedValue(0);
@@ -109,6 +117,15 @@ export function CompletionReward({
   useEffect(() => {
     streakTargetRef.current = streakNow;
   }, [streakNow, streakWasCounted]);
+
+  useEffect(() => {
+    if (reduceMotion) return;
+
+    // Fires alongside `cardOpacity`'s own 360ms delay (see the effect below) —
+    // the badge bounces in right as the card itself lands.
+    const timeout = setTimeout(() => setBadgeBounce(true), 360);
+    return () => clearTimeout(timeout);
+  }, [reduceMotion]);
 
   useEffect(() => {
     if (reduceMotion) {
@@ -260,9 +277,21 @@ export function CompletionReward({
           <View pointerEvents="none" style={styles.emblemScale}>
             <CelestialGabor contrast={0.34} progress={accuracyTarget / 100} reduceMotion={reduceMotion} resolveOnMount />
           </View>
-          <AppText color="muted" uppercase variant="micro">
-            Session complete
-          </AppText>
+          <View style={styles.completeRow}>
+            <SymbolView
+              animationSpec={badgeBounce ? { effect: { type: 'bounce', wholeSymbol: true } } : undefined}
+              name="checkmark.seal.fill"
+              resizeMode="scaleAspectFit"
+              size={13}
+              style={styles.completeGlyph}
+              tintColor={ACCENT_CORE}
+              type="monochrome"
+              weight="medium"
+            />
+            <AppText color="muted" uppercase variant="micro">
+              Session complete
+            </AppText>
+          </View>
           <View style={styles.scoreWrap}>
             <Animated.View pointerEvents="none" style={[styles.bloom, bloomStyle]}>
               <Bloom color={ACCENT_GLOW} />
@@ -407,6 +436,15 @@ const styles = StyleSheet.create({
     minWidth: 292,
     paddingHorizontal: space.xl,
     paddingVertical: space.xl,
+  },
+  completeGlyph: {
+    height: 13,
+    width: 13,
+  },
+  completeRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: space.xs,
   },
   correctLine: {
     marginTop: -2,

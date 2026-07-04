@@ -1,5 +1,6 @@
 import Constants from 'expo-constants';
 import { type Href, useRouter } from 'expo-router';
+import { GlassContainer } from 'expo-glass-effect';
 import { SymbolView } from 'expo-symbols';
 import * as WebBrowser from 'expo-web-browser';
 import { useRef, useState } from 'react';
@@ -74,6 +75,11 @@ export default function SettingsScreen() {
           Settings
         </AppText>
       </FadeIn>
+      {/* GlassContainer (THE GREAT NATIVE WAVE): groups every settings section's
+          glass card into one liquid-glass merge group so adjacent cards can
+          blend/morph at the edges instead of reading as isolated slabs — the
+          same droplet behavior Apple's own System Settings sections get. */}
+      <GlassContainer spacing={space.lg}>
       <FadeIn delay={60}>
         <Section title="Feedback">
           <Row
@@ -194,6 +200,7 @@ export default function SettingsScreen() {
           />
         </Section>
       </FadeIn>
+      </GlassContainer>
     </Screen>
   );
 }

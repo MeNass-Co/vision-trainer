@@ -1,4 +1,5 @@
 import { useLocalSearchParams } from 'expo-router';
+import { GlassContainer } from 'expo-glass-effect';
 import { SymbolView } from 'expo-symbols';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { LayoutChangeEvent, Platform, ScrollView, StyleSheet, View } from 'react-native';
@@ -94,6 +95,11 @@ export default function ProgressScreen() {
               verdict={data.verdict}
             />
           </FadeIn>
+          {/* GlassContainer (THE GREAT NATIVE WAVE): the three stacked glass
+              cards below (Vision profile / Last 7 days / By spatial
+              frequency) merge-group so they can blend at the edges on scroll
+              like droplets, instead of reading as three isolated slabs. */}
+          <GlassContainer spacing={space.md}>
           <FadeIn delay={90}>
             <Card style={styles.card}>
               {/* One section-header grammar app-wide: matches Settings'
@@ -181,6 +187,7 @@ export default function ProgressScreen() {
               </View>
             </Card>
           </FadeIn>
+          </GlassContainer>
         </>
       )}
     </Screen>

@@ -1,17 +1,30 @@
-import { Tabs } from 'expo-router';
+import { NativeTabs } from 'expo-router/unstable-native-tabs';
 
-import { CustomTabBar } from '@/components/ui/CustomTabBar';
-import { surface } from '@/theme/tokens';
+import { ACCENT_CORE } from '@/theme/tokens';
 
+// THE GREAT NATIVE WAVE: the hand-drawn Liquid Glass tab bar (CustomTabBar,
+// GlassView + reanimated pill) is retired in favor of a real UITabBar via
+// expo-router's NativeTabs. iOS 26 gives this its own genuine glass material,
+// automatic scroll-under, and the minimize-on-scroll behavior for free — the
+// custom component could only ever approximate those. `TAB_BAR_CLEARANCE` is
+// still exported from CustomTabBar.tsx for the few screens that reserve
+// bottom space above the bar; CustomTabBar itself is no longer mounted.
 export function TabsLayout() {
   return (
-    <Tabs
-      screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: surface.base } }}
-      tabBar={(props) => <CustomTabBar {...props} />}>
-      <Tabs.Screen name="index" options={{ title: 'Today' }} />
-      <Tabs.Screen name="progress" options={{ title: 'Progress' }} />
-      <Tabs.Screen name="settings" options={{ title: 'Settings' }} />
-    </Tabs>
+    <NativeTabs tintColor={ACCENT_CORE}>
+      <NativeTabs.Trigger name="index">
+        <NativeTabs.Trigger.Label>Today</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon sf={{ default: 'house', selected: 'house.fill' }} />
+      </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="progress">
+        <NativeTabs.Trigger.Label>Progress</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon sf="chart.line.uptrend.xyaxis" />
+      </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="settings">
+        <NativeTabs.Trigger.Label>Settings</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon sf={{ default: 'gearshape', selected: 'gearshape.fill' }} />
+      </NativeTabs.Trigger>
+    </NativeTabs>
   );
 }
 
