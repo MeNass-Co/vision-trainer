@@ -448,7 +448,15 @@ export default function SessionScreen() {
       } else {
         void handleAutoAdvance();
       }
-    } else if (controller.status === 'complete' && uiPhase === 'idle' && !showCompletion) {
+    } else if (
+      controller.status === 'complete' &&
+      uiPhase === 'idle' &&
+      !showCompletion &&
+      // Once the user advances to the insight, the reward must never remount —
+      // without this guard the effect re-lights showCompletion one frame after
+      // handleCompletionDone's swap, stacking both end screens translucently.
+      !showInsight
+    ) {
       setShowCompletion(true);
       setBigBurst(true);
       setBurst((current) => current + 1);
@@ -460,6 +468,7 @@ export default function SessionScreen() {
     handleAutoAdvance,
     runTrial,
     showCompletion,
+    showInsight,
     startBlockFold,
     uiPhase,
   ]);

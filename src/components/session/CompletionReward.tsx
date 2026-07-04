@@ -1,6 +1,6 @@
 import { SymbolView } from 'expo-symbols';
 import { useCallback, useEffect, useRef, useState, type ComponentType, type ComponentProps } from 'react';
-import { StyleSheet, TextInput, View } from 'react-native';
+import { StyleSheet, Text, TextInput, View } from 'react-native';
 import Animated, {
   runOnJS,
   useAnimatedProps,
@@ -11,7 +11,6 @@ import Animated, {
   withSpring,
   withTiming,
 } from 'react-native-reanimated';
-import Svg, { Circle } from 'react-native-svg';
 
 import { AmbientGradient } from '@/components/home/AmbientGradient';
 import { CelestialGabor } from '@/components/home/CelestialGabor';
@@ -50,11 +49,6 @@ type CountUpTextInputProps = ComponentProps<typeof TextInput> & {
 const AnimatedTextInput = Animated.createAnimatedComponent(TextInput) as unknown as ComponentType<
   CountUpTextInputProps
 >;
-const AnimatedCircle = Animated.createAnimatedComponent(Circle);
-const RING_SIZE = 132;
-const RING_CENTER = RING_SIZE / 2;
-const RING_RADIUS = 58;
-const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
 // Bloom reads as a soft halo around the ring, not a screen-filling wash —
 // contained within the card like the inter-block score's Bloom treatment.
 const BLOOM_INSET = 44;
@@ -87,6 +81,13 @@ export function CompletionReward({
   // The CTA spends ~2.3s at opacity 0; while invisible it must not be tappable,
   // or a blind tap dismisses the reward the user never saw.
   const [ctaInteractive, setCtaInteractive] = useState(reduceMotion);
+  // Reanimated writes the count-up text natively, so the TextInput never
+  // relayouts — its width must be fixed up front. A per-digit constant drifted
+  // under SF Pro's true tabular advance (~0.62em) and clipped "100" to "10";
+  // instead an invisible Text twin renders the final string and reports the
+  // exact width to use.
+  const [accuracyWidth, setAccuracyWidth] = useState(0);
+  const [streakWidth, setStreakWidth] = useState(0);
   // SF Symbol animations (THE GREAT NATIVE WAVE): the "Session complete" badge
   // plays a one-shot bounce as it lands with the card. `animationSpec` starts
   // undefined (no effect) and flips to a spec object once the card has faded
@@ -100,7 +101,6 @@ export function CompletionReward({
   const cardOpacity = useSharedValue(0);
   const cardTranslateY = useSharedValue(-40);
   const accuracy = useSharedValue(0);
-  const constellation = useSharedValue(0);
   const streak = useSharedValue(streakFrom);
   const streakRowOpacity = useSharedValue(0);
   const ctaOpacity = useSharedValue(0);
@@ -136,7 +136,6 @@ export function CompletionReward({
       cardOpacity.value = 1;
       cardTranslateY.value = 0;
       accuracy.value = accuracyTarget;
-      constellation.value = 1;
       streak.value = streakTargetRef.current;
       streakRowOpacity.value = 1;
       ctaOpacity.value = 1;
@@ -165,10 +164,6 @@ export function CompletionReward({
         }
       )
     );
-    constellation.value = withDelay(
-      900,
-      withTiming(1, { duration: motion.timing.drawOnMs, easing: easings.out })
-    );
     streakRowOpacity.value = withDelay(1500, withTiming(1, { duration: 280, easing: easings.out }));
     ctaOpacity.value = withDelay(
       2300,
@@ -186,7 +181,6 @@ export function CompletionReward({
     bloomScale,
     cardOpacity,
     cardTranslateY,
-    constellation,
     ctaOpacity,
     ctaTranslateY,
     handleNumberSettle,
@@ -245,9 +239,6 @@ export function CompletionReward({
   const accuracyProps = useAnimatedProps(() => ({
     text: `${Math.round(accuracy.value)}`,
   }));
-  const ringProps = useAnimatedProps(() => ({
-    strokeDashoffset: RING_CIRCUMFERENCE * (1 - constellation.value),
-  }));
   const streakProps = useAnimatedProps(() => ({
     text: `${Math.round(streak.value)}`,
   }));
@@ -274,8 +265,13 @@ export function CompletionReward({
           {/* Celestial identity as a small emblem only (never a text backdrop,
               same scaled-orb technique as ProgressEmptySky's dormant-state icon) —
               the grating must never sit behind legible text. */}
-          <View pointerEvents="none" style={styles.emblemScale}>
-            <CelestialGabor contrast={0.34} progress={accuracyTarget / 100} reduceMotion={reduceMotion} resolveOnMount />
+          {/* Flexbox-centered native-size child scaled about its own center —
+              the previous top-left-anchored transform drifted the orb off-center
+              over the caps row (owner screenshot IMG_6015). */}
+          <View pointerEvents="none" style={styles.emblemBox}>
+            <View style={styles.emblemInner}>
+              <CelestialGabor contrast={0.34} progress={accuracyTarget / 100} reduceMotion={reduceMotion} resolveOnMount />
+            </View>
           </View>
           <View style={styles.completeRow}>
             <SymbolView
@@ -296,39 +292,28 @@ export function CompletionReward({
             <Animated.View pointerEvents="none" style={[styles.bloom, bloomStyle]}>
               <Bloom color={ACCENT_GLOW} />
             </Animated.View>
-            <Animated.View pointerEvents="none" style={styles.ring}>
-              <Svg height={RING_SIZE} width={RING_SIZE}>
-                <Circle
-                  cx={RING_CENTER}
-                  cy={RING_CENTER}
-                  fill="none"
-                  r={RING_RADIUS}
-                  stroke={surface.hairline}
-                  strokeWidth={1}
-                />
-                <AnimatedCircle
-                  animatedProps={ringProps}
-                  cx={RING_CENTER}
-                  cy={RING_CENTER}
-                  fill="none"
-                  r={RING_RADIUS}
-                  stroke={ACCENT}
-                  strokeDasharray={RING_CIRCUMFERENCE}
-                  strokeLinecap="round"
-                  strokeWidth={1.5}
-                  transform={`rotate(-90 ${RING_CENTER} ${RING_CENTER})`}
-                />
-              </Svg>
-            </Animated.View>
+            {/* No ring (owner verdict: the number outgrew it and it shouldn't
+                exist) — the score is one centered text lockup: digits + %
+                sharing the same baseline, soft bloom halo behind. */}
             <View accessible accessibilityLabel={`${accuracyTarget}% accuracy`} style={styles.accuracy}>
+              <Text
+                onLayout={(event) =>
+                  setAccuracyWidth(Math.ceil(event.nativeEvent.layout.width) + 2)
+                }
+                style={[styles.accuracyNumber, styles.ghost]}>
+                {accuracyTarget}
+              </Text>
               <AnimatedTextInput
                 animatedProps={accuracyProps}
                 defaultValue="0"
                 editable={false}
-                style={styles.accuracyNumber}
+                style={[
+                  styles.accuracyNumber,
+                  { width: accuracyWidth || String(accuracyTarget).length * 46 },
+                ]}
                 underlineColorAndroid="transparent"
               />
-              <AppText style={styles.percent} tabular variant="display">
+              <AppText style={styles.percent} tabular variant="title">
                 %
               </AppText>
             </View>
@@ -341,11 +326,21 @@ export function CompletionReward({
               accessible
               accessibilityLabel={`${streakNow} day streak`}
               style={[styles.streakRow, streakRowStyle]}>
+              <Text
+                onLayout={(event) =>
+                  setStreakWidth(Math.ceil(event.nativeEvent.layout.width) + 2)
+                }
+                style={[styles.streakNumber, styles.ghost]}>
+                {streakNow}
+              </Text>
               <AnimatedTextInput
                 animatedProps={streakProps}
                 defaultValue={`${streakFrom}`}
                 editable={false}
-                style={styles.streakNumber}
+                style={[
+                  styles.streakNumber,
+                  { width: streakWidth || String(streakNow).length * 24 },
+                ]}
                 underlineColorAndroid="transparent"
               />
               <AppText color="secondary" style={styles.streakLabel} variant="caption">
@@ -377,10 +372,9 @@ export function CompletionReward({
 
 const styles = StyleSheet.create({
   accuracy: {
-    alignItems: 'flex-end',
+    alignItems: 'baseline',
     flexDirection: 'row',
     justifyContent: 'center',
-    width: 220,
   },
   accuracyNumber: {
     color: text.primary,
@@ -392,7 +386,6 @@ const styles = StyleSheet.create({
     lineHeight: 82,
     padding: 0,
     textAlign: 'right',
-    width: 144,
   },
   action: {
     alignItems: 'center',
@@ -449,35 +442,34 @@ const styles = StyleSheet.create({
   correctLine: {
     marginTop: -2,
   },
-  emblemScale: {
+  emblemBox: {
+    alignItems: 'center',
     height: EMBLEM_SIZE,
+    justifyContent: 'center',
     marginBottom: space.sm,
-    transform: [{ scale: EMBLEM_SIZE / CELESTIAL_NATIVE_SIZE }],
     width: EMBLEM_SIZE,
+  },
+  emblemInner: {
+    height: CELESTIAL_NATIVE_SIZE,
+    transform: [{ scale: EMBLEM_SIZE / CELESTIAL_NATIVE_SIZE }],
+    width: CELESTIAL_NATIVE_SIZE,
+  },
+  ghost: {
+    opacity: 0,
+    position: 'absolute',
   },
   percent: {
     color: text.primary,
     fontWeight: typeScale.title.fontWeight,
-    fontSize: 32,
-    lineHeight: 44,
-    marginLeft: 8,
-    paddingBottom: 6,
-  },
-  ring: {
-    alignItems: 'center',
-    bottom: 0,
-    justifyContent: 'center',
-    left: 0,
-    position: 'absolute',
-    right: 0,
-    top: 0,
+    fontSize: 28,
+    lineHeight: 34,
+    marginLeft: 4,
   },
   scoreWrap: {
     alignItems: 'center',
-    height: RING_SIZE,
     justifyContent: 'center',
-    marginTop: space.xl,
-    width: RING_SIZE,
+    marginTop: space.lg,
+    paddingVertical: space.sm,
   },
   streakLabel: {
     marginLeft: 6,
@@ -490,7 +482,6 @@ const styles = StyleSheet.create({
     height: 40,
     letterSpacing: 0,
     lineHeight: 40,
-    minWidth: 58,
     padding: 0,
     textAlign: 'right',
   },
