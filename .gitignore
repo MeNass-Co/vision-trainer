@@ -55,3 +55,4 @@ _vt_*.mjs
 _shoot*.mjs
 .backups/
 .codex_briefs/
+*.ipa
