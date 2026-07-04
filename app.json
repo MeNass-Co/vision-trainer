@@ -13,7 +13,8 @@
       "supportsTablet": false,
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
-      }
+      },
+      "userInterfaceStyle": "dark"
     },
     "android": {
       "package": "co.menass.visiontrainer",
