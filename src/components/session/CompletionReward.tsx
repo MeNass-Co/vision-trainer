@@ -15,6 +15,7 @@ import Animated, {
 import { AmbientGradient } from '@/components/home/AmbientGradient';
 import { CelestialGabor } from '@/components/home/CelestialGabor';
 import { AppText, Bloom, GlassCard, PressableScale } from '@/components/ui';
+import { t, tPlural } from '@/i18n';
 import { useTodayData } from '@/presenters';
 import { haptics } from '@/theme/haptics';
 import { easings } from '@/theme/motion';
@@ -60,13 +61,17 @@ const EMBLEM_SIZE = 64;
 
 export function CompletionReward({
   accuracyTarget,
-  actionLabel = 'Done',
+  actionLabel,
   correctCount,
   total,
   onDone,
   reduceMotion = false,
-  subtitle = 'Come back tomorrow',
+  subtitle,
 }: CompletionRewardProps) {
+  // Defaults resolved via t() at render time (not destructuring literals) so
+  // they follow the active locale — session.tsx normally passes both anyway.
+  const resolvedActionLabel = actionLabel ?? t('session.completion.done');
+  const resolvedSubtitle = subtitle ?? t('session.completion.subtitleDefault');
   const today = useTodayData();
   const streakNow = today.data.streakDays;
   const streakWasCounted = today.data.sessionDoneToday;
@@ -285,7 +290,7 @@ export function CompletionReward({
               weight="medium"
             />
             <AppText color="muted" uppercase variant="micro">
-              Session complete
+              {t('session.completion.badge')}
             </AppText>
           </View>
           <View style={styles.scoreWrap}>
@@ -295,7 +300,10 @@ export function CompletionReward({
             {/* No ring (owner verdict: the number outgrew it and it shouldn't
                 exist) — the score is one centered text lockup: digits + %
                 sharing the same baseline, soft bloom halo behind. */}
-            <View accessible accessibilityLabel={`${accuracyTarget}% accuracy`} style={styles.accuracy}>
+            <View
+              accessible
+              accessibilityLabel={t('session.completion.accuracyA11y', { value: accuracyTarget })}
+              style={styles.accuracy}>
               <Text
                 onLayout={(event) =>
                   setAccuracyWidth(Math.ceil(event.nativeEvent.layout.width) + 2)
@@ -319,12 +327,12 @@ export function CompletionReward({
             </View>
           </View>
           <AppText color="secondary" style={styles.correctLine} tabular variant="caption">
-            {correctCount}/{total} correct
+            {t('session.completion.correctLine', { correct: correctCount, total })}
           </AppText>
           {showStreak ? (
             <Animated.View
               accessible
-              accessibilityLabel={`${streakNow} day streak`}
+              accessibilityLabel={tPlural('today.streak', streakNow, { count: streakNow })}
               style={[styles.streakRow, streakRowStyle]}>
               <Text
                 onLayout={(event) =>
@@ -344,23 +352,23 @@ export function CompletionReward({
                 underlineColorAndroid="transparent"
               />
               <AppText color="secondary" style={styles.streakLabel} variant="caption">
-                day streak
+                {tPlural('session.completion.streakLabel', streakNow)}
               </AppText>
             </Animated.View>
           ) : null}
           <Animated.View pointerEvents="none" style={[styles.subtitleWrap, subtitleStyle]}>
             <AppText color="muted" variant="caption">
-              {subtitle}
+              {resolvedSubtitle}
             </AppText>
           </Animated.View>
           <Animated.View pointerEvents={ctaInteractive ? 'auto' : 'none'} style={ctaStyle}>
             <PressableScale
-              accessibilityLabel="Finish session"
+              accessibilityLabel={t('session.completion.finishA11y')}
               accessibilityRole="button"
               onPress={onDone}
               style={styles.action}>
               <AppText color="inverse" variant="caption">
-                {actionLabel}
+                {resolvedActionLabel}
               </AppText>
             </PressableScale>
           </Animated.View>

@@ -1,0 +1,107 @@
+{
+  "ready": {
+    "hero": "Two flashes",
+    "instruction": "Pick the one with the pattern.",
+    "begin": "Begin",
+    "preparing": "Preparing"
+  },
+  "distanceReminder": {
+    "text": "Hold your phone about {{cm}} cm away ({{reach}}). This is the distance your calibration assumes.",
+    "reachShort": "a short arm's length",
+    "reachFull": "an arm's length"
+  },
+  "paused": {
+    "title": "Paused",
+    "body": "Your place is saved. The interrupted trial will replay.",
+    "resume": "Resume"
+  },
+  "phase": {
+    "ready": "Ready",
+    "flash1": "Flash 1",
+    "wait": "Wait",
+    "flash2": "Flash 2",
+    "choose": "Choose"
+  },
+  "block": {
+    "completeLabel": "{{block}} complete",
+    "counter": "Block {{index}} of {{total}}",
+    "next": "Next: {{block}}",
+    "continue": "Continue"
+  },
+  "leaveAlert": {
+    "title": "End session?",
+    "message": "Completed blocks will be kept.",
+    "keepTraining": "Keep training",
+    "end": "End session"
+  },
+  "completion": {
+    "badge": "Session complete",
+    "correctLine": "{{correct}}/{{total}} correct",
+    "accuracyA11y": "{{value}}% accuracy",
+    "streakLabel": {
+      "one": "day streak",
+      "other": "day streak"
+    },
+    "subtitleReady": "Your session is ready to read",
+    "subtitleDefault": "Come back tomorrow",
+    "saving": "Saving",
+    "continue": "Continue",
+    "done": "Done",
+    "finishA11y": "Finish session"
+  },
+  "saveFailed": {
+    "message": "Couldn't save this session.",
+    "retry": "Retry",
+    "discard": "Discard",
+    "discardA11y": "Discard session and exit"
+  },
+  "closeA11y": "Close session",
+  "insight": {
+    "tone": {
+      "provisional": "Building baseline",
+      "reliable": "Ready to compare",
+      "needsRetest": "Do not overread"
+    },
+    "metrics": {
+      "measured": "Measured",
+      "change": "Change",
+      "baseline": "Baseline"
+    },
+    "viewProgress": "View progress",
+    "reviewReading": "Review reading",
+    "done": "Done",
+    "delta": {
+      "improving": "Improving",
+      "steady": "Steady",
+      "dropped": "Dropped",
+      "uncertain": "Uncertain"
+    },
+    "bands": {
+      "none": "No bands",
+      "list": "{{list}} and {{last}} cpd"
+    },
+    "needsRetest": {
+      "title": "Retest recommended",
+      "confidence": "Needs retest",
+      "summary": "This session had an unusual response pattern.",
+      "detail": "Fatigue, lighting, missed taps, or a rushed run can make the estimate unreliable. Repeat the session before trusting this reading."
+    },
+    "provisional": {
+      "title": "Baseline started",
+      "confidence": "Provisional",
+      "summaryMeasured": "Measured {{bands}}.",
+      "detail": {
+        "one": "Complete {{count}} more session this week for a reliable starting point. This is contrast training practice, and it only tracks this routine.",
+        "other": "Complete {{count}} more sessions this week for a reliable starting point. This is contrast training practice, and it only tracks this routine."
+      }
+    },
+    "reliable": {
+      "title": "Session insight",
+      "confidence": "Reliable",
+      "summaryMeasured": "Measured {{bands}}.",
+      "summaryDeltaZero": "{{bands}} is {{label}}.",
+      "summaryDelta": "{{bands}} is {{label}} by {{percent}}%.",
+      "detail": "Your next session keeps working near the edge of what you can see, so perfect scores should still lead to harder contrast."
+    }
+  }
+}

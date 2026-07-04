@@ -1,0 +1,107 @@
+{
+  "ready": {
+    "hero": "Deux flashs",
+    "instruction": "Choisir celui qui contient le motif.",
+    "begin": "Commencer",
+    "preparing": "Préparation"
+  },
+  "distanceReminder": {
+    "text": "Tenir le téléphone à environ {{cm}} cm ({{reach}}). C’est la distance prévue par votre calibrage.",
+    "reachShort": "une courte longueur de bras",
+    "reachFull": "une longueur de bras"
+  },
+  "paused": {
+    "title": "En pause",
+    "body": "Votre progression est sauvegardée. L’essai interrompu sera rejoué.",
+    "resume": "Reprendre"
+  },
+  "phase": {
+    "ready": "Prêt",
+    "flash1": "Flash 1",
+    "wait": "Attendre",
+    "flash2": "Flash 2",
+    "choose": "Choisir"
+  },
+  "block": {
+    "completeLabel": "Terminé · {{block}}",
+    "counter": "Bloc {{index}} sur {{total}}",
+    "next": "Suivant : {{block}}",
+    "continue": "Continuer"
+  },
+  "leaveAlert": {
+    "title": "Terminer la session ?",
+    "message": "Les blocs terminés seront conservés.",
+    "keepTraining": "Continuer l’entraînement",
+    "end": "Terminer la session"
+  },
+  "completion": {
+    "badge": "Session terminée",
+    "correctLine": "{{correct}}/{{total}} bonnes réponses",
+    "accuracyA11y": "Précision : {{value}} %",
+    "streakLabel": {
+      "one": "jour de suite",
+      "other": "jours de suite"
+    },
+    "subtitleReady": "Votre bilan est prêt",
+    "subtitleDefault": "Rendez-vous demain",
+    "saving": "Enregistrement",
+    "continue": "Continuer",
+    "done": "Terminé",
+    "finishA11y": "Terminer la session"
+  },
+  "saveFailed": {
+    "message": "Impossible d’enregistrer cette session.",
+    "retry": "Réessayer",
+    "discard": "Abandonner",
+    "discardA11y": "Abandonner la session et quitter"
+  },
+  "closeA11y": "Fermer la session",
+  "insight": {
+    "tone": {
+      "provisional": "Ligne de base en cours",
+      "reliable": "Prêt à comparer",
+      "needsRetest": "À lire avec prudence"
+    },
+    "metrics": {
+      "measured": "Mesuré",
+      "change": "Variation",
+      "baseline": "Ligne de base"
+    },
+    "viewProgress": "Voir les progrès",
+    "reviewReading": "Revoir la mesure",
+    "done": "Terminé",
+    "delta": {
+      "improving": "En progrès",
+      "steady": "Stable",
+      "dropped": "En baisse",
+      "uncertain": "Incertain"
+    },
+    "bands": {
+      "none": "Aucune bande",
+      "list": "{{list}} et {{last}} cpd"
+    },
+    "needsRetest": {
+      "title": "Nouveau test conseillé",
+      "confidence": "À retester",
+      "summary": "Cette session présente un schéma de réponses inhabituel.",
+      "detail": "Fatigue, éclairage, touches manquées ou une série précipitée peuvent rendre l’estimation peu fiable. Répéter la session avant de se fier à cette mesure."
+    },
+    "provisional": {
+      "title": "Ligne de base lancée",
+      "confidence": "Provisoire",
+      "summaryMeasured": "Mesure : {{bands}}.",
+      "detail": {
+        "one": "Encore {{count}} session cette semaine pour un point de départ fiable. Il s’agit d’un entraînement au contraste, qui ne suit que cette routine.",
+        "other": "Encore {{count}} sessions cette semaine pour un point de départ fiable. Il s’agit d’un entraînement au contraste, qui ne suit que cette routine."
+      }
+    },
+    "reliable": {
+      "title": "Bilan de session",
+      "confidence": "Fiable",
+      "summaryMeasured": "Mesure : {{bands}}.",
+      "summaryDeltaZero": "{{bands}} : {{label}}.",
+      "summaryDelta": "{{bands}} : {{label}} de {{percent}} %.",
+      "detail": "Votre prochaine session continue de travailler à la limite du visible : des scores parfaits mènent donc vers des contrastes plus exigeants."
+    }
+  }
+}

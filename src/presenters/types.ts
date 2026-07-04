@@ -50,7 +50,9 @@ export type PostSessionInsightView = {
   measuredBandsLabel: string;
   summary: string;
   detail: string;
-  deltaLabel: 'Improving' | 'Steady' | 'Dropped' | 'Uncertain';
+  // Localized display text (session.insight.delta.* keys) — was an English
+  // literal union; widened for i18n. Branch on `deltaPercent`, never on this.
+  deltaLabel: string;
   deltaPercent: number | null;
   sessionsUntilReliable: number;
   measurementConfidence: MeasurementConfidenceView;

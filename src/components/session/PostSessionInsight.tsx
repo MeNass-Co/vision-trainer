@@ -1,6 +1,7 @@
 import { StyleSheet, View } from 'react-native';
 
 import { AppText, Bloom, FadeIn, GlassSurface, PressableScale, PrimaryButton } from '@/components/ui';
+import { t } from '@/i18n';
 import { ACCENT_GLOW, material, radius, space, surface } from '@/theme/tokens';
 import type { PostSessionInsightView } from '@/presenters';
 
@@ -10,18 +11,21 @@ type PostSessionInsightProps = {
   onViewProgress: () => void;
 };
 
-const confidenceTone: Record<PostSessionInsightView['status'], string> = {
-  provisional: 'Building baseline',
-  reliable: 'Ready to compare',
-  'needs-retest': 'Do not overread',
-};
+function confidenceTone(status: PostSessionInsightView['status']): string {
+  if (status === 'provisional') return t('session.insight.tone.provisional');
+  if (status === 'reliable') return t('session.insight.tone.reliable');
+  return t('session.insight.tone.needsRetest');
+}
 
 export function PostSessionInsight({ insight, onDone, onViewProgress }: PostSessionInsightProps) {
   const delta =
     insight.deltaPercent === null
       ? insight.deltaLabel
       : `${insight.deltaLabel} ${Math.abs(insight.deltaPercent)}%`;
-  const primaryLabel = insight.status === 'needs-retest' ? 'Review reading' : 'View progress';
+  const primaryLabel =
+    insight.status === 'needs-retest'
+      ? t('session.insight.reviewReading')
+      : t('session.insight.viewProgress');
 
   return (
     <View style={styles.overlay}>
@@ -29,7 +33,7 @@ export function PostSessionInsight({ insight, onDone, onViewProgress }: PostSess
         <GlassSurface radius={material.radius} style={styles.card}>
           <View style={styles.header}>
             <AppText color="muted" uppercase variant="micro">
-              {confidenceTone[insight.status]}
+              {confidenceTone(insight.status)}
             </AppText>
             <View style={styles.confidencePill}>
               <AppText color="accent" uppercase variant="micro">
@@ -51,7 +55,7 @@ export function PostSessionInsight({ insight, onDone, onViewProgress }: PostSess
           <View style={styles.metrics}>
             <View style={styles.metric}>
               <AppText color="muted" uppercase variant="micro">
-                Measured
+                {t('session.insight.metrics.measured')}
               </AppText>
               <AppText color="secondary" tabular variant="caption">
                 {insight.measuredBandsLabel}
@@ -59,7 +63,7 @@ export function PostSessionInsight({ insight, onDone, onViewProgress }: PostSess
             </View>
             <View style={styles.metric}>
               <AppText color="muted" uppercase variant="micro">
-                Change
+                {t('session.insight.metrics.change')}
               </AppText>
               <AppText color="secondary" tabular variant="caption">
                 {delta}
@@ -67,7 +71,7 @@ export function PostSessionInsight({ insight, onDone, onViewProgress }: PostSess
             </View>
             <View style={styles.metric}>
               <AppText color="muted" uppercase variant="micro">
-                Baseline
+                {t('session.insight.metrics.baseline')}
               </AppText>
               <AppText color="secondary" tabular variant="caption">
                 {insight.measurementConfidence.baselineStep}/{insight.measurementConfidence.baselineTarget}
@@ -83,7 +87,7 @@ export function PostSessionInsight({ insight, onDone, onViewProgress }: PostSess
             <PrimaryButton label={primaryLabel} onPress={onViewProgress} style={styles.primaryAction} />
             <PressableScale accessibilityRole="button" onPress={onDone} style={styles.secondaryAction}>
               <AppText color="secondary" variant="caption">
-                Done
+                {t('session.insight.done')}
               </AppText>
             </PressableScale>
           </View>

@@ -1,4 +1,4 @@
-import { t, tList } from '@/i18n';
+import { t, tList, tPlural } from '@/i18n';
 import { buildBeforeAfterCsf, buildLatestCsf, improvementPercent } from '@/progress/csf';
 import { populationNormContrast } from '@/progress/norms';
 import type { SessionLog, ThresholdEstimate } from '@/types';
@@ -62,9 +62,12 @@ function measuredBandsLabel(thresholds: ThresholdEstimate[]): string {
     .sort((a, b) => a - b)
     .map(formatCpd);
 
-  if (bands.length === 0) return 'No bands';
-  if (bands.length === 1) return `${bands[0]} cpd`;
-  return `${bands.slice(0, -1).join(', ')} and ${bands[bands.length - 1]} cpd`;
+  if (bands.length === 0) return t('session.insight.bands.none');
+  if (bands.length === 1) return t('common.cpdUnit', { value: bands[0] });
+  return t('session.insight.bands.list', {
+    list: bands.slice(0, -1).join(', '),
+    last: bands[bands.length - 1],
+  });
 }
 
 function hasSuspiciousQuality(thresholds: ThresholdEstimate[]): boolean {
@@ -102,10 +105,10 @@ function sessionDeltaPercent(
 }
 
 function deltaLabel(deltaPercent: number | null): PostSessionInsightView['deltaLabel'] {
-  if (deltaPercent === null) return 'Uncertain';
-  if (deltaPercent > 2) return 'Improving';
-  if (deltaPercent < -2) return 'Dropped';
-  return 'Steady';
+  if (deltaPercent === null) return t('session.insight.delta.uncertain');
+  if (deltaPercent > 2) return t('session.insight.delta.improving');
+  if (deltaPercent < -2) return t('session.insight.delta.dropped');
+  return t('session.insight.delta.steady');
 }
 
 export function derivePostSessionInsight(
@@ -124,12 +127,12 @@ export function derivePostSessionInsight(
   if (sessionThresholds.length === 0 || hasSuspiciousQuality(sessionThresholds)) {
     return {
       status: 'needs-retest',
-      title: 'Retest recommended',
-      confidenceLabel: 'Needs retest',
+      title: t('session.insight.needsRetest.title'),
+      confidenceLabel: t('session.insight.needsRetest.confidence'),
       measuredBandsLabel: bands,
-      summary: 'This session had an unusual response pattern.',
-      detail: 'Fatigue, lighting, missed taps, or a rushed run can make the estimate unreliable. Repeat the session before trusting this reading.',
-      deltaLabel: 'Uncertain',
+      summary: t('session.insight.needsRetest.summary'),
+      detail: t('session.insight.needsRetest.detail'),
+      deltaLabel: t('session.insight.delta.uncertain'),
       deltaPercent: null,
       sessionsUntilReliable,
       measurementConfidence,
@@ -139,12 +142,14 @@ export function derivePostSessionInsight(
   if (measurementConfidence.tier === 'provisional') {
     return {
       status: 'provisional',
-      title: 'Baseline started',
-      confidenceLabel: 'Provisional',
+      title: t('session.insight.provisional.title'),
+      confidenceLabel: t('session.insight.provisional.confidence'),
       measuredBandsLabel: bands,
-      summary: `Measured ${bands}.`,
-      detail: `Complete ${sessionsUntilReliable} more session${sessionsUntilReliable === 1 ? '' : 's'} this week for a reliable starting point. This is contrast training practice, and it only tracks this routine.`,
-      deltaLabel: 'Uncertain',
+      summary: t('session.insight.provisional.summaryMeasured', { bands }),
+      detail: tPlural('session.insight.provisional.detail', sessionsUntilReliable, {
+        count: sessionsUntilReliable,
+      }),
+      deltaLabel: t('session.insight.delta.uncertain'),
       deltaPercent: null,
       sessionsUntilReliable,
       measurementConfidence,
@@ -156,14 +161,20 @@ export function derivePostSessionInsight(
 
   return {
     status: 'reliable',
-    title: 'Session insight',
-    confidenceLabel: 'Reliable',
+    title: t('session.insight.reliable.title'),
+    confidenceLabel: t('session.insight.reliable.confidence'),
     measuredBandsLabel: bands,
     summary:
       deltaPercent === null
-        ? `Measured ${bands}.`
-        : `${bands} is ${label.toLowerCase()}${deltaPercent === 0 ? '' : ` by ${Math.abs(deltaPercent)}%`}.`,
-    detail: 'Your next session keeps working near the edge of what you can see, so perfect scores should still lead to harder contrast.',
+        ? t('session.insight.reliable.summaryMeasured', { bands })
+        : deltaPercent === 0
+          ? t('session.insight.reliable.summaryDeltaZero', { bands, label: label.toLowerCase() })
+          : t('session.insight.reliable.summaryDelta', {
+              bands,
+              label: label.toLowerCase(),
+              percent: Math.abs(deltaPercent),
+            }),
+    detail: t('session.insight.reliable.detail'),
     deltaLabel: label,
     deltaPercent,
     sessionsUntilReliable: 0,

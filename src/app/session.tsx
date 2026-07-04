@@ -24,6 +24,7 @@ import { ResponseTap } from '@/components/session/ResponseTap';
 import { RewardBurst } from '@/components/session/RewardBurst';
 import { AppText, Bloom, FadeIn, GlassSurface, PressableScale, PrimaryButton } from '@/components/ui';
 import { viewingDistanceReminder } from '@/core/displayCalibration';
+import { t } from '@/i18n';
 import { usePostSessionInsight, useSessionController } from '@/presenters';
 import { applySessionBrightness, restoreCapturedBrightness } from '@/services/brightness';
 import { setSessionActive } from '@/services/notifications';
@@ -399,9 +400,9 @@ export default function SessionScreen() {
       (controller.status === 'running' || controller.status === 'block-complete') &&
       controller.completedBlockCount > 0
     ) {
-      Alert.alert('End session?', 'Completed blocks will be kept.', [
-        { text: 'Keep training', style: 'cancel' },
-        { text: 'End session', style: 'destructive', onPress: handleAbortConfirm },
+      Alert.alert(t('session.leaveAlert.title'), t('session.leaveAlert.message'), [
+        { text: t('session.leaveAlert.keepTraining'), style: 'cancel' },
+        { text: t('session.leaveAlert.end'), style: 'destructive', onPress: handleAbortConfirm },
       ]);
       return;
     }
@@ -556,12 +557,12 @@ export default function SessionScreen() {
             </Animated.View>
             <Animated.View style={heroRiseStyle}>
               <AppText style={styles.readyHero} variant="hero">
-                Two flashes
+                {t('session.ready.hero')}
               </AppText>
             </Animated.View>
             <Animated.View style={instructionRiseStyle}>
               <AppText color="secondary" style={styles.readyInstruction} variant="body">
-                Pick the one with the pattern.
+                {t('session.ready.instruction')}
               </AppText>
               <AppText color="muted" style={styles.readyDistance} variant="caption">
                 {viewingDistanceReminder(controller.calibration.viewingDistanceCm)}
@@ -571,7 +572,7 @@ export default function SessionScreen() {
               <PrimaryButton
                 disabled={!canvasReady}
                 haptic="select"
-                label={canvasReady ? 'Begin' : 'Preparing'}
+                label={canvasReady ? t('session.ready.begin') : t('session.ready.preparing')}
                 onPress={handleBegin}
               />
             </Animated.View>
@@ -586,13 +587,13 @@ export default function SessionScreen() {
               {controller.blockLabel}
             </AppText>
             <AppText style={styles.readyHero} variant="hero">
-              Paused
+              {t('session.paused.title')}
             </AppText>
             <AppText color="secondary" style={styles.readyInstruction} variant="body">
-              Your place is saved. The interrupted trial will replay.
+              {t('session.paused.body')}
             </AppText>
             <View style={styles.beginWrap}>
-              <PrimaryButton haptic="select" label="Resume" onPress={handleResume} />
+              <PrimaryButton haptic="select" label={t('session.paused.resume')} onPress={handleResume} />
             </View>
           </View>
         </View>
@@ -603,10 +604,13 @@ export default function SessionScreen() {
           <FadeIn duration={motion.timing.entranceMs}>
             <GlassSurface radius={material.radius} style={styles.overlayCard}>
               <AppText color="muted" uppercase variant="micro">
-                {controller.blockLabel} complete
+                {t('session.block.completeLabel', { block: controller.blockLabel })}
               </AppText>
               <AppText color="muted" style={styles.blockCounter} tabular uppercase variant="micro">
-                Block {controller.blockIndex + 1} of {controller.totalBlocks}
+                {t('session.block.counter', {
+                  index: controller.blockIndex + 1,
+                  total: controller.totalBlocks,
+                })}
               </AppText>
               <View style={styles.blockScore}>
                 <Bloom color={ACCENT_GLOW} style={styles.blockBloom} />
@@ -616,7 +620,9 @@ export default function SessionScreen() {
               </View>
               <PressableScale onPress={() => void handleContinue()} style={styles.action}>
                 <AppText color="inverse" variant="caption">
-                  {controller.nextBlockLabel ? `Next: ${controller.nextBlockLabel}` : 'Continue'}
+                  {controller.nextBlockLabel
+                    ? t('session.block.next', { block: controller.nextBlockLabel })
+                    : t('session.block.continue')}
                 </AppText>
               </PressableScale>
             </GlassSurface>
@@ -629,11 +635,15 @@ export default function SessionScreen() {
           accuracyTarget={Math.round(
             (controller.correctCount / controller.totalTrials) * 100
           )}
-          actionLabel={controller.saveState === 'saving' ? 'Saving' : 'Continue'}
+          actionLabel={
+            controller.saveState === 'saving'
+              ? t('session.completion.saving')
+              : t('session.completion.continue')
+          }
           correctCount={controller.correctCount}
           onDone={handleCompletionDone}
           reduceMotion={reduceMotion}
-          subtitle="Your session is ready to read"
+          subtitle={t('session.completion.subtitleReady')}
           total={controller.totalTrials}
         />
       ) : null}
@@ -643,16 +653,16 @@ export default function SessionScreen() {
           <FadeIn duration={motion.timing.entranceMs}>
             <GlassSurface radius={material.radius} style={styles.saveFailedCard}>
               <AppText color="secondary" style={styles.saveFailedMessage} variant="body">
-                {"Couldn't save this session."}
+                {t('session.saveFailed.message')}
               </AppText>
-              <PrimaryButton label="Retry" onPress={controller.retrySave} />
+              <PrimaryButton label={t('session.saveFailed.retry')} onPress={controller.retrySave} />
               <PressableScale
-                accessibilityLabel="Discard session and exit"
+                accessibilityLabel={t('session.saveFailed.discardA11y')}
                 accessibilityRole="button"
                 onPress={handleDiscard}
                 style={styles.saveFailedDiscard}>
                 <AppText color="muted" variant="caption">
-                  Discard
+                  {t('session.saveFailed.discard')}
                 </AppText>
               </PressableScale>
             </GlassSurface>
@@ -669,7 +679,7 @@ export default function SessionScreen() {
       ) : null}
 
       <PressableScale
-        accessibilityLabel="Close session"
+        accessibilityLabel={t('session.closeA11y')}
         accessibilityRole="button"
         hitSlop={12}
         onPress={handleClose}
@@ -687,15 +697,15 @@ function TrialPhaseGuide({ phase }: { phase: UiPhase }) {
     phase === 'interval-1' ? 0 : phase === 'isi' ? 1 : phase === 'interval-2' ? 2 : null;
   const label =
     phase === 'fixation'
-      ? 'Ready'
+      ? t('session.phase.ready')
       : phase === 'interval-1'
-        ? 'Flash 1'
+        ? t('session.phase.flash1')
         : phase === 'isi'
-          ? 'Wait'
+          ? t('session.phase.wait')
           : phase === 'interval-2'
-            ? 'Flash 2'
+            ? t('session.phase.flash2')
             : phase === 'response'
-              ? 'Choose'
+              ? t('session.phase.choose')
               : null;
 
   if (!label) return null;

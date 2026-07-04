@@ -1,3 +1,5 @@
+import { t } from '@/i18n';
+
 import type { CalibrationProfile } from '../types';
 
 const CM_PER_INCH = 2.54;
@@ -46,8 +48,9 @@ export function luminanceToLinearGray(luminanceCdM2: number, profile: Calibratio
  */
 export function viewingDistanceReminder(viewingDistanceCm: number): string {
   const roundedCm = Math.max(10, Math.round(viewingDistanceCm / 10) * 10);
-  const reach = roundedCm <= 40 ? "a short arm's length" : "an arm's length";
-  return `Hold your phone about ${roundedCm} cm away (${reach}). This is the distance your calibration assumes.`;
+  const reach =
+    roundedCm <= 40 ? t('session.distanceReminder.reachShort') : t('session.distanceReminder.reachFull');
+  return t('session.distanceReminder.text', { cm: roundedCm, reach });
 }
 
 export function conditionKey(
